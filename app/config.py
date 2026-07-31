@@ -47,7 +47,25 @@ def cache_dir() -> Path:
     return base
 
 
+def nombre_base(file_name: str) -> str:
+    """
+    Devuelve el nombre de archivo SIN la extensión de datos.
+
+    Existe porque `models.file_names.FileName` ya trae la extensión incorporada
+    (`ad_pps.parquet`). Antes, `destino()` la volvía a concatenar y el archivo
+    terminaba en disco como `ad_pps.parquet.parquet`, invisible para `logic/`,
+    que busca `ad_pps.parquet`. Normalizar aquí — en el ÚNICO punto que
+    construye rutas de datos — arregla la escritura, la lectura, el borrado, el
+    estado de las cards y la huella de caché de una sola vez, sin tocar
+    `models/`, que es contrato compartido con el monolito.
+    """
+    nombre = str(file_name)
+    while nombre.lower().endswith(EXTENSION_DATOS):
+        nombre = nombre[: -len(EXTENSION_DATOS)]
+    return nombre
+
+
 def destino(file_name: str, subfolder: str | None = None) -> Path:
-    """Ruta absoluta del archivo de datos de una fuente."""
+    """Ruta absoluta del archivo de datos de una fuente. Idempotente."""
     carpeta = data_path() / subfolder if subfolder else data_path()
-    return carpeta / f"{file_name}{EXTENSION_DATOS}"
+    return carpeta / f"{nombre_base(file_name)}{EXTENSION_DATOS}"

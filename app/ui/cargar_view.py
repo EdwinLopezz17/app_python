@@ -20,7 +20,8 @@ from PySide6.QtWidgets import (
 
 from app.catalog.fuentes import APLICACIONES, BASES_DE_DATOS, OTROS_REPORTES, Fuente
 from app.catalog.hallazgos import Hallazgo
-from app.storage.files import estado_slot, eliminar_fuente
+from app.storage import purge
+from app.storage.files import estado_slot
 from app.ui.datos_dialog import DatosDialog
 from app.ui.fuente_card import FuenteCard
 from app.ui.panel_estado import PanelEstado
@@ -215,16 +216,54 @@ class CargarView(QWidget):
         DatosDialog(slot, self).exec()
 
     def _eliminar_todo(self) -> None:
-        respuesta = QMessageBox.warning(
-            self, "Eliminar todos los archivos",
-            "Se eliminarán TODOS los archivos cargados de este hallazgo.\n\n"
-            "Varias de estas fuentes son compartidas: eliminarlas aquí también "
-            "las quita de los demás hallazgos que dependen de ellas.\n\n"
-            "¿Continuar?",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+        """
+        Borrado con ALCANCE EXPLÍCITO.
+
+        "Eliminar todo" es ambiguo mirando una pantalla de carga: puede
+        significar este hallazgo o la certificación entera. En vez de decidirlo
+        por el usuario y que se lleve una sorpresa irreversible, se le pregunta.
+        El botón por defecto es Cancelar.
+        """
+        dialogo = QMessageBox(self)
+        dialogo.setIcon(QMessageBox.Warning)
+        dialogo.setWindowTitle("Eliminar información cargada")
+        dialogo.setText("¿Qué alcance quieres eliminar?")
+
+        compartidas = purge.fuentes_compartidas(self.hallazgo)
+        detalle = (
+            f"«Este hallazgo» elimina los archivos de {self.hallazgo.label} y su "
+            "resultado generado.\n\n"
+            f"«Toda la certificación» elimina los archivos de TODOS los hallazgos "
+            f"de {self.hallazgo.cert_label} y todos sus resultados generados.\n\n"
+            "Esta acción no se puede deshacer."
         )
-        if respuesta != QMessageBox.Yes:
+        if compartidas:
+            detalle += (
+                "\n\nFuentes compartidas con otros hallazgos que también "
+                "quedarán sin cargar:\n· " + "\n· ".join(compartidas)
+            )
+        dialogo.setInformativeText(detalle)
+
+        btn_hallazgo = dialogo.addButton(
+            f"Este hallazgo ({self.hallazgo.label})", QMessageBox.DestructiveRole
+        )
+        btn_cert = dialogo.addButton(
+            "Toda la certificación", QMessageBox.DestructiveRole
+        )
+        btn_cancelar = dialogo.addButton("Cancelar", QMessageBox.RejectRole)
+        dialogo.setDefaultButton(btn_cancelar)
+        dialogo.exec()
+
+        elegido = dialogo.clickedButton()
+        if elegido is btn_cancelar or elegido is None:
             return
-        for fuente in self.hallazgo.fuentes:
-            eliminar_fuente(fuente)
+
+        if elegido is btn_cert:
+            resultado = purge.borrar_certificacion(self.hallazgo.cert_id)
+        else:
+            resultado = purge.borrar_hallazgo(self.hallazgo)
+
         self.refrescar()
+        QMessageBox.information(
+            self, "Eliminar información cargada", resultado.mensaje()
+        )

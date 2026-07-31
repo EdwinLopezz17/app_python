@@ -23,11 +23,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 from app import config
 from app.catalog.fuentes import Slot
 from app.ingest.merge import consolidar
-from app.ingest.readers import leer_cabeceras
+from app.ingest.readers import leer_cabeceras, texto_celda
 from app.ingest.validate import ResultadoValidacion, formato_permitido, validar_columnas
 
 
@@ -54,12 +56,42 @@ class ResultadoCarga:
     validacion: ResultadoValidacion
 
 
+def a_tabla_string(df: pd.DataFrame) -> pa.Table:
+    """
+    Convierte el DataFrame a una tabla Arrow donde TODAS las columnas son
+    `string`, con el esquema declarado de forma explícita.
+
+    Por qué no basta con `df.astype(str)` antes de `to_parquet`:
+
+      * `astype(str)` sobre una columna float escribe "123.0" — es exactamente el
+        bug que aparecía en los códigos y DNIs.
+      * `astype(str)` sobre nulos escribe los literales "nan", "None" y "NaT"
+        dentro del Parquet. `logic/` los recibe como texto y no como vacío, así
+        que un `if not valor` deja de funcionar.
+      * Sin esquema explícito, pyarrow infiere el tipo de cada columna. Una
+        columna que quedó totalmente vacía se infiere como `null` y no como
+        `string`, y al leerla luego rompe cualquier `.str`.
+
+    Declarar el esquema es la garantía de que el archivo en disco tiene el
+    contrato prometido, no una aproximación.
+    """
+    columnas: list[pa.Array] = []
+    for nombre in df.columns:
+        serie = df[nombre]
+        # `texto_celda` es la misma función que usa el lector: una sola regla de
+        # conversión en toda la aplicación, no dos que puedan divergir.
+        limpia = serie.map(texto_celda)
+        columnas.append(pa.array(limpia.tolist(), type=pa.string()))
+
+    esquema = pa.schema([pa.field(str(c), pa.string()) for c in df.columns])
+    return pa.Table.from_arrays(columnas, schema=esquema)
+
+
 def escribir_parquet(df: pd.DataFrame, destino: Path) -> None:
-    """Escribe el DataFrame como Parquet de forma atómica."""
+    """Escribe el DataFrame como Parquet de forma atómica, todo en string."""
     destino.parent.mkdir(parents=True, exist_ok=True)
 
-    # Todo como string, sin índice: es lo que espera leer `logic/`.
-    df = df.astype(str)
+    tabla = a_tabla_string(df)
 
     fd, tmp_name = tempfile.mkstemp(
         suffix=".parquet.tmp", prefix=destino.stem + "-", dir=destino.parent
@@ -67,7 +99,7 @@ def escribir_parquet(df: pd.DataFrame, destino: Path) -> None:
     os.close(fd)
     tmp = Path(tmp_name)
     try:
-        df.to_parquet(tmp, engine="pyarrow", compression=config.COMPRESION, index=False)
+        pq.write_table(tabla, tmp, compression=config.COMPRESION)
         os.replace(tmp, destino)  # atómico en el mismo volumen
     except Exception:
         tmp.unlink(missing_ok=True)

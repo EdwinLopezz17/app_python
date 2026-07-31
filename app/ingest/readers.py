@@ -33,6 +33,9 @@ Detalles de CSV que este módulo resuelve y que rompen silenciosamente:
 from __future__ import annotations
 
 import io
+import math
+from datetime import date, datetime, time
+from decimal import Decimal
 from pathlib import Path
 
 import pandas as pd
@@ -105,9 +108,152 @@ def _leer_csv(path: Path) -> pd.DataFrame:
     return _desenvolver_csv_doble(df)
 
 
+# ---------------------------------------------------------------------------
+# Conversión de celda a texto  (el corazón del bug del ".0")
+# ---------------------------------------------------------------------------
+#
+# `pd.read_excel(dtype=str)` NO lee como texto: deja que openpyxl/xlrd
+# interpreten la celda y recién después hace `astype(str)`. Una celda con el
+# número 123 llega a pandas como float 123.0 y termina escrita como "123.0".
+# Lo mismo pasa con códigos largos ("2000000000001" -> "2e+12") y con fechas
+# reales de Excel, que llegan como serial y se reformatean.
+#
+# La única forma de leer TEXTO de verdad es tomar el valor nativo de la celda y
+# convertirlo nosotros, con reglas explícitas. Eso es lo que hace `texto_celda`.
+
+
+def texto_celda(valor: object) -> str:
+    """Convierte el valor nativo de una celda a texto SIN perder información."""
+    if valor is None:
+        return ""
+
+    if isinstance(valor, str):
+        return valor
+
+    # bool antes que int: en Python, bool ES subclase de int.
+    if isinstance(valor, bool):
+        return "TRUE" if valor else "FALSE"
+
+    # datetime antes que date: datetime ES subclase de date.
+    # Se escribe en ISO (YYYY-MM-DD) a propósito: es el único formato que
+    # `logic/share/utils.to_datetime` interpreta igual con dayfirst=True y con
+    # dayfirst=False. Con "01/02/2025" el resultado depende del servicio que lo
+    # lea, y ahí es donde aparecen los meses y días intercambiados.
+    if isinstance(valor, datetime):
+        sin_hora = (
+            valor.hour == 0 and valor.minute == 0
+            and valor.second == 0 and valor.microsecond == 0
+        )
+        return valor.strftime("%Y-%m-%d" if sin_hora else "%Y-%m-%d %H:%M:%S")
+    if isinstance(valor, date):
+        return valor.strftime("%Y-%m-%d")
+    if isinstance(valor, time):
+        return valor.strftime("%H:%M:%S")
+
+    if isinstance(valor, int):
+        return str(valor)
+
+    if isinstance(valor, float):
+        if math.isnan(valor) or math.isinf(valor):
+            return ""
+        # 123.0 -> "123". Es el caso que rompía los códigos de usuario.
+        if valor.is_integer() and abs(valor) < 1e16:
+            return str(int(valor))
+        return _sin_notacion_cientifica(repr(valor))
+
+    if isinstance(valor, Decimal):
+        if valor == valor.to_integral_value():
+            return str(int(valor))
+        return _sin_notacion_cientifica(format(valor.normalize(), "f"))
+
+    return str(valor)
+
+
+def _sin_notacion_cientifica(texto: str) -> str:
+    """'2e+12' -> '2000000000000'. Excel muestra el número, no el exponente."""
+    if "e" not in texto.lower():
+        return texto
+    try:
+        return format(Decimal(texto), "f")
+    except Exception:
+        return texto
+
+
+def _cabeceras_unicas(cabeceras: list[str]) -> list[str]:
+    """Desambigua columnas repetidas igual que pandas: NOMBRE, NOMBRE.1, ..."""
+    vistas: dict[str, int] = {}
+    salida: list[str] = []
+    for indice, bruta in enumerate(cabeceras):
+        nombre = bruta.strip() or f"Columna_{indice + 1}"
+        if nombre in vistas:
+            vistas[nombre] += 1
+            nombre = f"{nombre}.{vistas[nombre]}"
+        else:
+            vistas[nombre] = 0
+        salida.append(nombre)
+    return salida
+
+
+def _recortar_cola_vacia(valores: list) -> list:
+    """Excel arrastra columnas/filas fantasma al final. Se descartan."""
+    fin = len(valores)
+    while fin > 0 and (valores[fin - 1] is None or str(valores[fin - 1]).strip() == ""):
+        fin -= 1
+    return valores[:fin]
+
+
+def _leer_xlsx(path: Path) -> pd.DataFrame:
+    """Lee .xlsx/.xlsm con openpyxl en modo streaming, celda por celda."""
+    from openpyxl import load_workbook
+
+    # data_only=True: si la celda tiene fórmula se toma el valor calculado, no
+    # el texto "=BUSCARV(...)". read_only=True: no carga el libro entero en RAM.
+    libro = load_workbook(path, read_only=True, data_only=True)
+    try:
+        hoja = libro[libro.sheetnames[0]]
+        filas = hoja.iter_rows(values_only=True)
+
+        try:
+            cruda = next(filas)
+        except StopIteration:
+            raise ErrorDeLectura(f"El archivo no tiene cabecera: {path.name}") from None
+
+        cabeceras = _cabeceras_unicas(
+            [texto_celda(c) for c in _recortar_cola_vacia(list(cruda))]
+        )
+        if not cabeceras:
+            raise ErrorDeLectura(f"El archivo no tiene cabecera: {path.name}")
+
+        ancho = len(cabeceras)
+        datos: list[list[str]] = []
+        for fila in filas:
+            celdas = [texto_celda(v) for v in fila][:ancho]
+            if len(celdas) < ancho:
+                celdas += [""] * (ancho - len(celdas))
+            if any(c.strip() for c in celdas):  # descarta filas totalmente vacías
+                datos.append(celdas)
+    finally:
+        libro.close()
+
+    return pd.DataFrame(datos, columns=cabeceras, dtype=object)
+
+
+def _leer_xls(path: Path) -> pd.DataFrame:
+    """
+    .xls (formato binario antiguo) solo lo lee xlrd, vía pandas.
+
+    Aquí sí pasa por el intérprete de pandas, pero se pide `dtype=object` para
+    que NO haga el `astype(str)` que produce el ".0": la conversión la hace
+    `texto_celda`, celda por celda, con las mismas reglas que el .xlsx.
+    """
+    df = pd.read_excel(path, dtype=object, keep_default_na=False, na_filter=False)
+    return df.map(texto_celda) if hasattr(df, "map") else df.applymap(texto_celda)
+
+
 def _leer_excel(path: Path) -> pd.DataFrame:
-    # cabecera en la fila 0; el resto como texto crudo.
-    return pd.read_excel(path, dtype=str, keep_default_na=False, na_filter=False)
+    if path.suffix.lower() == ".xls":
+        return _leer_xls(path)
+    return _leer_xlsx(path)
 
 
 def leer_como_texto(path: str | Path) -> pd.DataFrame:
@@ -129,8 +275,13 @@ def leer_como_texto(path: str | Path) -> pd.DataFrame:
         raise ErrorDeLectura(f"Formato no soportado: {ext}")
 
     # Garantía final: nada queda como NaN ni como número.
+    #
+    # OJO: aquí NO se usa `.astype(str)` a secas. Si una columna quedara como
+    # float, `astype(str)` es justamente lo que produce el "123.0". Se pasa cada
+    # valor por `texto_celda`, que ya sabe que 123.0 es 123.
     df.columns = [str(c) for c in df.columns]
-    return df.fillna("").astype(str)
+    df = df.map(texto_celda) if hasattr(df, "map") else df.applymap(texto_celda)
+    return df
 
 
 def leer_cabeceras(path: str | Path) -> list[str]:
@@ -162,7 +313,25 @@ def leer_cabeceras(path: str | Path) -> list[str]:
         return cabeceras
 
     if ext in EXTENSIONES_EXCEL:
-        df = pd.read_excel(path, dtype=str, nrows=0)
-        return [str(c) for c in df.columns]
+        # Misma ruta de lectura que `leer_como_texto`, para que la validación
+        # nunca vea una cabecera distinta de la que se va a cargar. Una cabecera
+        # numérica leída con pandas llegaría como "1.0" y no haría match.
+        if ext == ".xls":
+            df = pd.read_excel(path, dtype=object, nrows=0)
+            return [texto_celda(c) for c in df.columns]
+
+        from openpyxl import load_workbook
+
+        libro = load_workbook(path, read_only=True, data_only=True)
+        try:
+            hoja = libro[libro.sheetnames[0]]
+            cruda = next(hoja.iter_rows(min_row=1, max_row=1, values_only=True), None)
+        finally:
+            libro.close()
+        if cruda is None:
+            raise ErrorDeLectura(f"El archivo no tiene cabecera: {path.name}")
+        return _cabeceras_unicas(
+            [texto_celda(c) for c in _recortar_cola_vacia(list(cruda))]
+        )
 
     raise ErrorDeLectura(f"Formato no soportado: {ext}")
