@@ -15,12 +15,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent
 from PySide6.QtWidgets import (
     QFileDialog, QFrame, QHBoxLayout, QLabel, QMessageBox, QPushButton,
     QSizePolicy, QVBoxLayout, QWidget,
 )
 
 from app.catalog.fuentes import Fuente, Slot
+from app.ingest.validate import formato_permitido
 from app.ingest.writer import ErrorDeCarga, cargar
 from app.storage.files import EstadoSlot, eliminar_slot, estado_slot
 from app.tasks.runner import POOL, Tarea
@@ -40,12 +42,17 @@ class SlotRow(QWidget):
     """Una fila dentro de la card: un archivo concreto."""
 
     cambiado = Signal()
-    ver_datos = Signal(object)  # Slot
+    ver_datos = Signal(object)   # Slot
+    alerta_error = Signal(bool)  # hay error visible en esta fila
 
     def __init__(self, slot: Slot, mostrar_label: bool, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.slot = slot
         self._ocupado = False
+        self._ultimas_faltantes: list[str] = []
+        # Habilita soltar archivos directamente sobre esta fila. Es capacidad
+        # nativa de Qt: no requiere ninguna librería adicional.
+        self.setAcceptDrops(True)
 
         raiz = QVBoxLayout(self)
         raiz.setContentsMargins(0, 0, 0, 0)
@@ -64,10 +71,32 @@ class SlotRow(QWidget):
         cabecera.addStretch(1)
         raiz.addLayout(cabecera)
 
-        self.meta = QLabel("Sin archivo cargado")
+        self.meta = QLabel("Arrastra el archivo aquí o selecciónalo")
         self.meta.setObjectName("CardMeta")
         self.meta.setWordWrap(True)
         raiz.addWidget(self.meta)
+
+        # Alerta de validación. Se muestra dentro de la card, nunca en consola:
+        # el auditor tiene que ver aquí mismo qué columnas le faltan al archivo
+        # que acaba de intentar cargar.
+        self.alerta = QFrame()
+        self.alerta.setObjectName("Alerta")
+        alerta_layout = QVBoxLayout(self.alerta)
+        alerta_layout.setContentsMargins(10, 8, 10, 8)
+        alerta_layout.setSpacing(4)
+
+        self.alerta_titulo = QLabel()
+        self.alerta_titulo.setObjectName("AlertaTitulo")
+        self.alerta_titulo.setWordWrap(True)
+        alerta_layout.addWidget(self.alerta_titulo)
+
+        self.alerta_detalle = QLabel()
+        self.alerta_detalle.setObjectName("AlertaDetalle")
+        self.alerta_detalle.setWordWrap(True)
+        alerta_layout.addWidget(self.alerta_detalle)
+
+        self.alerta.hide()
+        raiz.addWidget(self.alerta)
 
         acciones = QHBoxLayout()
         acciones.setSpacing(6)
@@ -111,7 +140,7 @@ class SlotRow(QWidget):
         else:
             self.badge.setText("PENDIENTE")
             self.badge.setProperty("tono", "pendiente")
-            self.meta.setText("Sin archivo cargado")
+            self.meta.setText("Arrastra el archivo aquí o selecciónalo")
             self.btn_cargar.setText("Seleccionar archivo")
 
         self.btn_ver.setEnabled(estado.existe)
@@ -154,6 +183,7 @@ class SlotRow(QWidget):
             self._cargar(rutas)
 
     def _cargar(self, rutas: list[str]) -> None:
+        self._ocultar_alerta()
         nombres = ", ".join(Path(r).name for r in rutas[:2])
         if len(rutas) > 2:
             nombres += f" y {len(rutas) - 2} más"
@@ -161,16 +191,26 @@ class SlotRow(QWidget):
 
         tarea = Tarea(cargar, self.slot, rutas)
         tarea.senales.ok.connect(self._al_cargar)
+        # `excepcion` llega antes que `error`, así que al pintar la alerta ya se
+        # conocen las columnas faltantes.
+        tarea.senales.excepcion.connect(self._guardar_detalle)
         tarea.senales.error.connect(self._al_fallar)
         POOL.start(tarea)
 
+    def _guardar_detalle(self, exc) -> None:
+        self._ultimas_faltantes = list(getattr(exc, "faltantes", []) or [])
+
     def _al_cargar(self, resultado) -> None:
         self._liberar()
-        if resultado.validacion.extra:
-            self.meta.setText(
-                f"{self.meta.text()} · {len(resultado.validacion.extra)} columna(s) "
-                "adicional(es) ignorada(s)"
+        extra = resultado.validacion.extra
+        if extra:
+            self._mostrar_alerta(
+                f"Se cargó correctamente · {len(extra)} columna(s) no esperada(s)",
+                f"Se ignoraron: {self._lista_columnas(extra)}",
+                tono="info",
             )
+        else:
+            self._ocultar_alerta()
         self.cambiado.emit()
 
     def _al_fallar(self, mensaje: str) -> None:
@@ -179,8 +219,86 @@ class SlotRow(QWidget):
         self.badge.setText("ERROR")
         self.badge.setProperty("tono", "error")
         self._repintar_estilo(self.badge)
-        self.meta.setText(mensaje)
+        self.meta.setText("No se cargó ningún archivo")
+
+        # Si el fallo fue por columnas faltantes, se listan explícitamente para
+        # que el auditor sepa qué corregir en el archivo de origen.
+        faltantes = self._ultimas_faltantes
+        if faltantes:
+            self._mostrar_alerta(
+                f"Faltan {len(faltantes)} columna(s) requerida(s)",
+                self._lista_columnas(faltantes),
+            )
+            self._ultimas_faltantes = []
+        else:
+            self._mostrar_alerta("No se pudo cargar el archivo", mensaje)
         self.cambiado.emit()
+
+    # ── alertas visibles en la card ────────────────────────────────────────
+    def _mostrar_alerta(self, titulo: str, detalle: str = "", tono: str = "error") -> None:
+        self.alerta.setProperty("tono", tono)
+        self.alerta_titulo.setText(titulo)
+        self.alerta_detalle.setText(detalle)
+        self.alerta_detalle.setVisible(bool(detalle))
+        self._repintar_estilo(self.alerta)
+        self._repintar_estilo(self.alerta_titulo)
+        self.alerta.show()
+        self.alerta_error.emit(tono == "error")
+
+    def _ocultar_alerta(self) -> None:
+        self.alerta.hide()
+        self.alerta_error.emit(False)
+
+    @staticmethod
+    def _lista_columnas(columnas: list[str], maximo: int = 8) -> str:
+        visibles = ", ".join(columnas[:maximo])
+        if len(columnas) > maximo:
+            visibles += f" y {len(columnas) - maximo} más"
+        return visibles
+
+    # ── arrastrar y soltar ─────────────────────────────────────────────────
+    def _rutas_validas(self, evento) -> list[str]:
+        """Extrae del evento las rutas de archivo con extensión aceptada."""
+        if not evento.mimeData().hasUrls():
+            return []
+        rutas = [
+            url.toLocalFile() for url in evento.mimeData().urls()
+            if url.isLocalFile() and formato_permitido(url.toLocalFile())
+        ]
+        # Un slot de archivo único no acepta que le suelten varios encima.
+        if not self.slot.multiple and len(rutas) > 1:
+            return []
+        return rutas
+
+    def _marcar_zona(self, activa: bool) -> None:
+        self.setProperty("soltar", "activa" if activa else "")
+        self._repintar_estilo(self)
+
+    def dragEnterEvent(self, evento: QDragEnterEvent) -> None:
+        if self._ocupado or not self._rutas_validas(evento):
+            evento.ignore()
+            return
+        evento.acceptProposedAction()
+        self._marcar_zona(True)
+
+    def dragMoveEvent(self, evento) -> None:
+        if self._ocupado or not self._rutas_validas(evento):
+            evento.ignore()
+            return
+        evento.acceptProposedAction()
+
+    def dragLeaveEvent(self, evento: QDragLeaveEvent) -> None:
+        self._marcar_zona(False)
+        evento.accept()
+
+    def dropEvent(self, evento: QDropEvent) -> None:
+        self._marcar_zona(False)
+        rutas = self._rutas_validas(evento)
+        if not rutas:
+            evento.ignore()
+            return
+        evento.acceptProposedAction()
+        self._cargar(rutas)
 
     def _eliminar(self) -> None:
         confirmar = QMessageBox.question(

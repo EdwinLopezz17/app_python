@@ -26,6 +26,7 @@ from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
 class SenalesTarea(QObject):
     ok = Signal(object)       # resultado de la función
     error = Signal(str)       # mensaje apto para mostrar al usuario
+    excepcion = Signal(object)  # la excepción, para inspeccionar el detalle
     terminada = Signal()      # siempre, haya ido bien o mal
 
 
@@ -42,6 +43,7 @@ class Tarea(QRunnable):
             resultado = self._fn(*self._args, **self._kwargs)
         except Exception as exc:
             traceback.print_exc()
+            self.senales.excepcion.emit(exc)
             self.senales.error.emit(str(exc) or exc.__class__.__name__)
         else:
             self.senales.ok.emit(resultado)

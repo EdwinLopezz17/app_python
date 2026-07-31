@@ -75,31 +75,26 @@ def qss(familia: str = FUENTE) -> str:
 
 QMainWindow, QWidget#Canvas {{ background: {SURFACE}; }}
 
-/* ───────────────────────────── Sidebar ──────────────────────────────── */
-QWidget#Sidebar {{ background: {SIDEBAR_BG}; }}
-QWidget#Sidebar QLabel {{ color: {SIDEBAR_FG}; }}
-QLabel#SidebarMarca {{
-    color: {SIDEBAR_FG}; font-size: 16px; font-weight: 700;
-    padding: 20px 20px 4px 20px;
+/* ─────────────────────── Barra de navegación superior ───────────────── */
+/* Sustituye al antiguo sidebar oscuro: el frontend de Next.js no tenía uno,
+   y la barra horizontal deja todo el ancho disponible para las cards.        */
+QWidget#NavBar {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border-bottom: 1px solid {OUTLINE_VARIANT};
 }}
-QLabel#SidebarSubmarca {{
-    color: {SIDEBAR_MUTED}; font-size: 11px; font-weight: 600;
-    letter-spacing: 1px; padding: 0 20px 16px 20px;
+QLabel#Marca {{ font-size: 15px; font-weight: 700; color: {PRIMARY}; }}
+QLabel#Submarca {{
+    color: {ON_SURFACE_VARIANT}; font-size: 10px; font-weight: 600;
+    letter-spacing: 1.2px;
 }}
-QLabel#SidebarGrupo {{
-    color: {SIDEBAR_MUTED}; font-size: 11px; font-weight: 700;
-    letter-spacing: 1px; padding: 16px 20px 6px 20px;
+QPushButton#NavTab {{
+    background: transparent; color: {ON_SURFACE_VARIANT}; border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 14px; font-size: 13px; font-weight: 600;
 }}
-QPushButton#NavItem {{
-    color: {SIDEBAR_FG}; background: transparent; border: none;
-    text-align: left; padding: 9px 20px; font-size: 13px;
-    border-left: 3px solid transparent;
-}}
-QPushButton#NavItem:hover {{ background: rgba(255,255,255,0.07); }}
-QPushButton#NavItem:checked {{
-    background: rgba(255,255,255,0.12);
-    border-left: 3px solid {PRIMARY_HOVER};
-    font-weight: 600;
+QPushButton#NavTab:hover {{ color: {PRIMARY}; background: {SURFACE_CONTAINER_LOW}; }}
+QPushButton#NavTab:checked {{
+    color: {PRIMARY}; border-bottom: 2px solid {PRIMARY};
 }}
 
 /* ───────────────────────────── Top bar ──────────────────────────────── */
@@ -137,6 +132,49 @@ QFrame#Card {{
 QFrame#Card[estado="cargado"] {{ border-color: {SECONDARY}; }}
 QFrame#Card[estado="error"] {{ border-color: {ERROR}; }}
 QLabel#CardTitulo {{ font-size: 15px; font-weight: 600; }}
+
+/* Zona activa mientras se arrastra un archivo encima */
+QWidget[soltar="activa"] {{
+    background: {SECONDARY_SOFT};
+    border: 2px dashed {PRIMARY};
+    border-radius: {RADIO_SM}px;
+}}
+
+/* ─────────────────────── Cards del lanzador ─────────────────────────── */
+QFrame#CardCert {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border: 1px solid {OUTLINE_VARIANT};
+    border-radius: {RADIO_LG}px;
+}}
+QFrame#CardCert:hover {{ border: 1px solid {PRIMARY}; }}
+QLabel#CardCertTitulo {{ font-size: 17px; font-weight: 700; }}
+QLabel#CardCertDesc {{ color: {ON_SURFACE_VARIANT}; font-size: 12px; }}
+
+QFrame#CardHallazgo {{
+    background: {SURFACE_CONTAINER_LOW};
+    border: 1px solid {OUTLINE_VARIANT};
+    border-radius: {RADIO_SM}px;
+}}
+QFrame#CardHallazgo:hover {{
+    background: {SURFACE_CONTAINER}; border-color: {PRIMARY};
+}}
+QLabel#HallazgoTitulo {{ font-size: 14px; font-weight: 600; }}
+QLabel#HallazgoMeta {{ color: {ON_SURFACE_VARIANT}; font-size: 11px; }}
+
+QPushButton[variante="mini"] {{
+    padding: 5px 10px; font-size: 12px; font-weight: 600;
+}}
+QLabel#Kpi {{ font-size: 26px; font-weight: 700; color: {PRIMARY}; }}
+QLabel#KpiEtiqueta {{
+    color: {ON_SURFACE_VARIANT}; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.5px;
+}}
+QFrame#KpiCard {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border: 1px solid {OUTLINE_VARIANT};
+    border-radius: {RADIO_LG}px;
+}}
+
 QLabel#CardMeta {{ color: {ON_SURFACE_VARIANT}; font-size: 12px; }}
 
 QLabel#Badge {{
@@ -195,8 +233,122 @@ QScrollBar::handle:vertical {{
 QScrollBar::handle:vertical:hover {{ background: {OUTLINE}; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; width: 0; }}
 
+/* ─────────────────────────── Menús desplegables ─────────────────────── */
+/* Sin esta regla, QMenu hereda el tema del sistema (fondo oscuro) y el
+   texto azul corporativo queda ilegible encima.                          */
+QMenu {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border: 1px solid {OUTLINE_VARIANT};
+    border-radius: {RADIO_SM}px;
+    padding: 6px 0;
+}}
+QMenu::item {{
+    background: transparent;
+    color: {ON_SURFACE};
+    padding: 8px 28px 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+}}
+QMenu::item:selected {{
+    background: {SURFACE_CONTAINER_HIGH};
+    color: {PRIMARY};
+}}
+QMenu::item:disabled {{ color: {OUTLINE_VARIANT}; }}
+QMenu::separator {{
+    height: 1px;
+    background: {OUTLINE_VARIANT};
+    margin: 4px 10px;
+}}
+
 QToolTip {{
     background: {SIDEBAR_BG}; color: {SIDEBAR_FG};
     border: none; border-radius: {RADIO_SM}px; padding: 6px 8px;
 }}
+
+
+/* ─────────────────────────── Selector de fecha ──────────────────────── */
+QDateEdit {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border: 1px solid {OUTLINE_VARIANT};
+    border-radius: {RADIO_SM}px;
+    padding: 7px 10px;
+    min-width: 130px;
+    font-weight: 600;
+}}
+QDateEdit:hover {{ border-color: {PRIMARY}; }}
+QDateEdit:focus {{ border: 2px solid {PRIMARY}; padding: 6px 9px; }}
+QDateEdit::drop-down {{
+    subcontrol-origin: padding; subcontrol-position: center right;
+    width: 30px; border: none;
+    border-left: 1px solid {OUTLINE_VARIANT};
+    background: {SURFACE_CONTAINER_LOW};
+    border-top-right-radius: {RADIO_SM}px;
+    border-bottom-right-radius: {RADIO_SM}px;
+}}
+QDateEdit::drop-down:hover {{ background: {SURFACE_CONTAINER_HIGH}; }}
+/* El indicador por defecto de Qt se ve como una flecha desalineada; se
+   sustituye por un glifo de calendario dibujado con el propio widget.        */
+QDateEdit::down-arrow {{ image: none; width: 0; height: 0; }}
+QLabel#IconoCalendario {{
+    color: {ON_SURFACE_VARIANT}; font-size: 14px;
+}}
+
+QCalendarWidget QWidget#qt_calendar_navigationbar {{
+    background: {PRIMARY}; border-top-left-radius: {RADIO_LG}px;
+    border-top-right-radius: {RADIO_LG}px; min-height: 36px;
+}}
+QCalendarWidget QToolButton {{
+    color: {ON_PRIMARY}; background: transparent; border: none;
+    font-size: 13px; font-weight: 600; padding: 4px 10px;
+}}
+QCalendarWidget QToolButton:hover {{ background: rgba(255,255,255,0.18); border-radius: {RADIO_SM}px; }}
+QCalendarWidget QMenu {{ background: {SURFACE_CONTAINER_LOWEST}; }}
+QCalendarWidget QAbstractItemView:enabled {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    color: {ON_SURFACE};
+    selection-background-color: {PRIMARY};
+    selection-color: {ON_PRIMARY};
+    outline: none;
+    font-size: 12px;
+}}
+QCalendarWidget QAbstractItemView:disabled {{ color: {OUTLINE_VARIANT}; }}
+QCalendarWidget QWidget {{ alternate-background-color: {SURFACE_CONTAINER_LOW}; }}
+
+/* ───────────────────── Alertas dentro de las cards ──────────────────── */
+QFrame#Alerta {{ border-radius: {RADIO_SM}px; border: 1px solid transparent; }}
+QFrame#Alerta[tono="error"] {{ background: {ERROR_SOFT}; border-color: {ERROR}; }}
+QFrame#Alerta[tono="info"]  {{ background: {TERTIARY_SOFT}; border-color: {TERTIARY}; }}
+QLabel#AlertaTitulo {{ font-size: 12px; font-weight: 700; }}
+QFrame#Alerta[tono="error"] QLabel#AlertaTitulo {{ color: {ERROR}; }}
+QFrame#Alerta[tono="info"]  QLabel#AlertaTitulo {{ color: {TERTIARY}; }}
+QLabel#AlertaDetalle {{ font-size: 11px; color: {ON_SURFACE_VARIANT}; }}
+
+/* ────────────────────── Panel lateral de estado ─────────────────────── */
+QWidget#PanelEstado {{
+    background: {SURFACE_CONTAINER_LOW};
+    border-left: 1px solid {OUTLINE_VARIANT};
+}}
+QWidget#PanelEstadoCabecera {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border-bottom: 1px solid {OUTLINE_VARIANT};
+    border-left: 1px solid {OUTLINE_VARIANT};
+}}
+QLabel#PanelTitulo {{ font-size: 14px; font-weight: 700; }}
+QLabel#PanelResumen {{ font-size: 12px; }}
+QLabel#PanelResumen[tono="ok"] {{ color: {SECONDARY}; font-weight: 600; }}
+QLabel#PanelResumen[tono="aviso"] {{ color: {TERTIARY}; font-weight: 600; }}
+QPushButton#BotonCerrarPanel {{
+    background: transparent; color: {ON_SURFACE_VARIANT};
+    border: none; font-size: 13px; padding: 0;
+}}
+QPushButton#BotonCerrarPanel:hover {{
+    background: {SURFACE_CONTAINER}; border-radius: {RADIO_SM}px; color: {ON_SURFACE};
+}}
+QFrame#FilaEstado {{ background: transparent; border-radius: {RADIO_SM}px; }}
+QFrame#FilaEstado:hover {{ background: {SURFACE_CONTAINER_HIGH}; }}
+QLabel#FilaEstadoTitulo {{ font-size: 12px; font-weight: 600; }}
+QLabel#FilaEstadoMeta {{ font-size: 11px; color: {ON_SURFACE_VARIANT}; }}
+QLabel#PuntoEstado {{ font-size: 15px; }}
+QLabel#PuntoEstado[tono="ok"] {{ color: {SECONDARY}; }}
+QLabel#PuntoEstado[tono="falta"] {{ color: {OUTLINE_VARIANT}; }}
 """

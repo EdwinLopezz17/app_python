@@ -32,7 +32,17 @@ from app.ingest.validate import ResultadoValidacion, formato_permitido, validar_
 
 
 class ErrorDeCarga(Exception):
-    """La carga no se pudo completar. El mensaje es apto para mostrar en pantalla."""
+    """
+    La carga no se pudo completar. El mensaje es apto para mostrar en pantalla.
+
+    Cuando el fallo es por columnas faltantes, `faltantes` las lleva para que la
+    interfaz pueda listarlas en la card en lugar de mostrar solo un texto
+    genérico.
+    """
+
+    def __init__(self, mensaje: str, faltantes: list[str] | None = None) -> None:
+        super().__init__(mensaje)
+        self.faltantes = faltantes or []
 
 
 @dataclass
@@ -105,7 +115,7 @@ def cargar(slot: Slot, paths: list[str | Path]) -> ResultadoCarga:
     """
     validacion = validar_archivos(slot, paths)
     if not validacion.ok:
-        raise ErrorDeCarga(validacion.mensaje())
+        raise ErrorDeCarga(validacion.mensaje(), faltantes=validacion.faltantes)
 
     consolidado = consolidar(paths, slot.columns, origin_file=slot.origin_file)
     if consolidado.total_filas == 0:

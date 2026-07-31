@@ -220,6 +220,29 @@ DB_GENERALS_ROW = {
 }
 
 
+# Generales y Especiales no tiene dataclass en `models/reports/`: el reporte
+# devuelve diccionarios cuyas claves ya vienen en español. Aquí solo se ajustan
+# tildes y mayúsculas para presentarlas, y se corrige la errata "corrsponde"
+# del origen sin tocar `logic/`.
+GENERALS_ROW = {
+    "db": "Base de Datos",
+    "cuenta de acceso": "Cuenta de Acceso",
+    "host de conexión": "Host de Conexión",
+    "terminal": "Terminal",
+    "fecha de cierre sesion": "Fecha de Cierre de Sesión",
+    "elemento consultado": "Elemento Consultado",
+    "cuenta de usuario": "Cuenta de Usuario",
+    "fecha accion": "Fecha de Acción",
+    "codigo accion": "Código de Acción",
+    "jefe chapter lead": "Jefe / Chapter Lead",
+    "validacion cuenta de acceso": "Validación Cuenta de Acceso",
+    "usuario utilizado": "Usuario Utilizado",
+    "validacion usuario utilizado": "Validación Usuario Utilizado",
+    "usuario corresponde": "Usuario que Corresponde",
+    "validacion usuario corrsponde": "Validación Usuario que Corresponde",
+}
+
+
 MODELOS: dict[str, dict[str, str]] = {
     "AppRows": APP_ROWS,
     "ADRows": AD_ROWS,
@@ -227,6 +250,7 @@ MODELOS: dict[str, dict[str, str]] = {
     "GDHRows": GDH_ROWS,
     "DBVidaRow": DB_VIDA_ROW,
     "DBGeneralsRow": DB_GENERALS_ROW,
+    "GeneralsRow": GENERALS_ROW,
 }
 
 
@@ -273,6 +297,7 @@ def check_modelos() -> dict[str, dict[str, list[str]]]:
         "DBGeneralsRow": DBGeneralsRow,
     }
 
+    # GeneralsRow queda fuera a propósito: no tiene dataclass en models/reports/.
     reporte: dict[str, dict[str, list[str]]] = {}
     for nombre, cls in reales.items():
         declarados = [f.name for f in fields(cls)]

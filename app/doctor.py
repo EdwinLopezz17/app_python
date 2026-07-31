@@ -107,6 +107,25 @@ def _contratos() -> bool:
     return todo_bien
 
 
+def _generacion() -> None:
+    from app.generation import compat, reports
+    from app.catalog import hallazgos
+
+    print("\nGeneración de hallazgos")
+    migrado = compat.logic_ya_migrado()
+    if migrado:
+        print(f"{OK} logic/ ya lee Parquet; el puente de compatibilidad no se usa")
+    else:
+        print(f"{AVISO} logic/ todavía lee .csv; se usa el puente de "
+              f"app/generation/compat.py")
+        print(f"         (temporal, eliminar cuando el backend migre)")
+
+    for hallazgo in hallazgos.HALLAZGOS:
+        marca = OK if reports.disponible(hallazgo.id) else AVISO
+        estado = "conectado" if reports.disponible(hallazgo.id) else "pendiente"
+        print(f"{marca} {hallazgo.label:24s} {estado}")
+
+
 def _estado() -> None:
     from app.cache import store
     from app.catalog import hallazgos
@@ -136,6 +155,7 @@ def main() -> int:
     bien &= _rutas()
     if bien:
         bien &= _contratos()
+        _generacion()
         _estado()
 
     print("\n" + "=" * 66)

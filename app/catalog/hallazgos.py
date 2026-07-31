@@ -73,14 +73,25 @@ HALLAZGOS: list[Hallazgo] = [
     ),
 
     # ─────────────────────── Certificación de Base de Datos ──────────────────
+    # Son dos hallazgos separados y no uno: `reporte_dbs.py` produce dos tipos
+    # de fila distintos (DBVidaRow y DBGeneralsRow), con columnas diferentes.
     Hallazgo(
-        id="base-datos",
-        label="Base de Datos",
+        id="bd-vida",
+        label="BD Vida",
         cert_id="base-datos",
         cert_label="Certificación de Base de Datos",
         modelo="DBVidaRow",
-        descripcion="Accesos a bases de datos Vida y Generales.",
-        fuente_ids=[*_BASE, "db-generales", "db-vida"],
+        descripcion="Accesos a las bases de datos de Vida (SQL Server).",
+        fuente_ids=[*_BASE, "db-vida"],
+    ),
+    Hallazgo(
+        id="bd-generales",
+        label="BD Generales",
+        cert_id="base-datos",
+        cert_label="Certificación de Base de Datos",
+        modelo="DBGeneralsRow",
+        descripcion="Accesos a las bases de datos de Generales (Oracle).",
+        fuente_ids=[*_BASE, "db-generales"],
     ),
 
     # ───────────────────────── Certificación de Perfiles ─────────────────────
@@ -110,18 +121,26 @@ HALLAZGOS: list[Hallazgo] = [
     ),
 
     # ─────────────── Certificación de Generales y Especiales ─────────────────
-    # TODO(Julio): confirmar el mapeo definitivo con el backend. De momento se
-    # listan las fuentes que consumen los services de logic/generals/.
+    # `generals_report.generate_report()` devuelve dos conjuntos de filas —
+    # accesos AC y AE — con las mismas columnas pero distinto origen. Se tratan
+    # como hallazgos independientes, igual que BD Vida y BD Generales.
     Hallazgo(
-        id="generales-especiales",
-        label="Generales y Especiales",
+        id="generales-ac",
+        label="Generales AC",
         cert_id="generales",
         cert_label="Certificación de Generales y Especiales",
-        modelo=None,
-        descripcion="Accesos de usuarios generales y especiales en BD Oracle.",
-        fuente_ids=[
-            "usuarios-autorizados", "epps-ae", "epps-ac", "igwprd-ac", "igwprd-ae",
-        ],
+        modelo="GeneralsRow",
+        descripcion="Accesos a bases de datos del entorno AC (EPPS e IGWPRD).",
+        fuente_ids=["usuarios-autorizados", "epps-ac", "igwprd-ac"],
+    ),
+    Hallazgo(
+        id="generales-ae",
+        label="Generales AE",
+        cert_id="generales",
+        cert_label="Certificación de Generales y Especiales",
+        modelo="GeneralsRow",
+        descripcion="Accesos a bases de datos del entorno AE (EPPS e IGWPRD).",
+        fuente_ids=["usuarios-autorizados", "epps-ae", "igwprd-ae"],
     ),
 ]
 

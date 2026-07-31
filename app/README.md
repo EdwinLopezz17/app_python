@@ -65,10 +65,13 @@ permite que `models.file_names` sea importable.
 
 ## Qué hace hoy
 
-Cargar Información de los 6 hallazgos. Cada hallazgo tiene su propia pantalla
+**Navegación:** pantalla de inicio con una card por certificación; dentro de
+cada una, sus hallazgos con accesos directos a "Cargar" y "Generar".
+
+**Cargar Información** de los 8 hallazgos, con arrastrar y soltar, y un panel lateral que verifica contra el disco qué archivos están realmente guardados. Si un archivo no trae las columnas requeridas, la card muestra cuáles faltan. Cada hallazgo tiene su propia pantalla
 con exactamente las fuentes que necesita.
 
-El usuario elige un `.csv`, `.xls` o `.xlsx`; la app valida las cabeceras contra
+El usuario **arrastra el archivo sobre la card** o lo elige con el botón; la app valida las cabeceras contra
 el catálogo, consolida varios archivos si el slot lo admite, y escribe
 `{DATA_PATH}/{file_name}.parquet`.
 
@@ -76,6 +79,17 @@ Las fuentes transversales (DNI vs Usuarios, GDH, AD, Tickets) son **un solo
 archivo en disco**. Cargarlas desde el hallazgo de Aplicaciones las deja
 cargadas también en AD, Base de Datos y Perfiles. Para reemplazar una, se
 elimina desde cualquier pantalla y se sube otra.
+
+**Generar hallazgos**: los 8 están conectados a su reporte en `logic/`: se ejecuta el reporte de `logic/`, se muestra en
+tabla con tarjetas de conteo por tipo de hallazgo, y se exporta a `.xlsx` con
+las etiquetas visibles. El resultado queda en caché, así que volver a entrar es
+instantáneo.
+
+> **Puente temporal:** los servicios de `logic/` todavía leen `.csv` y la
+> aplicación escribe `.parquet`. `app/generation/compat.py` cierra esa brecha
+> sin modificar `logic/`, para poder trabajar mientras el backend migra. Cuando
+> la migración esté hecha, se borra ese archivo y se quita el `with
+> puente_parquet():` de `app/generation/reports.py`.
 
 ## Estructura
 
@@ -97,6 +111,10 @@ app/
 │   ├── validate.py    columnas esperadas vs encontradas
 │   ├── merge.py       consolidación de N archivos
 │   └── writer.py      pipeline completo -> Parquet
+│
+├── generation/        SALIDA hacia logic/
+│   ├── reports.py     adaptadores hallazgo -> reporte de logic/
+│   └── compat.py      puente .csv -> .parquet (TEMPORAL)
 │
 ├── storage/files.py   estado de carga (leído del disco, sin estado propio)
 ├── cache/             hallazgos generados en Parquet + invalidación por huella
@@ -120,6 +138,7 @@ interfaz.
 | Cambiar qué fuentes pide un hallazgo | `catalog/hallazgos.py` (lista de ids) |
 | Renombrar una columna en pantalla y en el Excel | `catalog/display.py` (una línea) |
 | Cambiar el azul corporativo, tipografía o radios | `ui/theme.py` |
+| Conectar un hallazgo nuevo a su reporte | `generation/reports.py` |
 
 Renombrar una columna en `display.py` la cambia a la vez en la tabla y en el
 Excel exportado. Salen del mismo diccionario, así que no se pueden desalinear.
@@ -154,8 +173,7 @@ Si alguna cambió, el hallazgo se marca como desactualizado automáticamente.
 
 ## Pendientes
 
-- Generar hallazgos: conectar las pantallas con los reportes de
-  `logic/*/reports/`. La caché ya está lista para recibirlos.
+- Eliminar `generation/compat.py` cuando `logic/` lea Parquet.
 - Confirmar el mapeo de fuentes de la Certificación de Generales y Especiales
   (hoy en `catalog/hallazgos.py` marcado con `TODO`).
 - Empaquetado con PyInstaller.
