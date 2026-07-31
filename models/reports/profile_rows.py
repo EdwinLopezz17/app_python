@@ -1,0 +1,41 @@
+from dataclasses import dataclass
+
+@dataclass
+class ProfileRows:
+    aplicacion: str
+    asignacion: str
+    nombre_colaborador: str
+    funcion: str
+    unidad_organizativa: str
+    servicio: str
+    usuario: str
+    dni: str
+    tipo_dnivsuser: str
+    usuario_dnivsuser: str
+    comentario_dnivsuser: str
+    estado: str
+    perfil: str
+    fecha_creacion: str
+    fecha_login: str
+    fecha_creacion_entra: str
+    fecha_login_entra: str
+    estado_entra: str
+    dni_entra: str
+    rol_entra: str
+    jefatura_entra: str
+    tipo_colaborador: str
+    rol_gdh: str
+    username_pps: str
+    rol_ad_pps: str
+    username_vida: str
+    rol_ad_vida: str
+    rol_final: str
+    rol_existe_mr: str
+    perfil_mr: str
+    app_mr: str
+    rol_app_correcto: str
+    rol_app_perfil_correcto: str
+    rol_perfil_correcto: str
+    escenario: str
+    responsable: str
+    comentario: str
