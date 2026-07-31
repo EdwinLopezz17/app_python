@@ -1,18 +1,3 @@
-"""
-Huella de las fuentes que alimentan un hallazgo.
-
-Reemplaza la invalidación de SWR/IndexedDB de la versión Next, y es mejor:
-en vez de un TTL o una revalidación manual, la caché sabe con certeza si sigue
-siendo válida. Si alguien recargó GDH, el hallazgo de Aplicaciones que dependía
-de GDH queda marcado como desactualizado automáticamente.
-
-La huella combina, por cada archivo de origen: nombre, tamaño y fecha de
-modificación. No se hashea el contenido a propósito: leer 200 MB solo para
-decidir si hay que regenerar sería más caro que regenerar. Tamaño + mtime es
-suficiente para detectar cualquier recarga hecha desde la propia aplicación,
-que es el único camino por el que estos archivos cambian.
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -37,7 +22,6 @@ def estados_de(hallazgo: Hallazgo) -> list[EstadoSlot]:
 
 
 def calcular(hallazgo: Hallazgo) -> Huella:
-    """Huella determinista de todas las fuentes requeridas por el hallazgo."""
     h = hashlib.sha256()
     faltantes: list[str] = []
 

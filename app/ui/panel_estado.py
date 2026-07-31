@@ -1,16 +1,3 @@
-"""
-PANEL DE ESTADO (lateral derecho)
-=================================
-
-Reemplaza al antiguo botón "Actualizar estado", que solo refrescaba sin mostrar
-nada. Aquí se ve, de un vistazo, qué fuentes están realmente guardadas en disco
-y cuáles faltan — que era el propósito de aquel botón.
-
-Se recalcula leyendo el disco, no un estado en memoria, así que responde la
-pregunta "¿de verdad se guardó?" sin ambigüedad. Cada fila es clicable y lleva
-a la card correspondiente.
-"""
-
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
@@ -25,9 +12,8 @@ ANCHO = 290
 
 
 class FilaEstado(QFrame):
-    """Una fuente dentro del panel."""
 
-    ir_a = Signal(str)  # file_name del slot
+    ir_a = Signal(str)
 
     def __init__(self, slot, fuente_label: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -84,7 +70,6 @@ class FilaEstado(QFrame):
 
 
 class PanelEstado(QWidget):
-    """Columna derecha con la verificación de archivos guardados."""
 
     ir_a_slot = Signal(str)
     cerrar = Signal()

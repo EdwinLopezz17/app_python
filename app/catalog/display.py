@@ -1,21 +1,3 @@
-"""
-ETIQUETAS VISIBLES DE LAS COLUMNAS DE CADA HALLAZGO
-===================================================
-
-Traduce el nombre técnico del campo (el del dataclass en `models/reports/`) a la
-etiqueta que ve el auditor. UN solo diccionario por modelo alimenta:
-
-  1. las cabeceras de la tabla en pantalla,
-  2. las cabeceras del archivo .xlsx exportado,
-  3. el orden de las columnas (el del dict, que es el del dataclass).
-
-Renombrar una columna = editar una línea aquí. La tabla y el Excel quedan
-sincronizados por construcción; es imposible que se desalineen.
-
-`models/` NO se toca: este módulo solo lee `dataclasses.fields()` para verificar
-que no falte ni sobre ninguna columna (ver `check_modelos()`).
-"""
-
 from __future__ import annotations
 
 APP_ROWS = {
@@ -220,10 +202,6 @@ DB_GENERALS_ROW = {
 }
 
 
-# Generales y Especiales no tiene dataclass en `models/reports/`: el reporte
-# devuelve diccionarios cuyas claves ya vienen en español. Aquí solo se ajustan
-# tildes y mayúsculas para presentarlas, y se corrige la errata "corrsponde"
-# del origen sin tocar `logic/`.
 GENERALS_ROW = {
     "db": "Base de Datos",
     "cuenta de acceso": "Cuenta de Acceso",
@@ -255,7 +233,6 @@ MODELOS: dict[str, dict[str, str]] = {
 
 
 def etiquetas(modelo: str) -> dict[str, str]:
-    """Mapa {campo_tecnico: etiqueta_visible} en el orden de despliegue."""
     try:
         return MODELOS[modelo]
     except KeyError:
@@ -271,14 +248,6 @@ def cabeceras(modelo: str) -> list[str]:
 
 
 def check_modelos() -> dict[str, dict[str, list[str]]]:
-    """
-    Contrasta estas etiquetas contra los dataclasses reales de `models/reports/`.
-
-    Devuelve, por modelo, qué campos existen en el dataclass pero no tienen
-    etiqueta (`faltan`) y cuáles tienen etiqueta pero ya no existen (`sobran`).
-    Sirve como red de seguridad: si el backend agrega una columna a un reporte,
-    esto lo detecta en vez de que aparezca una cabecera en blanco en el Excel.
-    """
     from dataclasses import fields
 
     from models.reports.ad_rows import ADRows
@@ -297,7 +266,6 @@ def check_modelos() -> dict[str, dict[str, list[str]]]:
         "DBGeneralsRow": DBGeneralsRow,
     }
 
-    # GeneralsRow queda fuera a propósito: no tiene dataclass en models/reports/.
     reporte: dict[str, dict[str, list[str]]] = {}
     for nombre, cls in reales.items():
         declarados = [f.name for f in fields(cls)]

@@ -1,15 +1,3 @@
-"""
-LANZADOR (pantalla de inicio)
-=============================
-
-Réplica del patrón del frontend Next.js: una card por certificación, y dentro
-de cada una, sus hallazgos con dos accesos directos — "Cargar" y "Generar".
-
-Es el punto de entrada de la navegación. Desde aquí se llega a cualquier
-pantalla en un clic, y cada card muestra de un vistazo el avance de carga y si
-el hallazgo ya está generado.
-"""
-
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
@@ -28,7 +16,6 @@ COLUMNAS = 2
 
 
 class HallazgoFila(QFrame):
-    """Fila de un hallazgo dentro de la card de su certificación."""
 
     ir_cargar = Signal(str)
     ir_generar = Signal(str)
@@ -137,7 +124,6 @@ class CertificacionCard(QFrame):
 
 
 class LauncherView(QWidget):
-    """Pantalla de inicio con todas las certificaciones."""
 
     ir_cargar = Signal(str)
     ir_generar = Signal(str)

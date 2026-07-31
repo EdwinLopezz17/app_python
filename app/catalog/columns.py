@@ -1,25 +1,5 @@
-"""
-CATÁLOGO MAESTRO DE COLUMNAS ESPERADAS  (validación de archivos al cargar)
-=========================================================================
-
-Única fuente de verdad de las cabeceras que debe traer cada archivo que sube
-el usuario. Es el port directo de `src/config/fuentes.ts -> COLUMNS` del
-frontend Next.js.
-
-Editar una columna a validar = editarla AQUÍ. Se propaga a todos los hallazgos
-que usen ese conjunto.
-
-La comparación es tolerante (ver `app/ingest/normalize.py`): ignora tildes,
-mayúsculas, espacios repetidos, caracteres invisibles (BOM, zero-width) y
-comillas envolventes. Por eso el header canónico se escribe UNA sola vez, con
-tildes, y el archivo se acepta igual venga con o sin ellas.
-"""
-
 from __future__ import annotations
 
-# ---------------------------------------------------------------------------
-# Compartidas por varios hallazgos
-# ---------------------------------------------------------------------------
 
 ACSELX = [
     "CODUSRPPS", "CODPERFIL", "STSUSRPPSAPLIC", "STSUSRPPS", "CODAPLIC",
@@ -40,7 +20,6 @@ EAS = [
     "FECHAULTIMOLOGIN", "INDICADORBLOQUEADO",
 ]
 
-# Guidewire y afines: Billing / Claim / Contact / Policy Center comparten estructura.
 GUIDEWIRE = [
     "USERNAME", "ROLENAME", "NAME", "LASTNAME", "SECONDLASTNAME",
     "ROLEDESCRIPTION", "FECHA_CREACION", "ESTADO",
@@ -60,7 +39,6 @@ SINIESTROS_WEB = ["ACL ENTRY NAME", "ACL ENTRY TYPE", "ACL LEVEL"]
 
 BOTMAKER = ["EMAIL", "ROLE", "ACTIVE", "REGISTRATION_DATE", "LAST_LOGIN_DATE"]
 
-# Active Directory: idéntico para AD PPS y AD Vida.
 AD = [
     "SAMACCOUNTNAME", "EMAILADDRESS", "LASTLOGONDATE", "DISPLAYNAME", "IPPHONE",
     "WHENCREATED", "WHENCHANGED", "FACSIMILETELEPHONENUMBER", "DESCRIPTION",
@@ -93,9 +71,6 @@ TICKETS_CESES = [
     "NÚMERO", "CERRADO",
 ]
 
-# ---------------------------------------------------------------------------
-# Solo hallazgo Aplicaciones
-# ---------------------------------------------------------------------------
 
 ADDACTIS = ["USER NAME", "USER DOMAIN"]
 
@@ -125,9 +100,6 @@ APP_LOGIN = ["IDUSUARIO", "NOMBRE_APLICACION", "ULTIMOLOGEO"]
 
 EXACTUS = ["USUARIO", "ACTIVO", "CREATEDBY", "NOMBRE", "CREATEDATE", "UPDATEDBY"]
 
-# ---------------------------------------------------------------------------
-# Solo hallazgos Perfiles / Activos GDH
-# ---------------------------------------------------------------------------
 
 EXACTUS_PERFILES = ["USUARIO", "GRUPO", "NOMBRE", "ESTADO", "FECHA CREACION", "TIPO"]
 
@@ -137,9 +109,6 @@ MATRIZ_ROLES = [
     "TIPO DE ACTIVO", "DESCRIPCION", "TICKET", "MODIFIED", "CREATED",
 ]
 
-# ---------------------------------------------------------------------------
-# Solo hallazgo Base de Datos
-# ---------------------------------------------------------------------------
 
 BD_VIDA = [
     "USERNAME", "TYPE", "TYPE_DESC", "ISACTIVE", "ULTIMOLOGEO", "CREATED",
@@ -151,9 +120,6 @@ BD_GENERALES = [
     "ULTIMO_LOGIN",
 ]
 
-# ---------------------------------------------------------------------------
-# Solo hallazgo Generales y Especiales
-# ---------------------------------------------------------------------------
 
 USUARIOS_AUTORIZADOS = [
     "NOMBRES Y APELLIDOS", "EQUIPO / CHAPTER", "EMPRESA", "CORREO",
@@ -162,7 +128,6 @@ USUARIOS_AUTORIZADOS = [
     "BD IGWPRD AC", "BD EPPS AC",
 ]
 
-# EPPS / IGWPRD (AE y AC) comparten estructura de auditoría Oracle.
 AUDITORIA_ORACLE = [
     "USERID", "USERHOST", "TERMINAL", "LOGOFF$TIME", "OBJ$NAME", "SPARE1",
     "NTIMESTAMP#", "ACTION#",

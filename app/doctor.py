@@ -1,21 +1,3 @@
-"""
-Verificador de entorno y contratos.
-
-    python -m app.doctor
-
-Comprueba, sin abrir ventana:
-  * que las dependencias estén instaladas,
-  * que DATA_PATH exista y sea escribible,
-  * que las etiquetas de `app/catalog/display.py` sigan alineadas con los
-    dataclasses de `models/reports/` (si el backend agrega una columna a un
-    reporte, esto lo detecta),
-  * que todo `file_name` del catálogo exista en `models.file_names.FileName`,
-  * el estado de carga de cada hallazgo.
-
-Ejecutarlo es lo primero que conviene hacer cuando algo no funciona en una
-máquina nueva.
-"""
-
 from __future__ import annotations
 
 import sys

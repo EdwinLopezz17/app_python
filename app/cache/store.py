@@ -1,27 +1,3 @@
-"""
-CACHÉ DE HALLAZGOS GENERADOS
-============================
-
-Reemplazo de IndexedDB. Cada hallazgo generado se guarda como un Parquet con un
-sidecar .json de metadatos:
-
-    <CACHE_DIR>/<cert_id>/<hallazgo_id>.parquet
-    <CACHE_DIR>/<cert_id>/<hallazgo_id>.meta.json
-
-Por qué Parquet y no CSV ni SQLite:
-  * conserva los tipos (bool sigue siendo bool, datetime sigue siendo datetime),
-    que es justo donde se pierden los datos al pasar por CSV;
-  * comprime ~10x, así que un hallazgo de 90.000 filas ocupa pocos MB;
-  * permite leer solo las columnas que la tabla va a mostrar, sin tocar el resto.
-
-El nombre del archivo está estandarizado: es siempre el `id` del hallazgo, en
-minúsculas y con guiones. No se generan nombres con fecha ni con contador.
-
-Al abrir un hallazgo, `cargar()` compara la huella actual de las fuentes contra
-la guardada y devuelve un estado explícito: VIGENTE, DESACTUALIZADA o AUSENTE.
-La UI decide qué hacer con eso; este módulo no toma esa decisión.
-"""
-
 from __future__ import annotations
 
 import json
@@ -96,7 +72,6 @@ def leer_meta(hallazgo: Hallazgo) -> Metadatos | None:
 
 
 def guardar(hallazgo: Hallazgo, df: pd.DataFrame) -> Metadatos:
-    """Persiste un hallazgo recién generado junto con la huella de sus fuentes."""
     huella = fingerprint.calcular(hallazgo)
 
     df.to_parquet(
@@ -119,7 +94,6 @@ def guardar(hallazgo: Hallazgo, df: pd.DataFrame) -> Metadatos:
 
 
 def estado(hallazgo: Hallazgo) -> EstadoCache:
-    """Estado de la caché sin cargar los datos. Barato: solo lee el .json."""
     meta = leer_meta(hallazgo)
     if meta is None or not ruta_parquet(hallazgo).exists():
         return EstadoCache.AUSENTE
@@ -130,13 +104,6 @@ def estado(hallazgo: Hallazgo) -> EstadoCache:
 
 
 def cargar(hallazgo: Hallazgo, columnas: list[str] | None = None) -> ResultadoCache:
-    """
-    Devuelve el hallazgo cacheado y su estado.
-
-    Si está DESACTUALIZADA igual se devuelven los datos: es preferible mostrar el
-    resultado anterior con un aviso visible a dejar la pantalla en blanco
-    mientras el auditor decide si regenera.
-    """
     st = estado(hallazgo)
     if st is EstadoCache.AUSENTE:
         return ResultadoCache(estado=st)

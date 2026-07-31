@@ -1,22 +1,3 @@
-"""
-Consolidación de uno o varios archivos de origen a un único DataFrame.
-
-Port de `src/features/usuarios/cargar/merge-fuente.ts`, con un cambio de
-propósito importante: en la versión Next esto servía para EMPAQUETAR un .xlsx y
-subirlo por HTTP. Aquí ya no hay red — se consolida para escribir directamente
-el Parquet de destino.
-
-Qué hace:
-  * reordena cada fila a las columnas canónicas declaradas en el catálogo,
-    haciendo match por cabecera NORMALIZADA (tolerante a tildes y mayúsculas);
-  * descarta las columnas que no están en el catálogo;
-  * rellena con "" las que falten (no debería quedar ninguna: la validación ya
-    corrió antes, pero es una red de seguridad);
-  * opcionalmente agrega ORIGIN_FILE como última columna, con el nombre del
-    archivo de origen de cada fila (lo requieren DB Vida y DB Generales, cuyos
-    servicios en `logic/` leen esa columna).
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -38,7 +19,6 @@ class ResultadoConsolidacion:
 
 
 def _reordenar(df: pd.DataFrame, columnas: list[str]) -> pd.DataFrame:
-    """Proyecta el DataFrame sobre las columnas canónicas, por nombre normalizado."""
     lut: dict[str, str] = {}
     for real in df.columns:
         lut.setdefault(norm_header(real), real)
@@ -55,10 +35,6 @@ def consolidar(
     columnas: list[str],
     origin_file: bool = False,
 ) -> ResultadoConsolidacion:
-    """
-    Lee N archivos con la misma estructura y devuelve un único DataFrame
-    normalizado a `columnas`.
-    """
     if not paths:
         raise ValueError("No se recibió ningún archivo para consolidar")
 

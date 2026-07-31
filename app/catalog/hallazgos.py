@@ -1,21 +1,3 @@
-"""
-REGISTRO DE HALLAZGOS
-=====================
-
-Cada hallazgo tiene SU PROPIA pantalla de "Cargar Información" con exactamente
-las fuentes que necesita para poder generarse. Es el mapeo funcional acordado.
-
-Una misma fuente puede aparecer en varios hallazgos (DNI, GDH, AD y Tickets son
-transversales). En disco es UN solo archivo: si el usuario ya cargó DNI desde
-el hallazgo de Aplicaciones, la card aparecerá como cargada también en AD, en
-Base de Datos y en Perfiles. Para reemplazarlo, lo elimina desde cualquiera de
-esas pantallas y sube otro. Es el mismo archivo, no una copia.
-
-`modelo` apunta al dataclass de `models/reports/` que define las columnas de
-salida del hallazgo, y se usa para las etiquetas de la tabla y del export
-(ver `app/catalog/display.py`).
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -29,9 +11,7 @@ class Hallazgo:
     label: str
     cert_id: str
     cert_label: str
-    # Ids de fuentes requeridas, en el orden en que se muestran.
     fuente_ids: list[str] = field(default_factory=list)
-    # Clave del modelo de salida en `display.py`. None = aún sin reporte.
     modelo: str | None = None
     descripcion: str = ""
 
@@ -40,12 +20,10 @@ class Hallazgo:
         return [get_fuente(fid) for fid in self.fuente_ids]
 
 
-# Fuentes transversales, presentes en casi todos los hallazgos.
 _BASE = ["dni-vs-usuarios", "gdh", "ad", "tickets-ceses"]
 
 
 HALLAZGOS: list[Hallazgo] = [
-    # ───────────────────────── Certificación de Usuarios ─────────────────────
     Hallazgo(
         id="aplicaciones",
         label="Aplicaciones",
@@ -72,9 +50,6 @@ HALLAZGOS: list[Hallazgo] = [
         fuente_ids=list(_BASE),
     ),
 
-    # ─────────────────────── Certificación de Base de Datos ──────────────────
-    # Son dos hallazgos separados y no uno: `reporte_dbs.py` produce dos tipos
-    # de fila distintos (DBVidaRow y DBGeneralsRow), con columnas diferentes.
     Hallazgo(
         id="bd-vida",
         label="BD Vida",
@@ -94,7 +69,6 @@ HALLAZGOS: list[Hallazgo] = [
         fuente_ids=[*_BASE, "db-generales"],
     ),
 
-    # ───────────────────────── Certificación de Perfiles ─────────────────────
     Hallazgo(
         id="perfiles",
         label="Perfiles",
@@ -120,10 +94,6 @@ HALLAZGOS: list[Hallazgo] = [
         fuente_ids=["dni-vs-usuarios", "matriz-roles", "gdh", "ad", "entra-id"],
     ),
 
-    # ─────────────── Certificación de Generales y Especiales ─────────────────
-    # `generals_report.generate_report()` devuelve dos conjuntos de filas —
-    # accesos AC y AE — con las mismas columnas pero distinto origen. Se tratan
-    # como hallazgos independientes, igual que BD Vida y BD Generales.
     Hallazgo(
         id="generales-ac",
         label="Generales AC",
@@ -156,7 +126,6 @@ class Certificacion:
 
 
 def certificaciones() -> list[Certificacion]:
-    """Agrupa los hallazgos por certificación, respetando el orden de declaración."""
     orden: list[str] = []
     agrupado: dict[str, list[Hallazgo]] = {}
     for h in HALLAZGOS:

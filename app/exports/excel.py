@@ -1,15 +1,3 @@
-"""
-Exportación de un hallazgo a .xlsx.
-
-Usa EXACTAMENTE las mismas etiquetas que la tabla en pantalla
-(`app/catalog/display.py`). Ese es el punto: el auditor ve "Fecha Último Login"
-en la aplicación y encuentra "Fecha Último Login" en el Excel. Es imposible que
-se desalineen porque salen del mismo diccionario.
-
-El estilo sigue el design system Corporate Minimalist: cabecera en el azul
-corporativo, fila congelada, autofiltro y anchos calculados.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -35,20 +23,12 @@ def exportar(
     modelo: str | None = None,
     hoja: str = "Hallazgos",
 ) -> Path:
-    """
-    Escribe el DataFrame como .xlsx con las cabeceras visibles del modelo.
-
-    Si `modelo` es None (hallazgo aún sin dataclass asociado), se exportan los
-    nombres de columna tal cual vienen.
-    """
     destino = Path(destino)
     destino.parent.mkdir(parents=True, exist_ok=True)
 
     if modelo:
         etiquetas = display.etiquetas(modelo)
-        # Solo las columnas que realmente están en el DataFrame, en orden de catálogo.
         columnas = [c for c in etiquetas if c in df.columns]
-        # Y al final, cualquier columna inesperada, para no perder información.
         columnas += [c for c in df.columns if c not in etiquetas]
         salida = df[columnas].rename(columns=etiquetas)
     else:

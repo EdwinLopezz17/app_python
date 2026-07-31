@@ -1,12 +1,3 @@
-"""
-Validación de columnas de un archivo de origen.
-
-Port de `validateColumns` del frontend. Criterio idéntico: el archivo es válido
-cuando NO falta ninguna columna esperada. Las columnas de más solo se informan;
-no bloquean, porque los reportes de origen suelen traer campos extra que a los
-servicios de `logic/` simplemente no les interesan.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -39,7 +30,6 @@ def formato_permitido(nombre_archivo: str) -> bool:
 
 
 def validar_columnas(esperadas: list[str], encontradas: list[str]) -> ResultadoValidacion:
-    """Compara ambos conjuntos ya normalizados. Preserva el nombre original al reportar."""
     set_encontradas = {norm_header(c) for c in encontradas}
     set_esperadas = {norm_header(c) for c in esperadas}
 

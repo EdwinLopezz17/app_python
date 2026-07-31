@@ -1,20 +1,3 @@
-"""
-Ejecución de trabajo pesado fuera del hilo de la interfaz.
-
-Leer un Excel de 200 MB o consolidar 30 archivos tarda segundos. Si eso corre en
-el hilo de Qt, la ventana se congela y Windows la marca como "no responde".
-
-`Tarea` envuelve cualquier función en un QRunnable y emite el resultado por
-señales, que Qt entrega de vuelta en el hilo de la UI de forma segura. Es el
-equivalente a lo que en Next resolvían async/await y SWR.
-
-Uso:
-    tarea = Tarea(cargar, slot, paths)
-    tarea.senales.ok.connect(self._al_terminar)
-    tarea.senales.error.connect(self._al_fallar)
-    POOL.start(tarea)
-"""
-
 from __future__ import annotations
 
 import traceback
@@ -24,10 +7,10 @@ from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
 
 
 class SenalesTarea(QObject):
-    ok = Signal(object)       # resultado de la función
-    error = Signal(str)       # mensaje apto para mostrar al usuario
-    excepcion = Signal(object)  # la excepción, para inspeccionar el detalle
-    terminada = Signal()      # siempre, haya ido bien o mal
+    ok = Signal(object)
+    error = Signal(str)
+    excepcion = Signal(object)
+    terminada = Signal()
 
 
 class Tarea(QRunnable):
@@ -38,7 +21,7 @@ class Tarea(QRunnable):
         self._kwargs = kwargs
         self.senales = SenalesTarea()
 
-    def run(self) -> None:  # se ejecuta en un hilo del pool
+    def run(self) -> None:
         try:
             resultado = self._fn(*self._args, **self._kwargs)
         except Exception as exc:

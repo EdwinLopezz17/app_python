@@ -1,15 +1,3 @@
-"""
-Pantalla "Cargar Información" de UN hallazgo.
-
-Muestra exactamente las fuentes que ese hallazgo necesita, agrupadas
-(Aplicaciones / Otros Reportes / Bases de Datos), con un indicador de progreso
-arriba. Cuando están todas cargadas, el hallazgo queda listo para generarse.
-
-Se instancia una por hallazgo. La lista de fuentes viene del catálogo, no está
-escrita aquí: agregar o quitar una fuente de un hallazgo es editar
-`app/catalog/hallazgos.py`, no esta vista.
-"""
-
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
@@ -31,10 +19,9 @@ ORDEN_GRUPOS = [OTROS_REPORTES, BASES_DE_DATOS, APLICACIONES]
 
 
 class CargarView(QWidget):
-    """Vista de carga de un hallazgo concreto."""
 
-    progreso_cambiado = Signal(str, int, int)  # hallazgo_id, cargadas, total
-    ir_hallazgo = Signal(str)                  # pasar a generar el hallazgo
+    progreso_cambiado = Signal(str, int, int)
+    ir_hallazgo = Signal(str)
     ir_inicio = Signal()
 
     def __init__(self, hallazgo: Hallazgo, parent: QWidget | None = None) -> None:
@@ -48,7 +35,6 @@ class CargarView(QWidget):
 
         raiz.addWidget(self._construir_cabecera())
 
-        # Fila principal: cards a la izquierda, panel de estado a la derecha.
         fila_principal = QWidget()
         fila_principal.setObjectName("Canvas")
         columnas = QHBoxLayout(fila_principal)
@@ -80,7 +66,6 @@ class CargarView(QWidget):
 
         self.refrescar()
 
-    # ── construcción ───────────────────────────────────────────────────────
     def _construir_cabecera(self) -> QWidget:
         barra = QWidget()
         barra.setObjectName("TopBar")
@@ -174,7 +159,6 @@ class CargarView(QWidget):
 
             self._cuerpo.addWidget(contenedor)
 
-    # ── estado ─────────────────────────────────────────────────────────────
     def refrescar(self) -> None:
         for card in self.cards:
             card.refrescar()
@@ -205,7 +189,6 @@ class CargarView(QWidget):
             self.panel.refrescar()
 
     def _ir_a_slot(self, file_name: str) -> None:
-        """Desplaza la vista hasta la card que contiene ese archivo."""
         for card in self.cards:
             for fila in card.filas:
                 if fila.slot.key == file_name:
@@ -216,14 +199,6 @@ class CargarView(QWidget):
         DatosDialog(slot, self).exec()
 
     def _eliminar_todo(self) -> None:
-        """
-        Borrado con ALCANCE EXPLÍCITO.
-
-        "Eliminar todo" es ambiguo mirando una pantalla de carga: puede
-        significar este hallazgo o la certificación entera. En vez de decidirlo
-        por el usuario y que se lleve una sorpresa irreversible, se le pregunta.
-        El botón por defecto es Cancelar.
-        """
         dialogo = QMessageBox(self)
         dialogo.setIcon(QMessageBox.Warning)
         dialogo.setWindowTitle("Eliminar información cargada")

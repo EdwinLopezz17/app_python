@@ -1,15 +1,3 @@
-"""
-Card de una fuente en la pantalla de Cargar Información.
-
-Equivale a `FuenteCard.tsx`. Cada card puede tener uno o varios slots (Active
-Directory tiene AD PPS y AD Vida; GDH tiene Activos y Cesados), y cada slot es
-un archivo independiente en disco.
-
-El estado NO se guarda en ningún lado: se lee del disco cada vez que se llama a
-`refrescar()`. Por eso, si el usuario carga DNI vs Usuarios desde el hallazgo de
-Aplicaciones y luego entra al de Base de Datos, la card ya aparece cargada.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -39,19 +27,16 @@ def _badge(texto: str, tono: str) -> QLabel:
 
 
 class SlotRow(QWidget):
-    """Una fila dentro de la card: un archivo concreto."""
 
     cambiado = Signal()
-    ver_datos = Signal(object)   # Slot
-    alerta_error = Signal(bool)  # hay error visible en esta fila
+    ver_datos = Signal(object)
+    alerta_error = Signal(bool)
 
     def __init__(self, slot: Slot, mostrar_label: bool, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.slot = slot
         self._ocupado = False
         self._ultimas_faltantes: list[str] = []
-        # Habilita soltar archivos directamente sobre esta fila. Es capacidad
-        # nativa de Qt: no requiere ninguna librería adicional.
         self.setAcceptDrops(True)
 
         raiz = QVBoxLayout(self)
@@ -76,9 +61,6 @@ class SlotRow(QWidget):
         self.meta.setWordWrap(True)
         raiz.addWidget(self.meta)
 
-        # Alerta de validación. Se muestra dentro de la card, nunca en consola:
-        # el auditor tiene que ver aquí mismo qué columnas le faltan al archivo
-        # que acaba de intentar cargar.
         self.alerta = QFrame()
         self.alerta.setObjectName("Alerta")
         alerta_layout = QVBoxLayout(self.alerta)
@@ -121,7 +103,6 @@ class SlotRow(QWidget):
 
         self.refrescar()
 
-    # ── estado ─────────────────────────────────────────────────────────────
     def refrescar(self) -> None:
         estado = estado_slot(self.slot)
         self._pintar(estado)
@@ -167,7 +148,6 @@ class SlotRow(QWidget):
         self.btn_cargar.setEnabled(True)
         self.refrescar()
 
-    # ── acciones ───────────────────────────────────────────────────────────
     def _elegir_archivos(self) -> None:
         if self.slot.multiple:
             rutas, _ = QFileDialog.getOpenFileNames(
@@ -191,8 +171,6 @@ class SlotRow(QWidget):
 
         tarea = Tarea(cargar, self.slot, rutas)
         tarea.senales.ok.connect(self._al_cargar)
-        # `excepcion` llega antes que `error`, así que al pintar la alerta ya se
-        # conocen las columnas faltantes.
         tarea.senales.excepcion.connect(self._guardar_detalle)
         tarea.senales.error.connect(self._al_fallar)
         POOL.start(tarea)
@@ -221,8 +199,6 @@ class SlotRow(QWidget):
         self._repintar_estilo(self.badge)
         self.meta.setText("No se cargó ningún archivo")
 
-        # Si el fallo fue por columnas faltantes, se listan explícitamente para
-        # que el auditor sepa qué corregir en el archivo de origen.
         faltantes = self._ultimas_faltantes
         if faltantes:
             self._mostrar_alerta(
@@ -234,7 +210,6 @@ class SlotRow(QWidget):
             self._mostrar_alerta("No se pudo cargar el archivo", mensaje)
         self.cambiado.emit()
 
-    # ── alertas visibles en la card ────────────────────────────────────────
     def _mostrar_alerta(self, titulo: str, detalle: str = "", tono: str = "error") -> None:
         self.alerta.setProperty("tono", tono)
         self.alerta_titulo.setText(titulo)
@@ -256,16 +231,13 @@ class SlotRow(QWidget):
             visibles += f" y {len(columnas) - maximo} más"
         return visibles
 
-    # ── arrastrar y soltar ─────────────────────────────────────────────────
     def _rutas_validas(self, evento) -> list[str]:
-        """Extrae del evento las rutas de archivo con extensión aceptada."""
         if not evento.mimeData().hasUrls():
             return []
         rutas = [
             url.toLocalFile() for url in evento.mimeData().urls()
             if url.isLocalFile() and formato_permitido(url.toLocalFile())
         ]
-        # Un slot de archivo único no acepta que le suelten varios encima.
         if not self.slot.multiple and len(rutas) > 1:
             return []
         return rutas

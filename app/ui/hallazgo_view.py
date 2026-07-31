@@ -1,18 +1,3 @@
-"""
-PANTALLA DE GENERACIÓN DE UN HALLAZGO
-=====================================
-
-Flujo: verificar fuentes → generar → mostrar tabla → exportar.
-
-El hallazgo generado se persiste en Parquet (`app/cache/store.py`), así que al
-volver a entrar se muestra al instante sin recalcular. Si alguna fuente cambió
-desde la última generación, aparece un aviso de "desactualizado" y el botón
-cambia a "Regenerar".
-
-La generación corre en un hilo aparte: `get_app_report()` puede tardar minutos
-y la ventana no debe congelarse.
-"""
-
 from __future__ import annotations
 
 from datetime import date
@@ -33,7 +18,6 @@ from app.storage.files import estado_slot
 from app.tasks.runner import POOL, Tarea
 from app.ui.table_model import DataFrameModel
 
-# Campos booleanos que se resumen como tarjetas de conteo, con su etiqueta.
 BANDERAS_KPI = [
     "is_cesado_activo", "is_login_post_cese", "is_no_identificado",
     "is_sin_uso_90d", "is_deshabilitado_180d", "is_no_cesado_oportunamente",
@@ -41,7 +25,6 @@ BANDERAS_KPI = [
 
 
 class HallazgoView(QWidget):
-    """Pantalla de un hallazgo: generación, revisión y exportación."""
 
     ir_cargar = Signal(str)
     cambiado = Signal()
@@ -71,7 +54,7 @@ class HallazgoView(QWidget):
         layout.addWidget(self.aviso)
 
         self.barra = QProgressBar()
-        self.barra.setRange(0, 0)  # indeterminada
+        self.barra.setRange(0, 0)
         self.barra.hide()
         layout.addWidget(self.barra)
 
@@ -96,7 +79,6 @@ class HallazgoView(QWidget):
         raiz.addWidget(cuerpo, 1)
         self.refrescar()
 
-    # ── cabecera ───────────────────────────────────────────────────────────
     def _cabecera(self) -> QWidget:
         barra = QWidget()
         barra.setObjectName("TopBar")
@@ -135,8 +117,6 @@ class HallazgoView(QWidget):
         self.fecha.setToolTip(
             "Fecha de referencia para los cálculos de días sin uso y cese oportuno."
         )
-        # El calendario emergente hereda el estilo corporativo definido en
-        # `ui/theme.py`; sin esta llamada Qt lo dibuja con el tema del sistema.
         self.fecha.calendarWidget().setGridVisible(False)
         self.fecha.calendarWidget().setVerticalHeaderFormat(
             QCalendarWidget.NoVerticalHeader
@@ -172,7 +152,6 @@ class HallazgoView(QWidget):
         layout.addLayout(fila)
         return barra
 
-    # ── estado ─────────────────────────────────────────────────────────────
     def refrescar(self) -> None:
         if self._generando:
             return
@@ -238,7 +217,6 @@ class HallazgoView(QWidget):
         self.aviso.style().polish(self.aviso)
         self.aviso.show()
 
-    # ── generación ─────────────────────────────────────────────────────────
     def _generar(self) -> None:
         self._generando = True
         self.btn_generar.setEnabled(False)
@@ -326,7 +304,6 @@ class HallazgoView(QWidget):
         self._kpis_layout.addStretch(1)
         self.kpis.setVisible(bool(tarjetas))
 
-    # ── acciones ───────────────────────────────────────────────────────────
     def _filtrar(self, texto: str) -> None:
         self.modelo.aplicar_filtro(texto)
 

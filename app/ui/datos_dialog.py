@@ -1,11 +1,3 @@
-"""
-Previsualización de los datos ya cargados de una fuente.
-
-Equivale a `DatosModal.tsx`. Lee el Parquet de destino y lo muestra en una tabla
-virtualizada, con búsqueda global. Sirve para que el auditor confirme que el
-archivo que subió es el correcto antes de generar el hallazgo.
-"""
-
 from __future__ import annotations
 
 from PySide6.QtCore import Qt

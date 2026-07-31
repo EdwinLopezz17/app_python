@@ -1,15 +1,3 @@
-"""
-Modelo de tabla sobre un DataFrame de pandas.
-
-Equivale a `@tanstack/react-virtual` del frontend, pero sin librería extra: Qt
-solo pide a `data()` las celdas realmente visibles en pantalla. Un DataFrame de
-90.000 filas se muestra al instante porque nunca se materializan más de ~40
-filas a la vez.
-
-`aplicar_filtro` hace la búsqueda global sobre todas las columnas, igual que
-`text-filter.ts` en Next.
-"""
-
 from __future__ import annotations
 
 import pandas as pd
@@ -25,7 +13,6 @@ class DataFrameModel(QAbstractTableModel):
         self._df = self._original
         self._etiquetas = display.etiquetas(modelo) if modelo else {}
 
-    # ── datos ──────────────────────────────────────────────────────────────
     def rowCount(self, parent=QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self._df)
 
@@ -62,7 +49,6 @@ class DataFrameModel(QAbstractTableModel):
             return self._etiquetas.get(campo, campo)
         return str(section + 1)
 
-    # ── operaciones ────────────────────────────────────────────────────────
     def set_dataframe(self, df: pd.DataFrame, modelo: str | None = None) -> None:
         self.beginResetModel()
         self._original = df
@@ -72,7 +58,6 @@ class DataFrameModel(QAbstractTableModel):
         self.endResetModel()
 
     def aplicar_filtro(self, texto: str) -> None:
-        """Búsqueda global sobre todas las columnas, sin distinguir mayúsculas."""
         texto = (texto or "").strip()
         self.beginResetModel()
         if not texto:
@@ -93,7 +78,6 @@ class DataFrameModel(QAbstractTableModel):
 
     @property
     def dataframe(self) -> pd.DataFrame:
-        """El DataFrame visible (filtrado). Es el que se exporta."""
         return self._df
 
     @property

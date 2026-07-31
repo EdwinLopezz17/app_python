@@ -1,20 +1,3 @@
-"""
-Ventana principal: sidebar de navegación + área de contenido.
-
-Navegación:
-    Inicio (lanzador con cards)
-      └─ por cada certificación, sus hallazgos
-           ├─ Cargar Información   (subir los archivos de las fuentes)
-           └─ Hallazgos            (generar, revisar y exportar)
-
-El sidebar y el lanzador se construyen SOLO a partir de
-`app/catalog/hallazgos.py`. Agregar una certificación o un hallazgo no requiere
-tocar este archivo: aparece solo en ambos sitios.
-
-Las vistas se crean de forma perezosa y luego se reutilizan, así el arranque es
-inmediato aunque haya pantallas con decenas de cards.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -68,15 +51,7 @@ class VentanaPrincipal(QMainWindow):
 
         self.abrir_inicio()
 
-    # ── barra de navegación ────────────────────────────────────────────────
     def _construir_navbar(self) -> QWidget:
-        """
-        Navegación horizontal superior.
-
-        Sustituye al sidebar oscuro de la primera versión: el frontend de
-        Next.js no tenía uno, y una barra superior deja todo el ancho de la
-        ventana disponible para las cards y las tablas.
-        """
         barra = QWidget()
         barra.setObjectName("NavBar")
         barra.setFixedHeight(58)
@@ -114,8 +89,6 @@ class VentanaPrincipal(QMainWindow):
         self._botones[INICIO] = inicio
         layout.addWidget(inicio)
 
-        # Una pestaña por certificación; los hallazgos cuelgan de un menú, para
-        # no llenar la barra con ocho entradas.
         for cert in certificaciones():
             boton = QPushButton(cert.label.replace("Certificación de ", ""))
             boton.setObjectName("NavTab")
@@ -153,7 +126,6 @@ class VentanaPrincipal(QMainWindow):
 
         return barra
 
-    # ── navegación ─────────────────────────────────────────────────────────
     def abrir_inicio(self) -> None:
         self.launcher.refrescar()
         self.stack.setCurrentWidget(self.launcher)
@@ -169,7 +141,6 @@ class VentanaPrincipal(QMainWindow):
             self._cargar_views[hallazgo_id] = vista
             self.stack.addWidget(vista)
         else:
-            # Otra pantalla pudo haber cargado o eliminado una fuente compartida.
             vista.refrescar()
 
         self.stack.setCurrentWidget(vista)
@@ -195,10 +166,6 @@ class VentanaPrincipal(QMainWindow):
             boton.setChecked(True)
 
     def _al_cambiar_carga(self, hallazgo_id: str, cargadas: int, total: int) -> None:
-        """
-        Una fuente cambió. Como muchas son compartidas, se refresca todo lo que
-        pueda haberse visto afectado: el lanzador y las demás vistas abiertas.
-        """
         self.launcher.refrescar()
         for hid, vista in self._hallazgo_views.items():
             if hid != hallazgo_id:

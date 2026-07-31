@@ -1,18 +1,8 @@
-"""
-Design system "Corporate Minimalist" traducido a Qt.
-
-Los tokens son los mismos del frontend Next.js (primary #006386, Inter, radios
-de 4 y 8 px, densidad de tabla de 13 px). Se declaran UNA vez aquí y de ahí sale
-todo el QSS: cambiar el azul corporativo es cambiar una línea.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
 
 from PySide6.QtGui import QFontDatabase
-
-# ─────────────────────────────── Tokens ────────────────────────────────────
 
 SURFACE = "#faf8ff"
 SURFACE_CONTAINER_LOWEST = "#ffffff"
@@ -29,9 +19,9 @@ PRIMARY = "#006386"
 PRIMARY_HOVER = "#007da8"
 ON_PRIMARY = "#ffffff"
 
-SECONDARY = "#006d38"          # estados "cargado" / completo
+SECONDARY = "#006d38"
 SECONDARY_SOFT = "#e7f8ee"
-TERTIARY = "#964400"           # advertencias / pendientes
+TERTIARY = "#964400"
 TERTIARY_SOFT = "#fff1e6"
 ERROR = "#ba1a1a"
 ERROR_SOFT = "#ffdad6"
@@ -49,13 +39,6 @@ FUENTE_RESPALDO = "Segoe UI"
 
 
 def cargar_fuentes() -> str:
-    """
-    Registra Inter si está empaquetada en app/ui/fonts/.
-
-    En la red corporativa no hay salida a CDN (el mismo motivo por el que en
-    Next se auto-hospeda con next/font/local), así que la fuente viaja con la
-    aplicación. Si no está, se cae a Segoe UI, que existe en todo Windows.
-    """
     carpeta = Path(__file__).parent / "fonts"
     if carpeta.is_dir():
         for archivo in sorted(carpeta.glob("*.ttf")) + sorted(carpeta.glob("*.otf")):
@@ -75,9 +58,6 @@ def qss(familia: str = FUENTE) -> str:
 
 QMainWindow, QWidget#Canvas {{ background: {SURFACE}; }}
 
-/* ─────────────────────── Barra de navegación superior ───────────────── */
-/* Sustituye al antiguo sidebar oscuro: el frontend de Next.js no tenía uno,
-   y la barra horizontal deja todo el ancho disponible para las cards.        */
 QWidget#NavBar {{
     background: {SURFACE_CONTAINER_LOWEST};
     border-bottom: 1px solid {OUTLINE_VARIANT};
@@ -97,7 +77,6 @@ QPushButton#NavTab:checked {{
     color: {PRIMARY}; border-bottom: 2px solid {PRIMARY};
 }}
 
-/* ───────────────────────────── Top bar ──────────────────────────────── */
 QWidget#TopBar {{
     background: {SURFACE_CONTAINER_LOWEST};
     border-bottom: 1px solid {OUTLINE_VARIANT};
@@ -105,7 +84,6 @@ QWidget#TopBar {{
 QLabel#Titulo {{ font-size: 24px; font-weight: 600; }}
 QLabel#Breadcrumb {{ color: {ON_SURFACE_VARIANT}; font-size: 12px; }}
 
-/* ───────────────────────────── Botones ──────────────────────────────── */
 QPushButton {{
     background: {PRIMARY}; color: {ON_PRIMARY}; border: none;
     border-radius: {RADIO_SM}px; padding: 8px 16px; font-weight: 600; font-size: 13px;
@@ -123,7 +101,6 @@ QPushButton[variante="ghost"]:hover {{
 QPushButton[variante="peligro"] {{ background: {ERROR}; }}
 QPushButton[variante="peligro"]:hover {{ background: #93000a; }}
 
-/* ────────────────────────────── Cards ───────────────────────────────── */
 QFrame#Card {{
     background: {SURFACE_CONTAINER_LOWEST};
     border: 1px solid {OUTLINE_VARIANT};
@@ -133,14 +110,12 @@ QFrame#Card[estado="cargado"] {{ border-color: {SECONDARY}; }}
 QFrame#Card[estado="error"] {{ border-color: {ERROR}; }}
 QLabel#CardTitulo {{ font-size: 15px; font-weight: 600; }}
 
-/* Zona activa mientras se arrastra un archivo encima */
 QWidget[soltar="activa"] {{
     background: {SECONDARY_SOFT};
     border: 2px dashed {PRIMARY};
     border-radius: {RADIO_SM}px;
 }}
 
-/* ─────────────────────── Cards del lanzador ─────────────────────────── */
 QFrame#CardCert {{
     background: {SURFACE_CONTAINER_LOWEST};
     border: 1px solid {OUTLINE_VARIANT};
@@ -191,7 +166,6 @@ QLabel#Seccion {{
     letter-spacing: 1px;
 }}
 
-/* ────────────────────────────── Tablas ──────────────────────────────── */
 QTableView {{
     background: {SURFACE_CONTAINER_LOWEST};
     border: 1px solid {OUTLINE_VARIANT};
@@ -211,7 +185,6 @@ QHeaderView::section {{
     font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
 }}
 
-/* ───────────────────────── Inputs y varios ──────────────────────────── */
 QLineEdit {{
     background: {SURFACE_CONTAINER_LOWEST};
     border: 1px solid {OUTLINE_VARIANT};
@@ -233,9 +206,6 @@ QScrollBar::handle:vertical {{
 QScrollBar::handle:vertical:hover {{ background: {OUTLINE}; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; width: 0; }}
 
-/* ─────────────────────────── Menús desplegables ─────────────────────── */
-/* Sin esta regla, QMenu hereda el tema del sistema (fondo oscuro) y el
-   texto azul corporativo queda ilegible encima.                          */
 QMenu {{
     background: {SURFACE_CONTAINER_LOWEST};
     border: 1px solid {OUTLINE_VARIANT};
@@ -265,8 +235,6 @@ QToolTip {{
     border: none; border-radius: {RADIO_SM}px; padding: 6px 8px;
 }}
 
-
-/* ─────────────────────────── Selector de fecha ──────────────────────── */
 QDateEdit {{
     background: {SURFACE_CONTAINER_LOWEST};
     border: 1px solid {OUTLINE_VARIANT};
@@ -286,8 +254,7 @@ QDateEdit::drop-down {{
     border-bottom-right-radius: {RADIO_SM}px;
 }}
 QDateEdit::drop-down:hover {{ background: {SURFACE_CONTAINER_HIGH}; }}
-/* El indicador por defecto de Qt se ve como una flecha desalineada; se
-   sustituye por un glifo de calendario dibujado con el propio widget.        */
+
 QDateEdit::down-arrow {{ image: none; width: 0; height: 0; }}
 QLabel#IconoCalendario {{
     color: {ON_SURFACE_VARIANT}; font-size: 14px;
@@ -314,7 +281,6 @@ QCalendarWidget QAbstractItemView:enabled {{
 QCalendarWidget QAbstractItemView:disabled {{ color: {OUTLINE_VARIANT}; }}
 QCalendarWidget QWidget {{ alternate-background-color: {SURFACE_CONTAINER_LOW}; }}
 
-/* ───────────────────── Alertas dentro de las cards ──────────────────── */
 QFrame#Alerta {{ border-radius: {RADIO_SM}px; border: 1px solid transparent; }}
 QFrame#Alerta[tono="error"] {{ background: {ERROR_SOFT}; border-color: {ERROR}; }}
 QFrame#Alerta[tono="info"]  {{ background: {TERTIARY_SOFT}; border-color: {TERTIARY}; }}
@@ -323,7 +289,6 @@ QFrame#Alerta[tono="error"] QLabel#AlertaTitulo {{ color: {ERROR}; }}
 QFrame#Alerta[tono="info"]  QLabel#AlertaTitulo {{ color: {TERTIARY}; }}
 QLabel#AlertaDetalle {{ font-size: 11px; color: {ON_SURFACE_VARIANT}; }}
 
-/* ────────────────────── Panel lateral de estado ─────────────────────── */
 QWidget#PanelEstado {{
     background: {SURFACE_CONTAINER_LOW};
     border-left: 1px solid {OUTLINE_VARIANT};
