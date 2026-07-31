@@ -35,7 +35,7 @@ class EntraUserService():
 
         self.file_enum: FileName = FileName.ENTRA_ID
 
-        nombre_archivo = f"{self.file_enum.value}.csv"
+        nombre_archivo = self.file_enum.value
         self.path_file = os.path.join(self.folder_path, nombre_archivo)
         
         if not lazy:
@@ -60,7 +60,7 @@ class EntraUserService():
             return
 
         try:
-            df = pd.read_csv(self.path_file, sep=";").fillna('')
+            df = pd.read_parquet(self.path_file, engine='pyarrow').fillna('')
             df.columns = [str(c).strip().upper() for c in df.columns]
 
             for _, row in df.iterrows():

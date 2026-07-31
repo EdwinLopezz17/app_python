@@ -26,3 +26,5 @@ datos/
 *.log
 .DS_Store
 Thumbs.db
+
+ax.py

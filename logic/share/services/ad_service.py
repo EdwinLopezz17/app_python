@@ -45,8 +45,8 @@ class ADService():
         self.enum_pps = FileName.AD_PPS
         self.enum_vida = FileName.AD_VIDA
 
-        self.path_file_pps = os.path.join(self.folder_path, f"{self.enum_pps.value}.csv")
-        self.path_file_vida = os.path.join(self.folder_path, f"{self.enum_vida.value}.csv")
+        self.path_file_pps = os.path.join(self.folder_path, self.enum_pps.value)
+        self.path_file_vida = os.path.join(self.folder_path, self.enum_vida.value)
         
         self.path_files_list = [self.path_file_pps, self.path_file_vida]
         
@@ -68,7 +68,7 @@ class ADService():
             return
 
         try:
-            df = pd.read_csv(file_path, sep=';', encoding='utf-8').fillna('')
+            df = pd.read_parquet(file_path, engine='pyarrow').fillna('')
             df.columns = [c.strip().upper() for c in df.columns]
 
             for _, row in df.iterrows():

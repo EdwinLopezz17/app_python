@@ -37,8 +37,7 @@ class MatrizRolesService():
         self.folder_path = DATA_PATH
         self.file_enum: FileName = FileName.MATRIZ_ROLES
 
-        nombre_archivo = f"{self.file_enum.value}.csv"
-        self.path_file = os.path.join(self.folder_path, nombre_archivo)
+        self.path_file = os.path.join(self.folder_path, self.file_enum.value)
 
         if not lazy:
             self.load_data()
@@ -54,7 +53,7 @@ class MatrizRolesService():
             return
 
         try:
-            df = pd.read_csv(self.path_file, sep=';', encoding='utf-8', low_memory=False).fillna('')
+            df = pd.read_parquet(self.path_file, engine='pyarrow').fillna('')
             df.columns = [str(c).strip().upper() for c in df.columns]
 
             for _, row in df.iterrows():

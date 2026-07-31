@@ -24,8 +24,8 @@ class TicketInfoService():
       
         self.file_enum: FileName = FileName.TICKETS_CESES
 
-        nombre_archivo = f"{self.file_enum.value}.csv"
-        self.path_file = os.path.join(self.folder_path, nombre_archivo)
+        file_name = f"{self.file_enum.value}.{FileName.EXTENSION_FILE.value}"
+        self.path_file = os.path.join(self.folder_path, file_name)
         
         if not lazy:
             self.cargar_datos()
@@ -38,7 +38,7 @@ class TicketInfoService():
             return
 
         try:
-            df = pd.read_csv(self.path_file, sep=';', dtype=str, encoding='utf-8').fillna('')
+            df = pd.read_parquet(self.path_file, engine='pyarrow').fillna('')
             df.columns = [str(c).strip().upper() for c in df.columns]
 
             if 'CREADO' in df.columns:

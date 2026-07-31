@@ -77,8 +77,8 @@ class GDHUserService():
         self.enum_activos = FileName.ACTIVOS_GDH
         self.enum_cesados = FileName.CESADOS_GDH
 
-        self.path_file_activos = os.path.join(self.folder_path, f"{self.enum_activos.value}.csv")
-        self.path_file_cesados = os.path.join(self.folder_path, f"{self.enum_cesados.value}.csv")
+        self.path_file_activos = os.path.join(self.folder_path, self.enum_activos.value)
+        self.path_file_cesados = os.path.join(self.folder_path, self.enum_cesados.value)
         
         self.path_files_list = [self.path_file_activos, self.path_file_cesados]
         
@@ -95,10 +95,10 @@ class GDHUserService():
             return
 
         try:
-            df_activos = pd.read_csv(self.path_file_activos, sep=';', dtype=str, encoding='utf-8').fillna('')
+            df_activos = pd.read_parquet(self.path_file_activos, engine='pyarrow').fillna('')
             df_activos.columns = [str(c).strip().upper() for c in df_activos.columns]
 
-            df_cesados = pd.read_csv(self.path_file_cesados, sep=';', dtype=str, encoding='utf-8').fillna('')
+            df_cesados = pd.read_parquet(self.path_file_cesados, engine='pyarrow').fillna('')
             df_cesados.columns = [str(c).strip().upper() for c in df_cesados.columns]
 
             for _, row in df_activos.iterrows():
