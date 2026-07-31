@@ -13,7 +13,7 @@ class ProfileRows:
     tipo_dnivsuser: str
     usuario_dnivsuser: str
     comentario_dnivsuser: str
-    estado: str
+    is_active: bool
     perfil: str
     fecha_creacion: str
     fecha_login: str
@@ -30,12 +30,12 @@ class ProfileRows:
     username_vida: str
     rol_ad_vida: str
     rol_final: str
-    rol_existe_mr: str
+    exist_rol_mr: bool
     perfil_mr: str
     app_mr: str
-    rol_app_correcto: str
-    rol_app_perfil_correcto: str
-    rol_perfil_correcto: str
+    val_rol_app: str
+    val_rol_app_perfil: str
+    val_rol_perfil: str
     escenario: str
     responsable: str
     comentario: str

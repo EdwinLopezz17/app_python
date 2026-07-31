@@ -16,27 +16,26 @@ class ADRows:
     descripcion: str
     fecha_creacion: datetime
     fecha_cambio: datetime
-    passwordneverexpires: str
-    cannotchangepassword: str
+    passwordneverexpires: bool
+    cannotchangepassword: bool
     passwordlastset: datetime
     title: str
     department: str
     company: str
     street_address: str
-    estado: str
+    is_active: bool
     fecha_ultimo_login_ad: datetime
     fecha_ultimo_login_entra: datetime
-    activo_gdh: str
+    is_activo_gdh: bool
     fecha_alta: datetime
-    cesado_gdh: str
+    is_cesado_gdh: bool
     fecha_cese: datetime
     ticket_cese: str
     fecha_cierre_ticket_cese: datetime
     escenario: str
-    cesado_activo: str
-    login_post_cese: str
-    no_identificado: str
-    sin_uso_90d: str
-    deshabilitado_180d: str
-    contrasena_no_expira: str
-    no_puede_cambiar_contrasena: str
+    is_cesado_activo: bool
+    is_login_post_cese: bool
+    is_no_identificado: bool
+    is_sin_uso_90d: bool
+    is_deshabilitado_180d: bool
+

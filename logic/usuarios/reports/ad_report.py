@@ -5,7 +5,7 @@ from logic.share.services.ad_service import ADService
 from logic.share.services.tickets_report import TicketInfoService
 from models.reports.ad_rows import ADRows
 
-def obtener_reporte_ad(fecha_ref: date):
+def get_ad_report(fecha_ref: date)-> list[ADRows]:
     dni_user_srv = DNIUserService()
     gdh_user_srv = GDHUserService()
     ad_user_srv = ADService()
@@ -15,7 +15,7 @@ def obtener_reporte_ad(fecha_ref: date):
     limit_90 = timedelta(days=90)
     limit_180 = timedelta(days=180)
 
-    rows = []
+    rows = list[ADRows]()
     for ad_user in ad_user_srv.get_all():
 
         dni_user_info = dni_user_srv.get_by_username(ad_user.usuario)
@@ -26,15 +26,15 @@ def obtener_reporte_ad(fecha_ref: date):
         ticket_cese = ticket_info_srv.get_by_dni(dni) if dni else None
 
         escenarios = []
-        ces_act = ""
-        postcese = ""
-        no_ident = ""
-        s90d = ""
-        b180d = ""
+        ces_act:bool = False
+        postcese:bool = False
+        no_ident:bool = False
+        s90d:bool = False
+        b180d:bool = False
 
         if gdh_user and not gdh_user.isActive and gdh_user.isCesado and ad_user.isActive:
             escenarios.append("Cesado Activo")
-            ces_act = "X"
+            ces_act = True
 
         if gdh_user and not gdh_user.isActive and gdh_user.isCesado:
             if ad_user.last_activity and gdh_user.fecha_cese:
@@ -44,7 +44,7 @@ def obtener_reporte_ad(fecha_ref: date):
                 if same_month and same_year:
                     if ad_user.last_activity > gdh_user.fecha_cese:
                         escenarios.append("Actividad Post Cese")
-                        postcese = "X"
+                        postcese = True
 
         if dni_user_info and str(dni_user_info.tipo_usuario).upper() == "USUARIO":
             if ad_user.isActive and ad_user.fecha_creacion and ad_user.last_activity:
@@ -52,18 +52,18 @@ def obtener_reporte_ad(fecha_ref: date):
                 login_gt_90 = (ahora - ad_user.last_activity) > limit_90
                 if create_gt_90 and login_gt_90:
                     escenarios.append("Sin Actividad 90d")
-                    s90d = "X"
+                    s90d = True
             
             if not ad_user.isActive and ad_user.fecha_creacion and ad_user.last_activity:
                 create_gt_180 = (ahora - ad_user.fecha_creacion) > limit_180
                 login_gt_180 = (ahora - ad_user.last_activity) > limit_180
                 if create_gt_180 and login_gt_180:
                     escenarios.append("Bloqueado 180d")
-                    b180d = "X"
+                    b180d = True
 
             if ad_user.isActive and not gdh_user:
                 escenarios.append("No Identificado")
-                no_ident = "X"
+                no_ident = True
 
         if ad_user.passwordneverexpires:
             escenarios.append("Contraseña No Expira")
@@ -87,30 +87,28 @@ def obtener_reporte_ad(fecha_ref: date):
                 descripcion=ad_user.description,
                 fecha_creacion=ad_user.fecha_creacion,
                 fecha_cambio=ad_user.fecha_cambio,
-                passwordneverexpires="True" if ad_user.passwordneverexpires else "False",
-                cannotchangepassword="True" if ad_user.cannotchangepassword else "False",
+                passwordneverexpires=ad_user.passwordneverexpires,
+                cannotchangepassword=ad_user.cannotchangepassword,
                 passwordlastset=ad_user.passwordlastset,
                 title=ad_user.title,
                 department=ad_user.department,
                 company=ad_user.company,
                 street_address=ad_user.jefe,
-                estado="Activo" if ad_user.isActive else "Bloqueado",
+                is_active=ad_user.isActive,
                 fecha_ultimo_login_ad=ad_user.fecha_ult_login,
                 fecha_ultimo_login_entra=ad_user.ultima_actividad_entra,
-                activo_gdh="Si" if gdh_user and gdh_user.isActive else "No",
+                is_activo_gdh= (gdh_user and gdh_user.isActive),
                 fecha_alta=gdh_user.fecha_alta if gdh_user else "",
-                cesado_gdh="Si" if gdh_user and gdh_user.isCesado else "No",
+                is_cesado_gdh= (gdh_user and gdh_user.isCesado),
                 fecha_cese=gdh_user.fecha_cese if gdh_user else "",
                 ticket_cese=ticket_cese.numero_ticket if ticket_cese else "",
                 fecha_cierre_ticket_cese=ticket_cese.fecha_cierre if ticket_cese else "",
                 escenario=escenarios_str,
-                cesado_activo=ces_act,
-                login_post_cese=postcese,
-                no_identificado=no_ident,
-                sin_uso_90d=s90d,
-                deshabilitado_180d=b180d,
-                contrasena_no_expira= "X" if ad_user.passwordneverexpires else "",
-                no_puede_cambiar_contrasena= "X" if ad_user.cannotchangepassword else "",
+                is_cesado_activo=ces_act,
+                is_login_post_cese=postcese,
+                is_no_identificado=no_ident,
+                is_sin_uso_90d=s90d,
+                is_deshabilitado_180d=b180d,
             )
         )
 

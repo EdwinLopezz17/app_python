@@ -119,7 +119,7 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
         tipo_dnivsuser=dni_user_info.tipo_usuario if dni_user_info else "*No esta en DNI vs Usuarios*",
         usuario_dnivsuser=dni_user_info.usuario if dni_user_info else "*No esta en DNI vs Usuarios*",
         comentario_dnivsuser=dni_user_info.comentario if dni_user_info else "*No esta en DNI vs Usuarios*",
-        estado="Activo",
+        is_active=True,
         perfil=perfil_rol,
         fecha_creacion=fecha_creacion,
         fecha_login=ultimo_login,
@@ -136,12 +136,12 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
         username_vida=ad_user_vida.usuario if ad_user_vida else "*No esta en AD VIDA*",
         rol_ad_vida=ad_user_vida.rol if ad_user_vida else "*No esta en AD VIDA*",
         rol_final=rol_final,
-        rol_existe_mr="Si" if mr_srv.exists_by_rol(rol_final) else "No",
+        exist_rol_mr=mr_srv.exists_by_rol(rol_final),
         perfil_mr=profiles_mr,
         app_mr=apps_mr,
-        rol_app_correcto="Correcto" if mr_srv.exists_by_rol_and_activo(rol_final, app_name) else "Incorrecto",
-        rol_app_perfil_correcto="Correcto" if mr_srv.exists_by_rol_activo_and_perfil(rol_final, app_name,perfil_rol) else "Incorrecto",
-        rol_perfil_correcto="Correcto" if mr_srv.exists_by_rol_and_perfil(rol_final, perfil_rol) else "Incorrecto",
+        val_rol_app="Correcto" if mr_srv.exists_by_rol_and_activo(rol_final, app_name) else "Incorrecto",
+        val_rol_app_perfil="Correcto" if mr_srv.exists_by_rol_activo_and_perfil(rol_final, app_name,perfil_rol) else "Incorrecto",
+        val_rol_perfil="Correcto" if mr_srv.exists_by_rol_and_perfil(rol_final, perfil_rol) else "Incorrecto",
         escenario="",
         responsable="",
         comentario=""
@@ -516,7 +516,7 @@ def _rows_botmaker(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADServ
     
     return rows
 
-def generate_profile_report():
+def get_profiles_report()-> list[ProfileRows]:
     mr_srv = MatrizRolesService()
     ad_srv = ADService()
     dni_user_srv = DNIUserService()

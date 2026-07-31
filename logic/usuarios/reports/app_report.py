@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import datetime
 from typing import Callable, Any
 
 from logic.share.services.dni_vs_user_service import DNIUserService
@@ -261,8 +262,8 @@ def _rows_para_app(
     return list(vistos.values())
 
 def _construir_fila_reporte(
-    tipo_app: str, nombre_app: str, usuario: str, perfil_rol: str,
-    fecha_creacion: str, ultimo_login: str,
+    tipo_app: str, nombre_app: str, usuario: str,
+    fecha_creacion: datetime, ultimo_login: datetime,
     dni_user_srv: DNIUserService, gdh_user_srv: GDHUserService,
     ad_user_srv: ADService, ticket_info_srv: TicketInfoService,
     app_login_srv: AppLoginService,
@@ -291,14 +292,19 @@ def _construir_fila_reporte(
     user_entraid = entra_srv.get_by_email(usuario) or entra_srv.get_by_upn(usuario)
 
     escenario_val = ""
+    ces_act:bool = False
+    no_ident:bool = False
     if dni_user_info and dni_user_info.tipo_usuario.upper() not in ["USUARIO"]:
         escenario_val = ""
     elif gdh_user and not gdh_user.isActive and gdh_user.isCesado:
         escenario_val = "Cesado Activo"
+        ces_act = True
     elif not ad_user_pps and not ad_user_vida and ticket_cese:
         escenario_val = "Cesado Activo Ticket"
+        ces_act = True
     elif dni_user_info and not gdh_user and dni_user_info.tipo_usuario.upper() in ["USUARIO"]:
         escenario_val = "No Identificado"
+        no_ident = True
 
     if not ultimo_login:
         app_login   = app_login_srv.get_by_user_and_app(usuario, nombre_app)
@@ -308,7 +314,7 @@ def _construir_fila_reporte(
         tipo_aplicacion=tipo_app,
         aplicacion=nombre_app,
         usuario=usuario,
-        estado="Activo",
+        is_active=True,
         fecha_creacion=fecha_creacion,
         fecha_ultimo_login=ultimo_login,
         dni=dni_user_info.dni if dni_user_info else "*No esta en DNI vs Usuarios*",
@@ -324,13 +330,15 @@ def _construir_fila_reporte(
         dni_ad_pps=dni_pps if dni_pps else "*No esta en AD PPS*",
         username_ad_vida=ad_user_vida.usuario if ad_user_vida else "*No esta en AD VIDA*",
         dni_ad_vida=dni_vida if dni_vida else "*No esta en AD VIDA*",
-        activo_gdh="Si" if gdh_user and gdh_user.isActive else "No",
+        is_activo_gdh=(gdh_user and gdh_user.isActive),
         fecha_alta=gdh_user.fecha_alta if gdh_user else "",
-        cesado_gdh="Si" if gdh_user and gdh_user.isCesado else "No",
+        is_cesado_gdh=(gdh_user and gdh_user.isCesado),
         fecha_cese=gdh_user.fecha_cese if gdh_user else "",
         ticket_cese=ticket_cese.numero_ticket if ticket_cese else "",
         fecha_cierre_ticket_cese=ticket_cese.fecha_cierre if ticket_cese else "",
         escenario=escenario_val,
+        is_cesado_activo=ces_act,
+        is_no_identificado=no_ident,
     )
 
 def get_app_report() -> list[AppRows]:

@@ -9,7 +9,7 @@ class DBVidaRow:
     db_name: str
     server_role: str
     database_rol: str
-    estado: str
+    is_active: bool
     fecha_creacion: str
     fecha_actualizacion: str
     fecha_login: str
@@ -21,16 +21,16 @@ class DBVidaRow:
     dni_ad_pps: str
     username_ad_vida: str
     dni_ad_vida: str
-    activo_gdh: str
+    is_activo_gdh: bool
     fecha_alta: str
-    cesado_gdh: str
+    is_cesado_gdh: bool
     fecha_cese: str
     ticket_cese: str
     fecha_cierre_ticket_cese: str
     escenario: str
-    cesado_activo: str
-    login_post_cese: str
-    no_identificado: str
-    sin_uso_90d: str
-    deshabilitado_180d: str
+    is_cesado_activo: bool
+    is_login_post_cese: bool
+    is_no_identificado: bool
+    is_sin_uso_90d: bool
+    is_deshabilitado_180d: bool
 

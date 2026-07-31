@@ -49,20 +49,20 @@ def _rows_vida(fecha_ref: date, dni_user_srv:DNIUserService, ad_srv:ADService,
         ticket_cese = ticket_srv.get_by_dni(dni) if dni else None
 
         escenarios = []
-        ces_act = ""
-        no_ident = ""
-        s90d = ""
-        b180d = ""
-        postcese = ""
+        ces_act:bool = False
+        no_ident:bool = False
+        s90d:bool = False
+        b180d:bool = False
+        postcese:bool = False
 
         #escenarios
         if db_vida.isActive:
             if gdh_user and not gdh_user.isActive and gdh_user.isCesado:
                 escenarios.append("Cesado Activo")
-                ces_act = "X"
+                ces_act = True
             elif ticket_cese and not ad_user_pps and not ad_user_vida:
                 escenarios.append("Cesado Activo Ticket")
-                ces_act = "X"
+                ces_act = True
 
         if gdh_user and not gdh_user.isActive and gdh_user.isCesado:
             if db_vida.fecha_login and gdh_user.fecha_cese:
@@ -72,7 +72,7 @@ def _rows_vida(fecha_ref: date, dni_user_srv:DNIUserService, ad_srv:ADService,
                 if same_month and same_year:
                     if db_vida.fecha_login > gdh_user.fecha_cese:
                         escenarios.append("Actividad Post Cese")
-                        postcese = "X"
+                        postcese = True
 
         if dni_user_info and str(dni_user_info.tipo_usuario).upper() == "USUARIO":
 
@@ -81,18 +81,18 @@ def _rows_vida(fecha_ref: date, dni_user_srv:DNIUserService, ad_srv:ADService,
                 login_gt_90 = (ahora - db_vida.fecha_login) > limit_90
                 if create_gt_90 and login_gt_90:
                     escenarios.append("Sin Actividad 90d")
-                    s90d = "X"
+                    s90d = True
 
             if not db_vida.isActive and db_vida.fecha_creacion and db_vida.fecha_login:
                 create_gt_180 = (ahora - db_vida.fecha_creacion) > limit_180
                 login_gt_180 = (ahora - db_vida.fecha_login) > limit_180
                 if create_gt_180 and login_gt_180:
                     escenarios.append("Bloqueado 180d")
-                    b180d = "X"
+                    b180d = True
             
             if db_vida.isActive and not gdh_user:
                 escenarios.append("No Identificado")
-                no_ident = "X"
+                no_ident = True
             
         escenarios_str = " + ".join(escenarios)
 
@@ -104,7 +104,7 @@ def _rows_vida(fecha_ref: date, dni_user_srv:DNIUserService, ad_srv:ADService,
             db_name=db_vida.database_name,
             server_role=db_vida.server_role,
             database_rol=db_vida.database_rol,
-            estado="Activo" if db_vida.isActive else "Bloqueado",
+            is_active=db_vida.isActive,
             fecha_creacion=db_vida.fecha_creacion,
             fecha_actualizacion=db_vida.fecha_actualizacion,
             fecha_login=db_vida.fecha_login,
@@ -116,18 +116,18 @@ def _rows_vida(fecha_ref: date, dni_user_srv:DNIUserService, ad_srv:ADService,
             dni_ad_pps=ad_user_pps.dni if ad_user_pps else "*No esta en AD PPS*",
             username_ad_vida=ad_user_vida.usuario if ad_user_vida else "*No esta en AD VIDA*",
             dni_ad_vida=ad_user_vida.dni if ad_user_vida else "*No esta en AD VIDA*",
-            activo_gdh="Si" if gdh_user and gdh_user.isActive else "No",
+            is_activo_gdh=(gdh_user and gdh_user.isActive),
             fecha_alta=gdh_user.fecha_alta if gdh_user else "",
-            cesado_gdh="Si" if gdh_user and gdh_user.isCesado else "No",
+            is_cesado_gdh=(gdh_user and gdh_user.isCesado),
             fecha_cese=gdh_user.fecha_cese if gdh_user else "",
             ticket_cese=ticket_cese.numero_ticket if ticket_cese else "",
             fecha_cierre_ticket_cese=ticket_cese.fecha_cierre if ticket_cese else "",
             escenario=escenarios_str,
-            cesado_activo=ces_act,
-            login_post_cese=postcese,
-            no_identificado=no_ident,
-            sin_uso_90d=s90d,
-            deshabilitado_180d=b180d,
+            is_cesado_activo=ces_act,
+            is_login_post_cese=postcese,
+            is_no_identificado=no_ident,
+            is_sin_uso_90d=s90d,
+            is_deshabilitado_180d=b180d,
         ))
 
     return rows
@@ -157,21 +157,21 @@ def _rows_generales(fecha_ref: date, dni_user_srv: DNIUserService, ad_srv: ADSer
         ticket_cese = ticket_srv.get_by_dni(dni) if dni else None
 
         escenarios = []
-        ces_act = ""
-        no_ident = ""
-        s90d = ""
-        b180d = ""
-        no_ces_oport = ""
-        postcese = ""
+        ces_act:bool = False
+        no_ident:bool = False
+        s90d:bool = False
+        b180d:bool = False
+        no_ces_oport:bool = False
+        postcese:bool = False
 
         # escenarios
         if db_gen.isActive:
             if db_gen.isActive and gdh_user and not gdh_user.isActive and gdh_user.isCesado:
                 escenarios.append("Cesado Activo")
-                ces_act = "X"
+                ces_act = True
             elif ticket_cese and not ad_user_pps and not ad_user_vida:
                 escenarios.append("Cesado Activo Ticket")
-                ces_act = "X"
+                ces_act = True
 
         if gdh_user and not db_gen.isActive:
             if db_gen.fecha_bloqueo and gdh_user.fecha_cese:
@@ -187,7 +187,7 @@ def _rows_generales(fecha_ref: date, dni_user_srv: DNIUserService, ad_srv: ADSer
                         
                         if diferencia_dias >= 2:
                             escenarios.append("No Cesado Oportunamente")
-                            no_ces_oport = "X"
+                            no_ces_oport = True
 
         if gdh_user and not gdh_user.isActive and gdh_user.isCesado:
             if db_gen.fecha_login and gdh_user.fecha_cese:
@@ -197,7 +197,7 @@ def _rows_generales(fecha_ref: date, dni_user_srv: DNIUserService, ad_srv: ADSer
                 if same_month and same_year:
                     if db_gen.fecha_login > gdh_user.fecha_cese:
                         escenarios.append("Actividad Post Cese")
-                        postcese = "X"
+                        postcese = True
 
         if dni_user_info and str(dni_user_info.tipo_usuario).upper() == "USUARIO":
 
@@ -206,18 +206,18 @@ def _rows_generales(fecha_ref: date, dni_user_srv: DNIUserService, ad_srv: ADSer
                 login_gt_90 = (ahora - db_gen.fecha_login) > limit_90
                 if create_gt_90 and login_gt_90:
                     escenarios.append("Sin Actividad 90d")
-                    s90d = "X"
+                    s90d = True
 
             if not db_gen.isActive and db_gen.fecha_creacion and db_gen.fecha_login:
                 create_gt_180 = (ahora - db_gen.fecha_creacion) > limit_180
                 login_gt_180 = (ahora - db_gen.fecha_login) > limit_180
                 if create_gt_180 and login_gt_180:
                     escenarios.append("Bloqueado 180d")
-                    b180d = "X"
+                    b180d = True
             
             if db_gen.isActive and not gdh_user:
                 escenarios.append("No Identificado")
-                no_ident = "X"
+                no_ident = True
             
         escenarios_str = " + ".join(escenarios)
 
@@ -225,7 +225,7 @@ def _rows_generales(fecha_ref: date, dni_user_srv: DNIUserService, ad_srv: ADSer
             nombre_archivo=db_gen.file_name,
             username=username,
             perfil=db_gen.profile,
-            estado="Activo" if db_gen.isActive else "Bloqueado",
+            is_active=db_gen.isActive,
             fecha_bloqueo=db_gen.fecha_bloqueo,
             fecha_creacion=db_gen.fecha_creacion,
             fecha_login=db_gen.fecha_login,
@@ -237,19 +237,20 @@ def _rows_generales(fecha_ref: date, dni_user_srv: DNIUserService, ad_srv: ADSer
             dni_ad_pps=ad_user_pps.dni if ad_user_pps else "*No esta en AD PPS*",
             username_ad_vida=ad_user_vida.usuario if ad_user_vida else "*No esta en AD VIDA*",
             dni_ad_vida=ad_user_vida.dni if ad_user_vida else "*No esta en AD VIDA*",
-            activo_gdh="Si" if gdh_user and gdh_user.isActive else "No",
+            is_activo_gdh=(gdh_user and gdh_user.isActive),
             fecha_alta=gdh_user.fecha_alta if gdh_user else "",
-            cesado_gdh="Si" if gdh_user and gdh_user.isCesado else "No",
+            is_cesado_gdh=(gdh_user and gdh_user.isCesado),
             fecha_cese=gdh_user.fecha_cese if gdh_user else "",
             ticket_cese=ticket_cese.numero_ticket if ticket_cese else "",
             fecha_cierre_ticket_cese=ticket_cese.fecha_cierre if ticket_cese else "",
             escenario=escenarios_str,
-            cesado_activo=ces_act,
-            login_post_cese=postcese,
-            no_identificado=no_ident,
-            sin_uso_90d=s90d,
-            deshabilitado_180d=b180d,
-            no_cesado_oportunamente=no_ces_oport,
+            is_cesado_activo=ces_act,
+            is_login_post_cese=postcese,
+            is_no_identificado=no_ident,
+            is_sin_uso_90d=s90d,
+            is_deshabilitado_180d=b180d,
+            is_no_cesado_oportunamente=no_ces_oport,
         ))
 
     return rows
+
