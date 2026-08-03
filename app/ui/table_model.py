@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 
-from app.catalog import display
+from app.catalog import colors, display
 
 
 class DataFrameModel(QAbstractTableModel):
@@ -11,6 +11,7 @@ class DataFrameModel(QAbstractTableModel):
         super().__init__()
         self._original = df if df is not None else pd.DataFrame()
         self._df = self._original
+        self._modelo = modelo
         self._etiquetas = display.etiquetas(modelo) if modelo else {}
 
     def rowCount(self, parent=QModelIndex()) -> int:
@@ -49,11 +50,18 @@ class DataFrameModel(QAbstractTableModel):
             return self._etiquetas.get(campo, campo)
         return str(section + 1)
 
+    def grupo_de_columna(self, section: int) -> colors.GrupoColor | None:
+        """Grupo de color de la cabecera (lo consume CabeceraColoreada)."""
+        if section < 0 or section >= len(self._df.columns):
+            return None
+        return colors.grupo(self._modelo, str(self._df.columns[section]))
+
     def set_dataframe(self, df: pd.DataFrame, modelo: str | None = None) -> None:
         self.beginResetModel()
         self._original = df
         self._df = df
         if modelo is not None:
+            self._modelo = modelo
             self._etiquetas = display.etiquetas(modelo)
         self.endResetModel()
 

@@ -26,6 +26,56 @@ def _badge(texto: str, tono: str) -> QLabel:
     return etiqueta
 
 
+class Desplegable(QWidget):
+    """Botón «▸ Título (N)» que muestra u oculta una lista de texto."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._titulo = ""
+
+        raiz = QVBoxLayout(self)
+        raiz.setContentsMargins(0, 0, 0, 0)
+        raiz.setSpacing(4)
+
+        self.boton = QPushButton()
+        self.boton.setObjectName("Desplegable")
+        self.boton.setCursor(Qt.PointingHandCursor)
+        self.boton.setCheckable(True)
+        self.boton.toggled.connect(self._alternar)
+        raiz.addWidget(self.boton)
+
+        self.lista = QLabel()
+        self.lista.setObjectName("ListaColumnas")
+        self.lista.setWordWrap(True)
+        self.lista.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.lista.hide()
+        raiz.addWidget(self.lista)
+
+    def _alternar(self, abierto: bool) -> None:
+        self.lista.setVisible(abierto)
+        self.boton.setText(self._etiqueta(abierto))
+
+    def _etiqueta(self, abierto: bool) -> str:
+        return f"{'▾' if abierto else '▸'}  {self._titulo}"
+
+    def poblar(self, titulo: str, items: list[str], tono: str = "",
+               abierto: bool = False) -> None:
+        self._titulo = f"{titulo} ({len(items)})"
+        self.lista.setText("\n".join(f"·  {i}" for i in items))
+
+        for widget in (self.lista, self.boton):
+            widget.setProperty("tono", tono)
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+
+        self.boton.blockSignals(True)
+        self.boton.setChecked(abierto)
+        self.boton.blockSignals(False)
+        self.lista.setVisible(abierto)
+        self.boton.setText(self._etiqueta(abierto))
+        self.setVisible(bool(items))
+
+
 class SlotRow(QWidget):
 
     cambiado = Signal()
@@ -37,7 +87,6 @@ class SlotRow(QWidget):
         self.slot = slot
         self._ocupado = False
         self._ultimas_faltantes: list[str] = []
-        self._faltantes_visibles: list[str] = []
         self.setAcceptDrops(True)
 
         raiz = QVBoxLayout(self)
@@ -81,22 +130,17 @@ class SlotRow(QWidget):
         self.alerta.hide()
         raiz.addWidget(self.alerta)
 
-        # ── Desplegable de columnas ───────────────────────────────────────
-        # En estado normal lista las columnas obligatorias; tras un intento
+        # ── Desplegables ──────────────────────────────────────────────────
+        # Columnas: en estado normal lista las obligatorias; tras un intento
         # fallido lista solo las que faltan y se abre solo.
-        self.btn_columnas = QPushButton()
-        self.btn_columnas.setObjectName("Desplegable")
-        self.btn_columnas.setCursor(Qt.PointingHandCursor)
-        self.btn_columnas.setCheckable(True)
-        self.btn_columnas.toggled.connect(self._alternar_columnas)
-        raiz.addWidget(self.btn_columnas)
+        # Archivos: solo para slots que aceptan varios archivos (DB Vida y
+        # DB Generales), leyendo la columna ORIGIN_FILE del parquet.
+        self.desp_columnas = Desplegable()
+        raiz.addWidget(self.desp_columnas)
 
-        self.lista_columnas = QLabel()
-        self.lista_columnas.setObjectName("ListaColumnas")
-        self.lista_columnas.setWordWrap(True)
-        self.lista_columnas.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self.lista_columnas.hide()
-        raiz.addWidget(self.lista_columnas)
+        self.desp_archivos = Desplegable()
+        self.desp_archivos.hide()
+        raiz.addWidget(self.desp_archivos)
 
         self._pintar_columnas([])
 
@@ -133,16 +177,25 @@ class SlotRow(QWidget):
         if estado.existe:
             self.badge.setText("CARGADO")
             self.badge.setProperty("tono", "ok")
-            self.meta.setText(
-                f"{estado.filas:,} filas · {estado.columnas} columnas · "
-                f"{estado.tamano_texto} · {estado.modificado_texto}".replace(",", " ")
-            )
+
+            partes = [
+                f"{estado.filas:,} filas".replace(",", " "),
+                f"{estado.columnas} columnas",
+            ]
+            if estado.total_archivos:
+                plural = "archivos" if estado.total_archivos != 1 else "archivo"
+                partes.append(f"{estado.total_archivos} {plural}")
+            partes += [estado.tamano_texto, estado.modificado_texto]
+            self.meta.setText(" · ".join(partes))
+
             self.btn_cargar.setText("Reemplazar")
+            self.desp_archivos.poblar("Archivos cargados", estado.archivos)
         else:
             self.badge.setText("PENDIENTE")
             self.badge.setProperty("tono", "pendiente")
             self.meta.setText("Arrastra el archivo aquí o selecciónalo")
             self.btn_cargar.setText("Seleccionar archivo")
+            self.desp_archivos.poblar("Archivos cargados", [])
 
         self.btn_ver.setEnabled(estado.existe)
         self.btn_borrar.setEnabled(estado.existe)
@@ -198,39 +251,14 @@ class SlotRow(QWidget):
     def _guardar_detalle(self, exc) -> None:
         self._ultimas_faltantes = list(getattr(exc, "faltantes", []) or [])
 
-    def _alternar_columnas(self, abierto: bool) -> None:
-        self.lista_columnas.setVisible(abierto)
-        self.btn_columnas.setText(self._texto_desplegable(abierto))
-
-    def _texto_desplegable(self, abierto: bool) -> str:
-        flecha = "▾" if abierto else "▸"
-        if self._faltantes_visibles:
-            return f"{flecha}  Columnas faltantes ({len(self._faltantes_visibles)})"
-        return f"{flecha}  Columnas requeridas ({len(self.slot.columns)})"
-
     def _pintar_columnas(self, faltantes: list[str]) -> None:
         """Refresca el desplegable. Con `faltantes` se pone en rojo y se abre."""
-        self._faltantes_visibles = list(faltantes)
-
         if faltantes:
-            texto = "\n".join(f"·  {c}" for c in faltantes)
-            tono = "error"
+            self.desp_columnas.poblar(
+                "Columnas faltantes", faltantes, tono="error", abierto=True
+            )
         else:
-            texto = "\n".join(f"·  {c}" for c in self.slot.columns)
-            tono = ""
-
-        self.lista_columnas.setText(texto)
-        self.lista_columnas.setProperty("tono", tono)
-        self._repintar_estilo(self.lista_columnas)
-
-        self.btn_columnas.setProperty("tono", tono)
-        self._repintar_estilo(self.btn_columnas)
-
-        self.btn_columnas.blockSignals(True)
-        self.btn_columnas.setChecked(bool(faltantes))
-        self.btn_columnas.blockSignals(False)
-        self.lista_columnas.setVisible(bool(faltantes))
-        self.btn_columnas.setText(self._texto_desplegable(bool(faltantes)))
+            self.desp_columnas.poblar("Columnas requeridas", list(self.slot.columns))
 
     def _al_cargar(self, resultado) -> None:
         self._liberar()

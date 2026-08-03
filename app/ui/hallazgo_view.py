@@ -17,6 +17,7 @@ from app.generation import reports
 from app.storage.files import estado_slot
 from app.tasks.runner import POOL, Tarea
 from app.ui import theme
+from app.ui.table_header import CabeceraColoreada
 from app.ui.table_model import DataFrameModel
 
 BANDERAS_KPI = [
@@ -73,6 +74,8 @@ class HallazgoView(QWidget):
         self.tabla.setSelectionBehavior(QTableView.SelectRows)
         self.tabla.verticalHeader().setVisible(False)
         self.tabla.verticalHeader().setDefaultSectionSize(30)
+        # Cabecera con el color del grupo de origen (C1–C10), igual que el front.
+        self.tabla.setHorizontalHeader(CabeceraColoreada(self.tabla))
         self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.tabla.horizontalHeader().setStretchLastSection(True)
         layout.addWidget(self.tabla, 1)

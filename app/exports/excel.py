@@ -5,9 +5,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.catalog import display
+from app.catalog import colors, display
 
-AZUL_PRIMARIO = "#006386"
 GRIS_BORDE = "#BDC8D0"
 ANCHO_MIN, ANCHO_MAX = 12, 45
 
@@ -32,26 +31,40 @@ def exportar(
         columnas += [c for c in df.columns if c not in etiquetas]
         salida = df[columnas].rename(columns=etiquetas)
     else:
+        columnas = list(df.columns)
         salida = df
+
+    # Nombre de campo original por posición: la cabecera visible ya está
+    # renombrada, pero el grupo de color se resuelve por el campo del modelo.
+    campos_origen = [str(c) for c in columnas]
 
     with pd.ExcelWriter(destino, engine="xlsxwriter") as writer:
         salida.to_excel(writer, sheet_name=hoja, index=False, startrow=1, header=False)
         libro = writer.book
         hoja_xl = writer.sheets[hoja]
 
-        fmt_cabecera = libro.add_format({
-            "bold": True, "font_color": "#FFFFFF", "bg_color": AZUL_PRIMARIO,
-            "border": 1, "border_color": AZUL_PRIMARIO,
-            "align": "left", "valign": "vcenter", "text_wrap": True,
-            "font_name": "Inter", "font_size": 10,
-        })
         fmt_celda = libro.add_format({
             "border": 1, "border_color": GRIS_BORDE, "valign": "top",
             "font_name": "Inter", "font_size": 10,
         })
 
+        # Un formato por grupo de color; se reutiliza entre columnas del mismo
+        # origen. Mismos hex que la tabla y que el front (lib/theme.ts).
+        cache_formatos: dict[str, object] = {}
+
+        def formato_cabecera(campo: str):
+            grupo = colors.grupo(modelo, campo)
+            if grupo.id not in cache_formatos:
+                cache_formatos[grupo.id] = libro.add_format({
+                    "bold": True, "font_color": grupo.text, "bg_color": grupo.fill,
+                    "border": 1, "border_color": grupo.fill,
+                    "align": "left", "valign": "vcenter", "text_wrap": True,
+                    "font_name": "Inter", "font_size": 10,
+                })
+            return cache_formatos[grupo.id]
+
         for idx, nombre in enumerate(salida.columns):
-            hoja_xl.write(0, idx, str(nombre), fmt_cabecera)
+            hoja_xl.write(0, idx, str(nombre), formato_cabecera(campos_origen[idx]))
             ancho = max(len(str(nombre)) + 4, ANCHO_MIN)
             if len(salida) and idx < len(salida.columns):
                 muestra = salida.iloc[: min(200, len(salida)), idx].astype(str)

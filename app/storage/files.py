@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
@@ -9,6 +9,7 @@ import pyarrow.parquet as pq
 
 from app import config
 from app.catalog.fuentes import Fuente, Slot
+from app.ingest.merge import COLUMNA_ORIGEN
 
 
 @dataclass
@@ -20,6 +21,11 @@ class EstadoSlot:
     columnas: int = 0
     modificado: datetime | None = None
     tamano_bytes: int = 0
+    archivos: list[str] = field(default_factory=list)
+
+    @property
+    def total_archivos(self) -> int:
+        return len(self.archivos)
 
     @property
     def modificado_texto(self) -> str:
@@ -60,7 +66,36 @@ def estado_slot(slot: Slot) -> EstadoSlot:
         columnas=columnas,
         modificado=datetime.fromtimestamp(stat.st_mtime),
         tamano_bytes=stat.st_size,
+        archivos=archivos_origen(slot, path),
     )
+
+
+def archivos_origen(slot: Slot, path: Path | None = None) -> list[str]:
+    """Nombres de los archivos que se consolidaron en el parquet del slot.
+
+    Solo aplica a los slots con `origin_file=True` (DB Vida y DB Generales),
+    que guardan la columna ORIGIN_FILE al unificar varios archivos. Se lee
+    únicamente esa columna, así que el costo es mínimo aunque el parquet sea
+    grande.
+    """
+    if not slot.origin_file:
+        return []
+
+    path = path or config.destino(slot.key, slot.subfolder)
+    if not path.exists():
+        return []
+
+    try:
+        tabla = pq.read_table(path, columns=[COLUMNA_ORIGEN])
+    except Exception:
+        return []
+
+    vistos: dict[str, None] = {}
+    for valor in tabla.column(COLUMNA_ORIGEN).to_pylist():
+        nombre = str(valor or "").strip()
+        if nombre:
+            vistos.setdefault(nombre, None)
+    return list(vistos)
 
 
 def estado_fuente(fuente: Fuente) -> list[EstadoSlot]:
