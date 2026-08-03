@@ -8,7 +8,10 @@ from app.catalog.hallazgos import get as get_hallazgo
 from app.ui.cargar_view import CargarView
 from app.ui.hallazgo_view import HallazgoView
 from app.ui.launcher_view import LauncherView
-from app.ui.sidebar import INICIO, Sidebar, ruta_cargar, ruta_hallazgo
+from app.ui.resumen_view import ResumenView
+from app.ui.sidebar import (
+    INICIO, Sidebar, ruta_cargar, ruta_hallazgo, ruta_resumen,
+)
 
 
 class VentanaPrincipal(QMainWindow):
@@ -20,6 +23,7 @@ class VentanaPrincipal(QMainWindow):
 
         self._cargar_views: dict[str, CargarView] = {}
         self._hallazgo_views: dict[str, HallazgoView] = {}
+        self._resumen_views: dict[str, ResumenView] = {}
 
         central = QWidget()
         central.setObjectName("Canvas")
@@ -31,6 +35,7 @@ class VentanaPrincipal(QMainWindow):
         self.sidebar.ir_inicio.connect(self.abrir_inicio)
         self.sidebar.ir_hallazgo.connect(self.abrir_hallazgo)
         self.sidebar.ir_cargar.connect(self.abrir_cargar)
+        self.sidebar.ir_resumen.connect(self.abrir_resumen)
         raiz.addWidget(self.sidebar)
 
         contenido = QWidget()
@@ -88,6 +93,17 @@ class VentanaPrincipal(QMainWindow):
 
         self.stack.setCurrentWidget(vista)
         self.sidebar.marcar(ruta_hallazgo(hallazgo_id))
+
+    def abrir_resumen(self, hallazgo_id: str) -> None:
+        vista = self._resumen_views.get(hallazgo_id)
+        if vista is None:
+            vista = ResumenView(get_hallazgo(hallazgo_id))
+            vista.ir_hallazgo.connect(self.abrir_hallazgo)
+            self._resumen_views[hallazgo_id] = vista
+            self.stack.addWidget(vista)
+
+        self.stack.setCurrentWidget(vista)
+        self.sidebar.marcar(ruta_resumen(hallazgo_id))
 
     def _al_cambiar_carga(self, hallazgo_id: str, cargadas: int, total: int) -> None:
         self.launcher.refrescar()

@@ -461,6 +461,19 @@ QPushButton#NavItem:checked {{
 }}
 QPushButton#NavItem:disabled {{ color: {SIDEBAR_MUTED}; }}
 QFrame#SidebarSep {{ background: rgba(255, 255, 255, 0.10); max-height: 1px; }}
+
+/* ── Zona para soltar el Excel en «Generar Resumen» ────────────────────────*/
+QFrame#ZonaSoltar {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border: 2px dashed {OUTLINE_VARIANT};
+    border-radius: {RADIO_LG}px;
+}}
+QFrame#ZonaSoltar:hover {{ border-color: {PRIMARY}; }}
+QFrame#ZonaSoltar[soltar="activa"] {{
+    border-color: {PRIMARY};
+    background: {SECONDARY_SOFT};
+}}
+QLabel#ZonaSoltarTitulo {{ font-size: 15px; font-weight: 600; }}
 """
 
 

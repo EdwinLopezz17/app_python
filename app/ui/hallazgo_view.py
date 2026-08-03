@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 
 from app.cache import store
 from app.cache.store import EstadoCache
-from app.catalog import display
+from app.catalog import display, resumen_usuarios
 from app.catalog.hallazgos import Hallazgo
 from app.exports import excel
 from app.generation import reports
@@ -320,7 +320,11 @@ class HallazgoView(QWidget):
         self.btn_exportar.setEnabled(False)
         self.btn_exportar.setText("Exportando…")
 
-        tarea = Tarea(excel.exportar, df, destino, self.hallazgo.modelo)
+        tarea = Tarea(
+            excel.exportar, df, destino, self.hallazgo.modelo, "Hallazgos",
+            resumen_usuarios.COLUMNAS_EDITABLES
+            if resumen_usuarios.disponible(self.hallazgo.id) else (),
+        )
         tarea.senales.ok.connect(self._al_exportar)
         tarea.senales.error.connect(
             lambda m: QMessageBox.critical(self, "Exportar", f"No se pudo exportar: {m}")

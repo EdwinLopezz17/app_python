@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 )
 
 from app import config
+from app.catalog import resumen_usuarios
 from app.catalog.hallazgos import Certificacion, certificaciones, get as get_hallazgo
 from app.ui import theme
 
@@ -45,11 +46,16 @@ def ruta_cargar(hallazgo_id: str) -> str:
     return f"cargar:{hallazgo_id}"
 
 
+def ruta_resumen(hallazgo_id: str) -> str:
+    return f"resumen:{hallazgo_id}"
+
+
 class Sidebar(QWidget):
 
     ir_inicio = Signal()
     ir_hallazgo = Signal(str)
     ir_cargar = Signal(str)
+    ir_resumen = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -151,6 +157,16 @@ class Sidebar(QWidget):
                 nivel=2,
                 tooltip=f"Archivos fuente de {hallazgo.label}.",
             ))
+            # «Generar Resumen» cuelga del hallazgo, igual que en el front, y
+            # solo aparece si el hallazgo tiene escenarios configurados.
+            if resumen_usuarios.disponible(hallazgo.id):
+                layout.addWidget(self._item(
+                    "Generar Resumen",
+                    ruta_resumen(hallazgo.id),
+                    lambda hid=hallazgo.id: self.ir_resumen.emit(hid),
+                    nivel=2,
+                    tooltip="Resumen por escenarios a partir del Excel de detalle.",
+                ))
 
         layout.addStretch(1)
         scroll.setWidget(contenido)

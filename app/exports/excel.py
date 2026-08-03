@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from typing import Sequence
 
 import pandas as pd
 
@@ -21,9 +22,21 @@ def exportar(
     destino: str | Path,
     modelo: str | None = None,
     hoja: str = "Hallazgos",
+    columnas_extra: Sequence[str] = (),
 ) -> Path:
+    """Exporta el detalle del hallazgo.
+
+    `columnas_extra` son campos que no vienen en el DataFrame y se agregan
+    VACÍOS al final para que el usuario los llene en Excel (Responsable y
+    Comentario) y devuelva el archivo en «Generar Resumen».
+    """
     destino = Path(destino)
     destino.parent.mkdir(parents=True, exist_ok=True)
+
+    df = df.copy()
+    for extra in columnas_extra:
+        if extra not in df.columns:
+            df[extra] = ""
 
     if modelo:
         etiquetas = display.etiquetas(modelo)

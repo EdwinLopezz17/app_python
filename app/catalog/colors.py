@@ -85,6 +85,8 @@ APP_ROWS = {
     "escenario": "C6",
     "is_cesado_activo": "C8",
     "is_no_identificado": "C8",
+    "responsable": "C6",
+    "comentario": "C6",
 }
 
 # ── ADRows · features/usuarios/hallazgos/active-directory/ad-columns.ts ─────
@@ -124,6 +126,8 @@ AD_ROWS = {
     "is_no_identificado": "C6",
     "is_sin_uso_90d": "C6",
     "is_deshabilitado_180d": "C6",
+    "responsable": "C6",
+    "comentario": "C6",
 }
 
 # ── ProfileRows · features/perfiles/perfiles-columns.ts ─────────────────────

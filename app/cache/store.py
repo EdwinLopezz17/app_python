@@ -11,6 +11,7 @@ import pandas as pd
 from app import config
 from app.cache import fingerprint
 from app.catalog.hallazgos import Hallazgo
+from app.generation import sanitize
 
 VERSION_CACHE = 1
 
@@ -70,14 +71,23 @@ def leer_meta(hallazgo: Hallazgo) -> Metadatos | None:
     except Exception:
         return None
 
+def _escribir_parquet(df: pd.DataFrame, destino: Path) -> None:
+    """Escribe el parquet homogeneizando columnas de tipos mezclados."""
+    def _volcar(datos: pd.DataFrame) -> None:
+        datos.to_parquet(
+            destino, engine="pyarrow",
+            compression=config.COMPRESION, index=False,
+        )
+
+    try:
+        _volcar(sanitize.normalizar(df))
+    except Exception:
+        _volcar(sanitize.forzar_texto(df))
 
 def guardar(hallazgo: Hallazgo, df: pd.DataFrame) -> Metadatos:
     huella = fingerprint.calcular(hallazgo)
 
-    df.to_parquet(
-        ruta_parquet(hallazgo), engine="pyarrow",
-        compression=config.COMPRESION, index=False,
-    )
+    _escribir_parquet(df, ruta_parquet(hallazgo))
 
     meta = Metadatos(
         hallazgo_id=hallazgo.id,
