@@ -23,8 +23,7 @@ class TicketInfoService():
         self.folder_path = DATA_PATH
       
         self.file_enum: FileName = FileName.TICKETS_CESES
-
-        file_name = f"{self.file_enum.value}.{FileName.EXTENSION_FILE.value}"
+        file_name = f"{self.file_enum.value}.{FileName.value}"
         self.path_file = os.path.join(self.folder_path, file_name)
         
         if not lazy:

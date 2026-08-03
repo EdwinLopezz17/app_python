@@ -31,7 +31,6 @@ class DBVidaService():
         self.folder_path = os.path.join(DATA_PATH, "DB Vida")
 
         self.file_enum: FileName = FileName.DB_VIDA
-
         self.path_file = os.path.join(self.folder_path, self.file_enum.value)
 
         if not lazy:

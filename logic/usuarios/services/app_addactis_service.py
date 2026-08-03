@@ -22,7 +22,6 @@ class AddactisUserService():
         self.folder_path = DATA_PATH
 
         self.file_enum: FileName = FileName.ADDACTIS
-
         self.path_file = os.path.join(self.folder_path, self.file_enum.value)
         
         if not lazy:

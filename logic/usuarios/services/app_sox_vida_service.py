@@ -51,11 +51,9 @@ class SoxVidaUserService():
         self.folder_path = DATA_PATH
         
         self.file_enum: FileName = FileName.SOX_VIDA
-
+        self.path_file = os.path.join(self.folder_path, self.file_enum.value)
+        
         self._apps_permitidas_upper = {app.strip().upper() for app in SOX_APPS_PERMITIDAS}
-
-        nombre_archivo = self.file_enum.value
-        self.path_file = os.path.join(self.folder_path, nombre_archivo)
         
         if not lazy:
             self.cargar_datos()

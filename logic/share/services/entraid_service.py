@@ -35,8 +35,7 @@ class EntraUserService():
 
         self.file_enum: FileName = FileName.ENTRA_ID
 
-        nombre_archivo = self.file_enum.value
-        self.path_file = os.path.join(self.folder_path, nombre_archivo)
+        self.path_file = os.path.join(self.folder_path, self.file_enum.value)
         
         if not lazy:
             self.cargar_datos()
