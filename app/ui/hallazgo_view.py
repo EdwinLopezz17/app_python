@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import date
 
-from PySide6.QtCore import QDate, Qt, Signal
+from PySide6.QtCore import QDate, Signal
 from PySide6.QtWidgets import (
-    QCalendarWidget, QDateEdit, QFileDialog, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+    QDateEdit, QFileDialog, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
     QMessageBox, QProgressBar, QPushButton, QTableView, QVBoxLayout, QWidget,
 )
 
@@ -16,6 +16,7 @@ from app.exports import excel
 from app.generation import reports
 from app.storage.files import estado_slot
 from app.tasks.runner import POOL, Tarea
+from app.ui import theme
 from app.ui.table_model import DataFrameModel
 
 BANDERAS_KPI = [
@@ -70,17 +71,10 @@ class HallazgoView(QWidget):
         self.tabla = QTableView()
         self.tabla.setModel(self.modelo)
         self.tabla.setSelectionBehavior(QTableView.SelectRows)
-        self.tabla.setAlternatingRowColors(True)
-        self.tabla.setShowGrid(True)
         self.tabla.verticalHeader().setVisible(False)
         self.tabla.verticalHeader().setDefaultSectionSize(30)
-        encabezado = self.tabla.horizontalHeader()
-        encabezado.setSectionResizeMode(QHeaderView.Interactive)
-        encabezado.setStretchLastSection(True)
-        encabezado.setHighlightSections(False)
-        encabezado.setMinimumSectionSize(90)
-        encabezado.setFixedHeight(38)
-        encabezado.setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.tabla.horizontalHeader().setStretchLastSection(True)
         layout.addWidget(self.tabla, 1)
 
         raiz.addWidget(cuerpo, 1)
@@ -116,17 +110,9 @@ class HallazgoView(QWidget):
         fila.addWidget(etiqueta_fecha)
 
         self.fecha = QDateEdit()
-        self.fecha.setCalendarPopup(True)
-        self.fecha.setDisplayFormat("dd MMM yyyy")
-        self.fecha.setDate(QDate.currentDate())
-        self.fecha.setMinimumDate(QDate(2020, 1, 1))
-        self.fecha.setMaximumDate(QDate.currentDate().addYears(1))
+        theme.configurar_fecha(self.fecha)
         self.fecha.setToolTip(
             "Fecha de referencia para los cálculos de días sin uso y cese oportuno."
-        )
-        self.fecha.calendarWidget().setGridVisible(False)
-        self.fecha.calendarWidget().setVerticalHeaderFormat(
-            QCalendarWidget.NoVerticalHeader
         )
         fila.addWidget(self.fecha)
 

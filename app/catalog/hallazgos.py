@@ -123,6 +123,24 @@ class Certificacion:
     id: str
     label: str
     hallazgos: list[Hallazgo]
+    descripcion: str = ""
+
+    @property
+    def label_corto(self) -> str:
+        return self.label.replace("Certificación de ", "")
+
+    @property
+    def landing(self) -> str:
+        """Hallazgo de entrada de la certificación (equivale al landing del front)."""
+        return self.hallazgos[0].id
+
+
+CERT_DESCRIPCIONES: dict[str, str] = {
+    "usuarios": "Hallazgos de acceso de usuarios en aplicaciones y Active Directory.",
+    "base-datos": "Hallazgos de accesos a bases de datos y Active Directory.",
+    "perfiles": "Auditoría de perfiles de aplicación, dueños y segregación de funciones.",
+    "generales": "Hallazgos de la certificación de Generales y Especiales.",
+}
 
 
 def certificaciones() -> list[Certificacion]:
@@ -134,7 +152,12 @@ def certificaciones() -> list[Certificacion]:
             orden.append(h.cert_id)
         agrupado[h.cert_id].append(h)
     return [
-        Certificacion(cid, agrupado[cid][0].cert_label, agrupado[cid])
+        Certificacion(
+            cid,
+            agrupado[cid][0].cert_label,
+            agrupado[cid],
+            CERT_DESCRIPCIONES.get(cid, ""),
+        )
         for cid in orden
     ]
 

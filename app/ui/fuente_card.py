@@ -37,6 +37,7 @@ class SlotRow(QWidget):
         self.slot = slot
         self._ocupado = False
         self._ultimas_faltantes: list[str] = []
+        self._faltantes_visibles: list[str] = []
         self.setAcceptDrops(True)
 
         raiz = QVBoxLayout(self)
@@ -79,6 +80,25 @@ class SlotRow(QWidget):
 
         self.alerta.hide()
         raiz.addWidget(self.alerta)
+
+        # ── Desplegable de columnas ───────────────────────────────────────
+        # En estado normal lista las columnas obligatorias; tras un intento
+        # fallido lista solo las que faltan y se abre solo.
+        self.btn_columnas = QPushButton()
+        self.btn_columnas.setObjectName("Desplegable")
+        self.btn_columnas.setCursor(Qt.PointingHandCursor)
+        self.btn_columnas.setCheckable(True)
+        self.btn_columnas.toggled.connect(self._alternar_columnas)
+        raiz.addWidget(self.btn_columnas)
+
+        self.lista_columnas = QLabel()
+        self.lista_columnas.setObjectName("ListaColumnas")
+        self.lista_columnas.setWordWrap(True)
+        self.lista_columnas.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.lista_columnas.hide()
+        raiz.addWidget(self.lista_columnas)
+
+        self._pintar_columnas([])
 
         acciones = QHBoxLayout()
         acciones.setSpacing(6)
@@ -178,17 +198,46 @@ class SlotRow(QWidget):
     def _guardar_detalle(self, exc) -> None:
         self._ultimas_faltantes = list(getattr(exc, "faltantes", []) or [])
 
+    def _alternar_columnas(self, abierto: bool) -> None:
+        self.lista_columnas.setVisible(abierto)
+        self.btn_columnas.setText(self._texto_desplegable(abierto))
+
+    def _texto_desplegable(self, abierto: bool) -> str:
+        flecha = "▾" if abierto else "▸"
+        if self._faltantes_visibles:
+            return f"{flecha}  Columnas faltantes ({len(self._faltantes_visibles)})"
+        return f"{flecha}  Columnas requeridas ({len(self.slot.columns)})"
+
+    def _pintar_columnas(self, faltantes: list[str]) -> None:
+        """Refresca el desplegable. Con `faltantes` se pone en rojo y se abre."""
+        self._faltantes_visibles = list(faltantes)
+
+        if faltantes:
+            texto = "\n".join(f"·  {c}" for c in faltantes)
+            tono = "error"
+        else:
+            texto = "\n".join(f"·  {c}" for c in self.slot.columns)
+            tono = ""
+
+        self.lista_columnas.setText(texto)
+        self.lista_columnas.setProperty("tono", tono)
+        self._repintar_estilo(self.lista_columnas)
+
+        self.btn_columnas.setProperty("tono", tono)
+        self._repintar_estilo(self.btn_columnas)
+
+        self.btn_columnas.blockSignals(True)
+        self.btn_columnas.setChecked(bool(faltantes))
+        self.btn_columnas.blockSignals(False)
+        self.lista_columnas.setVisible(bool(faltantes))
+        self.btn_columnas.setText(self._texto_desplegable(bool(faltantes)))
+
     def _al_cargar(self, resultado) -> None:
         self._liberar()
-        extra = resultado.validacion.extra
-        if extra:
-            self._mostrar_alerta(
-                f"Se cargó correctamente · {len(extra)} columna(s) no esperada(s)",
-                f"Se ignoraron: {self._lista_columnas(extra)}",
-                tono="info",
-            )
-        else:
-            self._ocultar_alerta()
+        # Las columnas de más no son un problema: el consolidado solo se queda
+        # con las requeridas. Carga correcta = verde y sin avisos.
+        self._ocultar_alerta()
+        self._pintar_columnas([])
         self.cambiado.emit()
 
     def _al_fallar(self, mensaje: str) -> None:
@@ -203,8 +252,9 @@ class SlotRow(QWidget):
         if faltantes:
             self._mostrar_alerta(
                 f"Faltan {len(faltantes)} columna(s) requerida(s)",
-                self._lista_columnas(faltantes),
+                "Revisa el detalle en «Columnas faltantes».",
             )
+            self._pintar_columnas(faltantes)
             self._ultimas_faltantes = []
         else:
             self._mostrar_alerta("No se pudo cargar el archivo", mensaje)
@@ -223,13 +273,6 @@ class SlotRow(QWidget):
     def _ocultar_alerta(self) -> None:
         self.alerta.hide()
         self.alerta_error.emit(False)
-
-    @staticmethod
-    def _lista_columnas(columnas: list[str], maximo: int = 8) -> str:
-        visibles = ", ".join(columnas[:maximo])
-        if len(columnas) > maximo:
-            visibles += f" y {len(columnas) - maximo} más"
-        return visibles
 
     def _rutas_validas(self, evento) -> list[str]:
         if not evento.mimeData().hasUrls():

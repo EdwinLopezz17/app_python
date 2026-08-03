@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtGui import QFontDatabase
+from PySide6.QtGui import QColor, QFont, QFontDatabase, QIcon, QTextCharFormat
 
 SURFACE = "#faf8ff"
 SURFACE_CONTAINER_LOWEST = "#ffffff"
@@ -25,13 +25,6 @@ TERTIARY = "#964400"
 TERTIARY_SOFT = "#fff1e6"
 ERROR = "#ba1a1a"
 ERROR_SOFT = "#ffdad6"
-
-TABLA_CABECERA_BG = "#dae2fd"
-TABLA_CABECERA_FG = "#131b2e"
-TABLA_CABECERA_BORDE = "#8f9bb3"
-TABLA_ZEBRA = "#f4f6ff"
-TABLA_SELECCION_BG = "#bfe3f2"
-TABLA_GRID = "#cfd6e4"
 
 SIDEBAR_BG = "#283044"
 SIDEBAR_FG = "#eef0ff"
@@ -173,50 +166,23 @@ QLabel#Seccion {{
     letter-spacing: 1px;
 }}
 
-QDialog {{ background: {SURFACE}; }}
-QDialog QLabel {{ color: {ON_SURFACE}; }}
-
 QTableView {{
     background: {SURFACE_CONTAINER_LOWEST};
-    alternate-background-color: {TABLA_ZEBRA};
     border: 1px solid {OUTLINE_VARIANT};
     border-radius: {RADIO_LG}px;
-    gridline-color: {TABLA_GRID};
+    gridline-color: {SURFACE_CONTAINER};
     font-size: 13px;
-    color: {ON_SURFACE};
-    selection-background-color: {TABLA_SELECCION_BG};
+    selection-background-color: {SURFACE_CONTAINER_HIGH};
     selection-color: {ON_SURFACE};
 }}
-QTableView::item {{ padding: 4px 8px; }}
-QTableView::item:selected {{
-    background: {TABLA_SELECCION_BG};
-    color: {ON_SURFACE};
-}}
-
-QHeaderView {{
-    background: {TABLA_CABECERA_BG};
-    border: none;
-}}
 QHeaderView::section {{
-    background: {TABLA_CABECERA_BG};
-    color: {TABLA_CABECERA_FG};
+    background: {SURFACE_CONTAINER_LOW};
+    color: {ON_SURFACE_VARIANT};
     border: none;
-    border-bottom: 2px solid {TABLA_CABECERA_BORDE};
-    border-right: 1px solid {TABLA_CABECERA_BORDE};
-    padding: 9px 12px;
-    font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
-}}
-QHeaderView::section:last {{ border-right: none; }}
-QHeaderView::section:hover {{ background: {SURFACE_CONTAINER_HIGH}; }}
-QHeaderView::section:vertical {{
-    border-right: 2px solid {TABLA_CABECERA_BORDE};
-    border-bottom: 1px solid {TABLA_CABECERA_BORDE};
-}}
-QTableCornerButton::section {{
-    background: {TABLA_CABECERA_BG};
-    border: none;
-    border-bottom: 2px solid {TABLA_CABECERA_BORDE};
-    border-right: 2px solid {TABLA_CABECERA_BORDE};
+    border-bottom: 1px solid {OUTLINE_VARIANT};
+    border-right: 1px solid {SURFACE_CONTAINER};
+    padding: 8px 12px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
 }}
 
 QLineEdit {{
@@ -274,7 +240,7 @@ QDateEdit {{
     border: 1px solid {OUTLINE_VARIANT};
     border-radius: {RADIO_SM}px;
     padding: 7px 10px;
-    min-width: 130px;
+    min-width: 150px;
     font-weight: 600;
 }}
 QDateEdit:hover {{ border-color: {PRIMARY}; }}
@@ -288,32 +254,100 @@ QDateEdit::drop-down {{
     border-bottom-right-radius: {RADIO_SM}px;
 }}
 QDateEdit::drop-down:hover {{ background: {SURFACE_CONTAINER_HIGH}; }}
-
 QDateEdit::down-arrow {{ image: none; width: 0; height: 0; }}
 QLabel#IconoCalendario {{
     color: {ON_SURFACE_VARIANT}; font-size: 14px;
 }}
 
+/* ── Calendario emergente ──────────────────────────────────────────────────
+   El popup de QDateEdit es un QCalendarWidget compuesto por sub-widgets con
+   nombres fijos (qt_calendar_navigationbar, qt_calendar_prevmonth,
+   qt_calendar_monthbutton, qt_calendar_yearbutton, qt_calendar_yearedit,
+   qt_calendar_calendarview). Si no se estilan TODOS, Qt mezcla su tema nativo
+   con el nuestro y el resultado se ve roto. */
+QCalendarWidget {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border: 1px solid {OUTLINE_VARIANT};
+    border-radius: {RADIO_LG}px;
+}}
+QCalendarWidget QWidget {{
+    alternate-background-color: {SURFACE_CONTAINER_LOWEST};
+}}
+
 QCalendarWidget QWidget#qt_calendar_navigationbar {{
-    background: {PRIMARY}; border-top-left-radius: {RADIO_LG}px;
-    border-top-right-radius: {RADIO_LG}px; min-height: 36px;
+    background: {PRIMARY};
+    border-top-left-radius: {RADIO_LG}px;
+    border-top-right-radius: {RADIO_LG}px;
+    min-height: 42px;
 }}
 QCalendarWidget QToolButton {{
-    color: {ON_PRIMARY}; background: transparent; border: none;
-    font-size: 13px; font-weight: 600; padding: 4px 10px;
+    color: {ON_PRIMARY};
+    background: transparent;
+    border: none;
+    border-radius: {RADIO_SM}px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 5px 12px;
+    margin: 4px 2px;
 }}
-QCalendarWidget QToolButton:hover {{ background: rgba(255,255,255,0.18); border-radius: {RADIO_SM}px; }}
-QCalendarWidget QMenu {{ background: {SURFACE_CONTAINER_LOWEST}; }}
+QCalendarWidget QToolButton:hover {{ background: rgba(255, 255, 255, 0.20); }}
+QCalendarWidget QToolButton:pressed {{ background: rgba(0, 0, 0, 0.12); }}
+QCalendarWidget QToolButton::menu-indicator {{ image: none; width: 0; }}
+QCalendarWidget QToolButton#qt_calendar_prevmonth,
+QCalendarWidget QToolButton#qt_calendar_nextmonth {{
+    qproperty-icon: none;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 0;
+    margin: 6px 4px;
+    min-width: 30px;
+    max-width: 30px;
+    min-height: 30px;
+    max-height: 30px;
+}}
+
+/* Selector de año (aparece al pulsar el año en la barra). */
+QCalendarWidget QSpinBox {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    color: {ON_SURFACE};
+    border: none;
+    border-radius: {RADIO_SM}px;
+    padding: 2px 6px;
+    margin: 6px 2px;
+    font-weight: 600;
+    selection-background-color: {PRIMARY};
+    selection-color: {ON_PRIMARY};
+}}
+QCalendarWidget QSpinBox::up-button, QCalendarWidget QSpinBox::down-button {{
+    width: 14px;
+    background: {SURFACE_CONTAINER_LOW};
+}}
+
+/* Menú de meses. */
+QCalendarWidget QMenu {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border: 1px solid {OUTLINE_VARIANT};
+    border-radius: {RADIO_SM}px;
+    padding: 4px 0;
+}}
+
+/* Rejilla de días. */
+QCalendarWidget QAbstractItemView#qt_calendar_calendarview {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border: none;
+    border-bottom-left-radius: {RADIO_LG}px;
+    border-bottom-right-radius: {RADIO_LG}px;
+    padding: 6px;
+}}
 QCalendarWidget QAbstractItemView:enabled {{
     background: {SURFACE_CONTAINER_LOWEST};
     color: {ON_SURFACE};
     selection-background-color: {PRIMARY};
     selection-color: {ON_PRIMARY};
     outline: none;
-    font-size: 12px;
+    font-size: 13px;
 }}
 QCalendarWidget QAbstractItemView:disabled {{ color: {OUTLINE_VARIANT}; }}
-QCalendarWidget QWidget {{ alternate-background-color: {SURFACE_CONTAINER_LOW}; }}
 
 QFrame#Alerta {{ border-radius: {RADIO_SM}px; border: 1px solid transparent; }}
 QFrame#Alerta[tono="error"] {{ background: {ERROR_SOFT}; border-color: {ERROR}; }}
@@ -350,4 +384,130 @@ QLabel#FilaEstadoMeta {{ font-size: 11px; color: {ON_SURFACE_VARIANT}; }}
 QLabel#PuntoEstado {{ font-size: 15px; }}
 QLabel#PuntoEstado[tono="ok"] {{ color: {SECONDARY}; }}
 QLabel#PuntoEstado[tono="falta"] {{ color: {OUTLINE_VARIANT}; }}
+
+/* ── Desplegable de columnas de cada card de carga ─────────────────────────*/
+QPushButton#Desplegable {{
+    background: transparent;
+    color: {ON_SURFACE_VARIANT};
+    border: none;
+    padding: 2px 0;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: left;
+}}
+QPushButton#Desplegable:hover {{ color: {PRIMARY}; }}
+QPushButton#Desplegable[tono="error"] {{ color: {ERROR}; }}
+QLabel#ListaColumnas {{
+    background: {SURFACE_CONTAINER_LOW};
+    border: 1px solid {OUTLINE_VARIANT};
+    border-radius: {RADIO_SM}px;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: {ON_SURFACE_VARIANT};
+}}
+QLabel#ListaColumnas[tono="error"] {{
+    background: {ERROR_SOFT};
+    border-color: {ERROR};
+    color: {ERROR};
+}}
+
+/* ── Sidebar de navegación (mismo árbol que el front Next.js) ──────────────*/
+QWidget#Sidebar {{
+    background: {SIDEBAR_BG};
+    border-right: 1px solid {SIDEBAR_BG};
+}}
+QWidget#Sidebar QLabel {{ color: {SIDEBAR_FG}; }}
+QWidget#Sidebar QScrollArea {{ background: transparent; }}
+QPushButton#CertSwitcher {{
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: {RADIO_SM}px;
+    color: {SIDEBAR_FG};
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 700;
+}}
+QPushButton#CertSwitcher:hover {{ background: rgba(255, 255, 255, 0.12); }}
+QPushButton#CertSwitcher::menu-indicator {{ image: none; width: 0; }}
+QLabel#SidebarEyebrow {{
+    color: {SIDEBAR_MUTED}; font-size: 9px; font-weight: 700; letter-spacing: 1.2px;
+}}
+QLabel#SidebarGrupo {{
+    color: {SIDEBAR_MUTED}; font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+    padding: 12px 12px 4px 12px;
+}}
+QLabel#SidebarPie {{ color: {SIDEBAR_MUTED}; font-size: 10px; }}
+QPushButton#NavItem {{
+    background: transparent;
+    border: none;
+    border-left: 3px solid transparent;
+    border-radius: 0;
+    color: rgba(238, 240, 255, 0.78);
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 500;
+}}
+QPushButton#NavItem:hover {{
+    background: rgba(255, 255, 255, 0.07);
+    color: {SIDEBAR_FG};
+}}
+QPushButton#NavItem:checked {{
+    background: rgba(0, 149, 199, 0.28);
+    border-left: 3px solid {PRIMARY_HOVER};
+    color: {SIDEBAR_FG};
+    font-weight: 700;
+}}
+QPushButton#NavItem:disabled {{ color: {SIDEBAR_MUTED}; }}
+QFrame#SidebarSep {{ background: rgba(255, 255, 255, 0.10); max-height: 1px; }}
 """
+
+
+def configurar_fecha(campo) -> None:
+    """Deja un QDateEdit con el popup de calendario consistente en toda la app.
+
+    Centralizado aquí para que cualquier hallazgo que agregue una fecha de corte
+    herede el mismo calendario sin repetir la configuración.
+    """
+    from PySide6.QtCore import QDate, QLocale, Qt
+    from PySide6.QtWidgets import QCalendarWidget
+
+    campo.setCalendarPopup(True)
+    campo.setDisplayFormat("dd/MM/yyyy")
+    campo.setLocale(QLocale(QLocale.Spanish, QLocale.Peru))
+    campo.setDate(QDate.currentDate())
+    campo.setMinimumDate(QDate(2020, 1, 1))
+    campo.setMaximumDate(QDate.currentDate().addYears(1))
+
+    calendario = campo.calendarWidget()
+    if calendario is None:
+        return
+
+    calendario.setGridVisible(False)
+    calendario.setFirstDayOfWeek(Qt.Monday)
+    calendario.setLocale(QLocale(QLocale.Spanish, QLocale.Peru))
+    calendario.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
+    calendario.setHorizontalHeaderFormat(QCalendarWidget.SingleLetterDayNames)
+    calendario.setNavigationBarVisible(True)
+    calendario.setMinimumSize(300, 260)
+
+    # Los botones de mes anterior/siguiente traen iconos nativos que chocan con
+    # el QSS; se reemplazan por texto para que hereden el estilo.
+    for nombre, texto in (("qt_calendar_prevmonth", "‹"), ("qt_calendar_nextmonth", "›")):
+        boton = calendario.findChild(object, nombre)
+        if boton is not None:
+            boton.setIcon(QIcon())
+            boton.setText(texto)
+
+    # Encabezado de días y fines de semana en el gris de la paleta (por defecto
+    # Qt pinta sábado y domingo en rojo).
+    formato_cabecera = QTextCharFormat()
+    formato_cabecera.setForeground(QColor(ON_SURFACE_VARIANT))
+    formato_cabecera.setFontWeight(QFont.DemiBold)
+    calendario.setHeaderTextFormat(formato_cabecera)
+
+    formato_dia = QTextCharFormat()
+    formato_dia.setForeground(QColor(ON_SURFACE))
+    for dia in (Qt.Saturday, Qt.Sunday):
+        calendario.setWeekdayTextFormat(dia, formato_dia)
