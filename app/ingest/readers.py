@@ -99,7 +99,7 @@ def texto_celda(valor: object) -> str:
         return ""
 
     if isinstance(valor, str):
-        return valor
+        return normalizar_numero_texto(valor)
 
     if isinstance(valor, bool):
         return "TRUE" if valor else "FALSE"
