@@ -44,4 +44,3 @@ class FileName(str, Enum):
     EPPS_AC = f"epps_ac{extension_file}"
     IGWPRD_AC = f"igwprd_ac{extension_file}"
     IGWPRD_AE = f"igwprd_ae{extension_file}"
-
