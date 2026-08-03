@@ -11,7 +11,6 @@ from app.storage.files import eliminar_slots
 
 @dataclass
 class ResultadoBorrado:
-
     archivos: int = 0
     hallazgos_cache: int = 0
 

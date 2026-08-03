@@ -14,6 +14,7 @@ class Hallazgo:
     fuente_ids: list[str] = field(default_factory=list)
     modelo: str | None = None
     descripcion: str = ""
+    usa_fecha_corte: bool = False
 
     @property
     def fuentes(self) -> list[Fuente]:
@@ -42,6 +43,7 @@ HALLAZGOS: list[Hallazgo] = [
     ),
     Hallazgo(
         id="active-directory",
+        usa_fecha_corte=True,
         label="Active Directory",
         cert_id="usuarios",
         cert_label="Certificación de Usuarios",
@@ -52,6 +54,7 @@ HALLAZGOS: list[Hallazgo] = [
 
     Hallazgo(
         id="bd-vida",
+        usa_fecha_corte=True,
         label="BD Vida",
         cert_id="base-datos",
         cert_label="Certificación de Base de Datos",
@@ -61,6 +64,7 @@ HALLAZGOS: list[Hallazgo] = [
     ),
     Hallazgo(
         id="bd-generales",
+        usa_fecha_corte=True,
         label="BD Generales",
         cert_id="base-datos",
         cert_label="Certificación de Base de Datos",
@@ -131,7 +135,6 @@ class Certificacion:
 
     @property
     def landing(self) -> str:
-        """Hallazgo de entrada de la certificación (equivale al landing del front)."""
         return self.hallazgos[0].id
 
 

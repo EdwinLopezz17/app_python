@@ -58,7 +58,6 @@ class VentanaPrincipal(QMainWindow):
         self.setCentralWidget(central)
         self.abrir_inicio()
 
-    # ── Rutas ─────────────────────────────────────────────────────────────
 
     def abrir_inicio(self) -> None:
         self.launcher.refrescar()

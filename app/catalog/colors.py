@@ -1,26 +1,8 @@
-"""Grupos de color de las cabeceras de los hallazgos.
-
-Port literal de `src/lib/theme.ts` del front Next.js: los mismos hex, los mismos
-identificadores C1–C10 y el mismo criterio (el color indica el ORIGEN del dato,
-no su tipo). Se usan idénticos en la tabla de la app y en el Excel exportado,
-igual que allá.
-
-    C1  Aplicación / origen        C6  Ticket Cese
-    C2  DNI vs Usuario             C7  Estado Entra ID
-    C3  AD PPS                     C8  Escenarios
-    C4  AD VIDA                    C9  Rol Final (Perfiles)
-    C5  GDH                        C10 Matriz de Roles (Perfiles)
-
-El mapeo por modelo traduce los `key` del front (que son las cabeceras del JSON
-del backend) a los nombres de campo de `models/reports/*` que usa esta app.
-Cualquier campo sin mapear cae en C1.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-# Paleta (idéntica a `palette` en lib/theme.ts).
+
 SURFACE_CONTAINER_HIGH = "#e2e7ff"
 ON_SURFACE = "#131b2e"
 INVERSE_SURFACE = "#283044"
@@ -55,7 +37,6 @@ GRUPOS: dict[str, GrupoColor] = {
 GRUPO_POR_DEFECTO = "C1"
 
 
-# ── AppRows · features/usuarios/hallazgos/aplicaciones/columns.ts ───────────
 APP_ROWS = {
     "tipo_aplicacion": "C1",
     "aplicacion": "C1",
@@ -89,7 +70,7 @@ APP_ROWS = {
     "comentario": "C6",
 }
 
-# ── ADRows · features/usuarios/hallazgos/active-directory/ad-columns.ts ─────
+
 AD_ROWS = {
     "dominio": "C1",
     "usuario": "C1",
@@ -130,7 +111,7 @@ AD_ROWS = {
     "comentario": "C6",
 }
 
-# ── ProfileRows · features/perfiles/perfiles-columns.ts ─────────────────────
+
 PROFILE_ROWS = {
     "aplicacion": "C1",
     "asignacion": "C1",
@@ -171,7 +152,7 @@ PROFILE_ROWS = {
     "comentario": "C8",
 }
 
-# ── GDHRows · features/perfiles/activos-gdh/columns.ts ──────────────────────
+
 GDH_ROWS = {
     "nombre_colaborador": "C5",
     "dni": "C5",
@@ -199,7 +180,7 @@ GDH_ROWS = {
     "validacion_dni": "C10",
 }
 
-# ── DBVidaRow / DBGeneralsRow · features/bd/bd-columns.ts ──────────────────
+
 _BD_COMUN = {
     "dni": "C2",
     "tipo_dnivsuser": "C2",
@@ -222,6 +203,8 @@ _BD_COMUN = {
     "is_sin_uso_90d": "C8",
     "is_deshabilitado_180d": "C8",
     "is_no_cesado_oportunamente": "C8",
+    "responsable": "C6",
+    "comentario": "C6",
 }
 
 DB_VIDA_ROW = {
@@ -250,10 +233,7 @@ DB_GENERALS_ROW = {
     **_BD_COMUN,
 }
 
-# ── GeneralsRow ────────────────────────────────────────────────────────────
-# En el front este set está marcado como esqueleto (TODO), así que aquí se
-# mapea por origen del dato: acceso/consulta en C1, jefatura en C5 y las tres
-# validaciones en C10.
+
 GENERALS_ROW = {
     "db": "C1",
     "cuenta de acceso": "C1",
@@ -285,13 +265,11 @@ GRUPOS_POR_MODELO: dict[str, dict[str, str]] = {
 
 
 def grupo(modelo: str | None, campo: str) -> GrupoColor:
-    """Grupo de color de una columna. Sin modelo o sin mapeo devuelve C1."""
     mapa = GRUPOS_POR_MODELO.get(modelo or "", {})
     return GRUPOS[mapa.get(campo, GRUPO_POR_DEFECTO)]
 
 
 def check_mapeos() -> dict[str, list[str]]:
-    """Campos con etiqueta en display.py pero sin grupo de color asignado."""
     from app.catalog import display
 
     reporte: dict[str, list[str]] = {}

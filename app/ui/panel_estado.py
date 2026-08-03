@@ -12,7 +12,6 @@ ANCHO = 290
 
 
 class FilaEstado(QFrame):
-
     ir_a = Signal(str)
 
     def __init__(self, slot, fuente_label: str, parent: QWidget | None = None) -> None:
@@ -70,7 +69,6 @@ class FilaEstado(QFrame):
 
 
 class PanelEstado(QWidget):
-
     ir_a_slot = Signal(str)
     cerrar = Signal()
 

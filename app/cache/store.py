@@ -72,7 +72,6 @@ def leer_meta(hallazgo: Hallazgo) -> Metadatos | None:
         return None
 
 def _escribir_parquet(df: pd.DataFrame, destino: Path) -> None:
-    """Escribe el parquet homogeneizando columnas de tipos mezclados."""
     def _volcar(datos: pd.DataFrame) -> None:
         datos.to_parquet(
             destino, engine="pyarrow",

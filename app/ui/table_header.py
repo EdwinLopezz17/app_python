@@ -1,11 +1,3 @@
-"""Cabecera de tabla coloreada por grupo de origen (C1–C10).
-
-Se pinta a mano porque el QSS (`QHeaderView::section`) aplica el mismo fondo a
-todas las secciones y gana sobre `Qt.BackgroundRole` del modelo. `paintSection`
-esquiva el estilo y permite un color por columna, igual que el `<div>` de
-cabecera del DataTable en Next.js.
-"""
-
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
@@ -19,7 +11,6 @@ MARGEN = 12
 
 
 class CabeceraColoreada(QHeaderView):
-
     def __init__(self, parent=None) -> None:
         super().__init__(Qt.Horizontal, parent)
         self.setSectionsClickable(True)

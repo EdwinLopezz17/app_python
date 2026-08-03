@@ -16,7 +16,6 @@ COLUMNAS = 2
 
 
 class HallazgoFila(QFrame):
-
     ir_cargar = Signal(str)
     ir_generar = Signal(str)
 
@@ -124,7 +123,6 @@ class CertificacionCard(QFrame):
 
 
 class LauncherView(QWidget):
-
     ir_cargar = Signal(str)
     ir_generar = Signal(str)
 

@@ -71,13 +71,6 @@ def estado_slot(slot: Slot) -> EstadoSlot:
 
 
 def archivos_origen(slot: Slot, path: Path | None = None) -> list[str]:
-    """Nombres de los archivos que se consolidaron en el parquet del slot.
-
-    Solo aplica a los slots con `origin_file=True` (DB Vida y DB Generales),
-    que guardan la columna ORIGIN_FILE al unificar varios archivos. Se lee
-    únicamente esa columna, así que el costo es mínimo aunque el parquet sea
-    grande.
-    """
     if not slot.origin_file:
         return []
 

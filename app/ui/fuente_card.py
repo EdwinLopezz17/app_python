@@ -27,8 +27,6 @@ def _badge(texto: str, tono: str) -> QLabel:
 
 
 class Desplegable(QWidget):
-    """Botón «▸ Título (N)» que muestra u oculta una lista de texto."""
-
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._titulo = ""
@@ -77,7 +75,6 @@ class Desplegable(QWidget):
 
 
 class SlotRow(QWidget):
-
     cambiado = Signal()
     ver_datos = Signal(object)
     alerta_error = Signal(bool)
@@ -130,11 +127,7 @@ class SlotRow(QWidget):
         self.alerta.hide()
         raiz.addWidget(self.alerta)
 
-        # ── Desplegables ──────────────────────────────────────────────────
-        # Columnas: en estado normal lista las obligatorias; tras un intento
-        # fallido lista solo las que faltan y se abre solo.
-        # Archivos: solo para slots que aceptan varios archivos (DB Vida y
-        # DB Generales), leyendo la columna ORIGIN_FILE del parquet.
+
         self.desp_columnas = Desplegable()
         raiz.addWidget(self.desp_columnas)
 
@@ -252,7 +245,6 @@ class SlotRow(QWidget):
         self._ultimas_faltantes = list(getattr(exc, "faltantes", []) or [])
 
     def _pintar_columnas(self, faltantes: list[str]) -> None:
-        """Refresca el desplegable. Con `faltantes` se pone en rojo y se abre."""
         if faltantes:
             self.desp_columnas.poblar(
                 "Columnas faltantes", faltantes, tono="error", abierto=True
@@ -262,8 +254,8 @@ class SlotRow(QWidget):
 
     def _al_cargar(self, resultado) -> None:
         self._liberar()
-        # Las columnas de más no son un problema: el consolidado solo se queda
-        # con las requeridas. Carga correcta = verde y sin avisos.
+
+
         self._ocultar_alerta()
         self._pintar_columnas([])
         self.cambiado.emit()

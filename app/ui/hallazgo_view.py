@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 
 from app.cache import store
 from app.cache.store import EstadoCache
-from app.catalog import display, resumen_usuarios
+from app.catalog import display, resumenes
 from app.catalog.hallazgos import Hallazgo
 from app.exports import excel
 from app.generation import reports
@@ -27,7 +27,6 @@ BANDERAS_KPI = [
 
 
 class HallazgoView(QWidget):
-
     ir_cargar = Signal(str)
     cambiado = Signal()
 
@@ -74,7 +73,7 @@ class HallazgoView(QWidget):
         self.tabla.setSelectionBehavior(QTableView.SelectRows)
         self.tabla.verticalHeader().setVisible(False)
         self.tabla.verticalHeader().setDefaultSectionSize(30)
-        # Cabecera con el color del grupo de origen (C1–C10), igual que el front.
+
         self.tabla.setHorizontalHeader(CabeceraColoreada(self.tabla))
         self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.tabla.horizontalHeader().setStretchLastSection(True)
@@ -108,22 +107,26 @@ class HallazgoView(QWidget):
         fila.addWidget(self.estado_badge)
         fila.addStretch(1)
 
-        etiqueta_fecha = QLabel("Fecha de corte")
-        etiqueta_fecha.setObjectName("CardMeta")
-        fila.addWidget(etiqueta_fecha)
+        self.fecha: QDateEdit | None = None
+        if self.hallazgo.usa_fecha_corte:
+            etiqueta_fecha = QLabel("Fecha de corte")
+            etiqueta_fecha.setObjectName("CardMeta")
+            fila.addWidget(etiqueta_fecha)
 
-        self.fecha = QDateEdit()
-        theme.configurar_fecha(self.fecha)
-        self.fecha.setToolTip(
-            "Fecha de referencia para los cálculos de días sin uso y cese oportuno."
-        )
-        fila.addWidget(self.fecha)
+            self.fecha = QDateEdit()
+            theme.configurar_fecha(self.fecha)
+            self.fecha.setToolTip(
+                "Fecha de referencia para los cálculos de días sin uso y cese oportuno."
+            )
+            fila.addWidget(self.fecha)
 
-        btn_hoy = QPushButton("Hoy")
-        btn_hoy.setProperty("variante", "ghost")
-        btn_hoy.setToolTip("Usar la fecha actual")
-        btn_hoy.clicked.connect(lambda: self.fecha.setDate(QDate.currentDate()))
-        fila.addWidget(btn_hoy)
+            btn_hoy = QPushButton("Hoy")
+            btn_hoy.setProperty("variante", "ghost")
+            btn_hoy.setToolTip("Usar la fecha actual")
+            btn_hoy.clicked.connect(
+                lambda: self.fecha and self.fecha.setDate(QDate.currentDate())
+            )
+            fila.addWidget(btn_hoy)
 
         self.buscador = QLineEdit()
         self.buscador.setPlaceholderText("Buscar…")
@@ -223,7 +226,9 @@ class HallazgoView(QWidget):
             "Procesando las fuentes. Esto puede tardar varios minutos según el "
             "volumen de datos.", "aviso")
 
-        fecha_ref: date = self.fecha.date().toPython()
+        fecha_ref: date = (
+            self.fecha.date().toPython() if self.fecha is not None else date.today()
+        )
         tarea = Tarea(reports.generar, self.hallazgo.id, fecha_ref)
         tarea.senales.ok.connect(self._al_generar)
         tarea.senales.error.connect(self._al_fallar)
@@ -322,8 +327,8 @@ class HallazgoView(QWidget):
 
         tarea = Tarea(
             excel.exportar, df, destino, self.hallazgo.modelo, "Hallazgos",
-            resumen_usuarios.COLUMNAS_EDITABLES
-            if resumen_usuarios.disponible(self.hallazgo.id) else (),
+            resumenes.COLUMNAS_EDITABLES
+            if resumenes.disponible(self.hallazgo.id) else (),
         )
         tarea.senales.ok.connect(self._al_exportar)
         tarea.senales.error.connect(

@@ -1,15 +1,3 @@
-"""Lectura del Excel de detalle que el usuario devuelve con Responsable lleno.
-
-Port de `import-excel.ts` / `import-excel-ad.ts`. Reutiliza el lector de
-`app/ingest/readers.py` (mismo tratamiento de tipos que la carga de fuentes, así
-que los identificadores no se distorsionan) y traduce las cabeceras visibles del
-archivo a los nombres de campo del modelo usando `catalog/display.py` al revés.
-
-La comparación de cabeceras pasa por `norm_header`, así que tolera tildes,
-mayúsculas y espacios repetidos: da igual si el usuario reordena columnas o
-reescribe «Fecha de Cese» como «FECHA DE CESE».
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -26,7 +14,6 @@ class ErrorDeImportacion(Exception):
 
 
 def _mapa_cabeceras(modelo: str) -> dict[str, str]:
-    """{cabecera normalizada: campo del modelo}, aceptando etiqueta o campo."""
     etiquetas = display.etiquetas(modelo)
     mapa: dict[str, str] = {}
     for campo, etiqueta in etiquetas.items():
@@ -36,11 +23,6 @@ def _mapa_cabeceras(modelo: str) -> dict[str, str]:
 
 
 def leer_detalle(path: str | Path, modelo: str) -> list[dict]:
-    """Devuelve las filas del Excel como dicts con los campos del modelo.
-
-    Las columnas que no correspondan a ningún campo conocido se conservan con su
-    cabecera original, por si el usuario agregó anotaciones propias.
-    """
     path = Path(path)
     if path.suffix.lower() not in EXTENSIONES:
         raise ErrorDeImportacion(
@@ -65,7 +47,6 @@ def leer_detalle(path: str | Path, modelo: str) -> list[dict]:
 
 
 def campos_presentes(filas: list[dict], modelo: str) -> list[str]:
-    """Campos del modelo que sí venían en el archivo (para diagnóstico)."""
     if not filas:
         return []
     presentes = set(filas[0])

@@ -1,18 +1,3 @@
-"""Excel de resumen: hoja «Escenarios» + una hoja de detalle por escenario.
-
-Port de `export-resumen-ad.ts` y `export-resumen-excel.ts`. El front usa
-exceljs; aquí se usa xlsxwriter, que es lo que ya emplea `app/exports/excel.py`.
-Los colores de cabecera salen de `catalog/colors.py`, así que la hoja de detalle
-se ve igual que la tabla de la app y que el Excel del front.
-
-Dos formatos de hoja «Escenarios», según la config del hallazgo:
-
-  · Sin `campo_grupo` (Active Directory): una fila por escenario, con
-    hipervínculo a su hoja de detalle solo si tiene hallazgos.
-  · Con `campo_grupo` (Aplicaciones): una fila por aplicación y un bloque de
-    columnas por escenario, más la fila TOTAL.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -22,9 +7,8 @@ from typing import Sequence
 import xlsxwriter
 
 from app.catalog import colors, display
-from app.catalog.resumen_usuarios import ConfigResumen
 from app.resumen import engine
-from app.resumen.engine import Escenario
+from app.resumen.engine import ConfigResumen, Escenario
 
 GRIS_BORDE = "#bdc8d0"
 FONDO_TOTAL = "#eaedff"
@@ -33,7 +17,6 @@ ANCHO_MIN, ANCHO_MAX = 12, 45
 
 
 def con_sello(nombre: str, momento: datetime | None = None) -> str:
-    """`resumen.xlsx` → `resumen_20260803_170500.xlsx` (igual que withTimestamp)."""
     momento = momento or datetime.now()
     sello = momento.strftime("%Y%m%d_%H%M%S")
     punto = nombre.rfind(".")
@@ -44,9 +27,6 @@ def con_sello(nombre: str, momento: datetime | None = None) -> str:
 
 def nombre_sugerido(config: ConfigResumen) -> str:
     return con_sello(config.archivo)
-
-
-# ── Formatos ───────────────────────────────────────────────────────────────
 
 
 class _Formatos:
@@ -108,9 +88,6 @@ class _Formatos:
         return self.cabecera(grupo.fill, grupo.text)
 
 
-# ── Hoja de detalle ────────────────────────────────────────────────────────
-
-
 def _texto(valor) -> str:
     if valor is None:
         return ""
@@ -127,11 +104,11 @@ def _hoja_detalle(
     etiquetas = display.etiquetas(config.modelo)
     campos = list(escenario.columnas)
 
-    # Fila 1: vuelta a la hoja resumen (igual que en el front).
+
     hoja.merge_range(0, 1, 0, 2, "", fmt.volver)
     hoja.write_url(0, 1, "internal:'Escenarios'!A1", fmt.volver, "VOLVER A ESCENARIOS")
 
-    # Fila 3 (índice 2): cabeceras coloreadas por grupo de origen.
+
     for col, campo in enumerate(campos):
         hoja.write(2, col, etiquetas.get(campo, campo), fmt.cabecera_campo(config.modelo, campo))
     hoja.set_row(2, 28)
@@ -151,9 +128,6 @@ def _hoja_detalle(
     hoja.freeze_panes(3, 0)
     if campos:
         hoja.autofilter(2, 0, max(2 + len(filas), 3), len(campos) - 1)
-
-
-# ── Hoja «Escenarios» — formato por escenario (Active Directory) ───────────
 
 
 def _hoja_por_escenario(
@@ -201,7 +175,7 @@ def _hoja_por_escenario(
             fmt.resumen,
         )
 
-        # Si no hay hallazgos no se genera hoja ni hipervínculo.
+
         if total:
             hoja.write_url(
                 fila_excel, 4, f"internal:'{escenario.code}'!A1",
@@ -218,9 +192,6 @@ def _hoja_por_escenario(
     return detalles
 
 
-# ── Hoja «Escenarios» — formato por grupo (Aplicaciones) ───────────────────
-
-
 def _hoja_por_grupo(
     libro: xlsxwriter.Workbook, fmt: _Formatos, config: ConfigResumen,
     filas: Sequence[dict],
@@ -229,9 +200,15 @@ def _hoja_por_grupo(
     escenarios = list(config.escenarios)
     resumen = engine.por_grupo(filas, escenarios, config.campo_grupo or "")
 
-    ancho_bloque = 3
-    primera = 1                      # columna B
-    total_cols = len(escenarios) * ancho_bloque
+    anchos = [3 if e.reporta_responsable else 1 for e in escenarios]
+    inicios: list[int] = []
+    acumulado = 0
+    for ancho in anchos:
+        inicios.append(acumulado)
+        acumulado += ancho
+    total_cols = acumulado
+
+    primera = 1
 
     hoja.set_column(primera, primera, 26)
     hoja.set_column(primera + 1, primera + total_cols, 16)
@@ -240,34 +217,38 @@ def _hoja_por_grupo(
     rellenos = [colors.PRIMARY, colors.SECONDARY, colors.TERTIARY,
                 colors.INVERSE_SURFACE, colors.OUTLINE]
 
-    # Fila 3: título general sobre todos los bloques.
-    hoja.merge_range(
-        2, primera + 1, 2, primera + total_cols, config.titulo,
-        fmt.cabecera(colors.INVERSE_SURFACE),
-    )
+    def rango(fila_excel: int, ini: int, fin: int, texto: str, formato) -> None:
+        if fin > ini:
+            hoja.merge_range(fila_excel, ini, fila_excel, fin, texto, formato)
+        else:
+            hoja.write(fila_excel, ini, texto, formato)
+
+    rango(2, primera + 1, primera + total_cols, config.titulo,
+          fmt.cabecera(colors.INVERSE_SURFACE))
     hoja.set_row(2, 24)
 
-    # Filas 4 y 5: título del escenario y enlace a su hoja.
     for indice, escenario in enumerate(escenarios):
         relleno = rellenos[indice % len(rellenos)]
-        ini = primera + 1 + indice * ancho_bloque
-        fin = ini + ancho_bloque - 1
-        hoja.merge_range(3, ini, 3, fin, escenario.title, fmt.cabecera(relleno))
-        hoja.merge_range(4, ini, 4, fin, "", fmt.cabecera(relleno))
+        ini = primera + 1 + inicios[indice]
+        fin = ini + anchos[indice] - 1
+        rango(3, ini, fin, escenario.title, fmt.cabecera(relleno))
+        rango(4, ini, fin, "", fmt.cabecera(relleno))
         hoja.write_url(
             4, ini, f"internal:'{escenario.code}'!A1",
             fmt.cabecera(relleno), escenario.code,
         )
     hoja.set_row(3, 32)
 
-    # Fila 6: cabeceras de columna.
     hoja.write(5, primera, config.etiqueta_grupo or "Grupo",
                fmt.cabecera(colors.INVERSE_SURFACE))
-    subcabeceras = ["N° Hallazgos", "Hallazgos GDH", "Hallazgos ACCESOS"]
     for indice, escenario in enumerate(escenarios):
         relleno = rellenos[indice % len(rellenos)]
+        subcabeceras = (
+            ["N° Hallazgos", "Hallazgos GDH", "Hallazgos ACCESOS"]
+            if escenario.reporta_responsable else ["N° Hallazgos"]
+        )
         for desplazamiento, texto in enumerate(subcabeceras):
-            columna = primera + 1 + indice * ancho_bloque + desplazamiento
+            columna = primera + 1 + inicios[indice] + desplazamiento
             hoja.write(5, columna, texto, fmt.cabecera(relleno))
     hoja.write(5, primera + total_cols + 1, "COMENTARIO", fmt.cabecera(colors.OUTLINE))
     hoja.set_row(5, 28)
@@ -277,10 +258,11 @@ def _hoja_por_grupo(
         hoja.write(fila_excel, primera, fila.grupo,
                    fmt.total_izq if es_total else fmt.resumen_izq)
         for indice, escenario in enumerate(escenarios):
-            base = primera + 1 + indice * ancho_bloque
+            base = primera + 1 + inicios[indice]
             hoja.write_number(fila_excel, base, fila.total(escenario.code), formato)
-            hoja.write_number(fila_excel, base + 1, fila.gdh(escenario.code), formato)
-            hoja.write_number(fila_excel, base + 2, fila.accesos(escenario.code), formato)
+            if escenario.reporta_responsable:
+                hoja.write_number(fila_excel, base + 1, fila.gdh(escenario.code), formato)
+                hoja.write_number(fila_excel, base + 2, fila.accesos(escenario.code), formato)
         hoja.write(fila_excel, primera + total_cols + 1, "", formato)
 
     fila_excel = 6
@@ -294,11 +276,7 @@ def _hoja_por_grupo(
     return [(e, engine.filas_de_escenario(filas, e)) for e in escenarios]
 
 
-# ── Punto de entrada ───────────────────────────────────────────────────────
-
-
 def exportar(config: ConfigResumen, filas: Sequence[dict], destino: str | Path) -> Path:
-    """Genera el Excel de resumen del hallazgo y devuelve la ruta escrita."""
     destino = Path(destino)
     destino.parent.mkdir(parents=True, exist_ok=True)
 

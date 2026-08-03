@@ -17,7 +17,6 @@ from app.ingest.validate import ResultadoValidacion, formato_permitido, validar_
 
 
 class ErrorDeCarga(Exception):
-
     def __init__(self, mensaje: str, faltantes: list[str] | None = None) -> None:
         super().__init__(mensaje)
         self.faltantes = faltantes or []

@@ -1,18 +1,3 @@
-"""Vista «Generar Resumen».
-
-Port de las páginas `generar-resumen` del front. El flujo es el mismo:
-
-  1. En el hallazgo se exporta el Excel de detalle (ya trae las columnas
-     Responsable y Comentario vacías).
-  2. El usuario llena Responsable con GDH, ACCESOS o «GDH | ACCESOS».
-  3. Sube aquí ese archivo: se calcula la vista previa y se descarga el Excel
-     de resumen con una hoja por escenario.
-
-La vista no sabe de qué hallazgo se trata: lee `ConfigResumen` de
-`catalog/resumen_usuarios.py`, así que sirve igual para Aplicaciones (resumen
-agrupado por aplicación) que para Active Directory (resumen por escenario).
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,7 +10,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.catalog import resumen_usuarios
+from app.catalog import resumenes
 from app.catalog.hallazgos import Hallazgo
 from app.resumen import engine, export
 from app.resumen.importer import ErrorDeImportacion, leer_detalle
@@ -36,8 +21,6 @@ EXTENSIONES = {".xlsx", ".xlsm", ".xls"}
 
 
 class ZonaSoltar(QFrame):
-    """Área para arrastrar o seleccionar el Excel de detalle."""
-
     archivo = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -108,13 +91,12 @@ class ZonaSoltar(QFrame):
 
 
 class ResumenView(QWidget):
-
     ir_hallazgo = Signal(str)
 
     def __init__(self, hallazgo: Hallazgo, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.hallazgo = hallazgo
-        self.config = resumen_usuarios.get(hallazgo.id)
+        self.config = resumenes.get(hallazgo.id)
         self._filas: list[dict] = []
         self._archivo = ""
 
@@ -166,7 +148,6 @@ class ResumenView(QWidget):
 
         raiz.addWidget(cuerpo, 1)
 
-    # ── Cabecera ──────────────────────────────────────────────────────────
 
     def _cabecera(self) -> QWidget:
         barra = QWidget()
@@ -230,7 +211,6 @@ class ResumenView(QWidget):
 
         return tarjeta
 
-    # ── Procesamiento ─────────────────────────────────────────────────────
 
     def _procesar(self, ruta: str) -> None:
         self._archivo = Path(ruta).name
@@ -286,7 +266,6 @@ class ResumenView(QWidget):
         self.aviso.style().polish(self.aviso)
         self.aviso.show()
 
-    # ── Vista previa ──────────────────────────────────────────────────────
 
     def _pintar_preview(self) -> None:
         if self.config.campo_grupo:
@@ -334,8 +313,12 @@ class ResumenView(QWidget):
         )
 
         cabeceras = [self.config.etiqueta_grupo or "Grupo"]
-        for indice, _ in enumerate(escenarios, start=1):
-            cabeceras += [f"H{indice} N°", f"H{indice} GDH", f"H{indice} ACC"]
+        posiciones: list[int] = []
+        for indice, escenario in enumerate(escenarios, start=1):
+            posiciones.append(len(cabeceras))
+            cabeceras.append(f"H{indice} N°")
+            if escenario.reporta_responsable:
+                cabeceras += [f"H{indice} GDH", f"H{indice} ACC"]
         self.tabla.setColumnCount(len(cabeceras))
         self.tabla.setHorizontalHeaderLabels(cabeceras)
         self.tabla.setRowCount(len(resumen.filas) + 1)
@@ -343,10 +326,11 @@ class ResumenView(QWidget):
         def escribir(indice: int, fila: engine.FilaGrupo, negrita: bool) -> None:
             self._celda(indice, 0, fila.grupo, negrita=negrita)
             for pos, escenario in enumerate(escenarios):
-                base = 1 + pos * 3
+                base = posiciones[pos]
                 self._celda(indice, base, fila.total(escenario.code), True, negrita)
-                self._celda(indice, base + 1, fila.gdh(escenario.code), True, negrita)
-                self._celda(indice, base + 2, fila.accesos(escenario.code), True, negrita)
+                if escenario.reporta_responsable:
+                    self._celda(indice, base + 1, fila.gdh(escenario.code), True, negrita)
+                    self._celda(indice, base + 2, fila.accesos(escenario.code), True, negrita)
 
         for indice, fila in enumerate(resumen.filas):
             escribir(indice, fila, False)
@@ -390,7 +374,6 @@ class ResumenView(QWidget):
         self._kpis_layout.addStretch(1)
         self.kpis.show()
 
-    # ── Descarga ──────────────────────────────────────────────────────────
 
     def _descargar(self) -> None:
         if not self._filas:

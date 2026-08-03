@@ -1,25 +1,3 @@
-"""Sidebar de navegación.
-
-Réplica del árbol del front Next.js (`src/config/certifications.ts` +
-`Sidebar.tsx`): un switcher de certificación arriba —estilo menú de apps— y
-debajo el árbol de la certificación activa.
-
-    Certificación de Usuarios      ← switcher
-      HALLAZGOS                    ← grupo (no navegable)
-        Aplicaciones               ← /hallazgos/aplicaciones
-          Cargar Información       ← /hallazgos/aplicaciones/cargar-informacion
-        Active Directory
-          Cargar Información
-
-Diferencia deliberada con el front: allá «Cargar Información» cuelga de la
-certificación; aquí cuelga de cada hallazgo, porque `CargarView` recibe un
-`Hallazgo` y cada uno tiene su propio juego de fuentes. La forma del árbol
-(grupo → hallazgo → hoja) es la misma.
-
-Las rutas se identifican con una clave de texto (`inicio`,
-`hallazgo:<id>`, `cargar:<id>`) que hace de pathname.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -31,7 +9,7 @@ from PySide6.QtWidgets import (
 )
 
 from app import config
-from app.catalog import resumen_usuarios
+from app.catalog import resumenes
 from app.catalog.hallazgos import Certificacion, certificaciones, get as get_hallazgo
 from app.ui import theme
 
@@ -51,7 +29,6 @@ def ruta_resumen(hallazgo_id: str) -> str:
 
 
 class Sidebar(QWidget):
-
     ir_inicio = Signal()
     ir_hallazgo = Signal(str)
     ir_cargar = Signal(str)
@@ -89,7 +66,6 @@ class Sidebar(QWidget):
 
         self.marcar(INICIO)
 
-    # ── Construcción ──────────────────────────────────────────────────────
 
     def _separador(self) -> QFrame:
         linea = QFrame()
@@ -157,9 +133,9 @@ class Sidebar(QWidget):
                 nivel=2,
                 tooltip=f"Archivos fuente de {hallazgo.label}.",
             ))
-            # «Generar Resumen» cuelga del hallazgo, igual que en el front, y
-            # solo aparece si el hallazgo tiene escenarios configurados.
-            if resumen_usuarios.disponible(hallazgo.id):
+
+
+            if resumenes.disponible(hallazgo.id):
                 layout.addWidget(self._item(
                     "Generar Resumen",
                     ruta_resumen(hallazgo.id),
@@ -206,15 +182,12 @@ class Sidebar(QWidget):
         layout.addWidget(destino)
         return contenedor
 
-    # ── Navegación ────────────────────────────────────────────────────────
 
     def _elegir_cert(self, cert_id: str) -> None:
-        """Entrar a una certificación abre su hallazgo de entrada (landing)."""
         cert = next(c for c in self._certs if c.id == cert_id)
         self.ir_hallazgo.emit(cert.landing)
 
     def marcar(self, ruta: str) -> None:
-        """Sincroniza el sidebar con la vista visible (equivale al `pathname`)."""
         if ruta != INICIO:
             hallazgo_id = ruta.split(":", 1)[1]
             cert_id = get_hallazgo(hallazgo_id).cert_id

@@ -1,35 +1,13 @@
-"""Motor genérico de «Resumen por escenarios».
-
-Port de `src/lib/resumen/scenario-engine.ts` del front Next.js. Toda la lógica
-vive aquí; cada certificación solo aporta un archivo de CONFIG declarativo (una
-lista de `Escenario`) en `app/catalog/`. Es a los resúmenes lo que
-`catalog/fuentes.py` es a «Cargar Información».
-
-Dos formas de resumen, ambas con el mismo criterio de pertenencia:
-
-  · `por_escenario`  — una fila por escenario (Active Directory: H1_AD…H7_AD).
-  · `por_grupo`      — una fila por valor de un campo, con columnas por
-                       escenario (Aplicaciones: una fila por aplicación).
-
-CONTEO INCLUSIVO: una fila marcada en varios escenarios cuenta en todos, así
-que la suma de totales puede superar el número de filas del reporte. Lo mismo
-con Responsable: «GDH | ACCESOS» suma +1 en GDH y +1 en ACCESOS.
-"""
-
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
 from typing import Any, Literal, Sequence
 
-# ── Normalización ──────────────────────────────────────────────────────────
 
-# Valores que cuentan como "vacío / negativo" en una marca de escenario.
 NEGATIVOS = {"", "NO", "0", "FALSE", "N", "NULL", "-", "N/A", "NAN", "NONE"}
 
-# Valores que cuentan como marca en modo estricto. El front usa solo 'X'
-# porque su backend emite 'X'; aquí el modelo trae booleanos y el Excel
-# exportado puede traer «Sí», «TRUE» o «VERDADERO» según cómo se guarde.
+
 MARCAS = {"X", "SI", "SÍ", "TRUE", "VERDADERO", "1", "Y", "YES"}
 
 
@@ -38,12 +16,10 @@ def _norm(valor: Any) -> str:
 
 
 def es_positivo(valor: Any) -> bool:
-    """Heurística amplia: positivo = cualquier cosa que no sea vacío/negativo."""
     return _norm(valor) not in NEGATIVOS
 
 
 def es_marca(valor: Any) -> bool:
-    """Marca estricta: la celda dice explícitamente que sí (X, Sí, TRUE, 1…)."""
     return _norm(valor) in MARCAS
 
 
@@ -58,8 +34,6 @@ def cumple_marca(valor: Any, modo: ModoMarca = "positivo") -> bool:
     return es_marca(valor) if modo == "marca" else es_positivo(valor)
 
 
-# ── Filtros declarativos ───────────────────────────────────────────────────
-
 Operador = Literal[
     "igual", "distinto", "en", "no_vacio", "positivo", "contiene", "no_contiene"
 ]
@@ -67,8 +41,6 @@ Operador = Literal[
 
 @dataclass(frozen=True)
 class Filtro:
-    """Condición extra sobre una fila; se aplican todas en AND."""
-
     campo: str
     op: Operador
     valor: str = ""
@@ -93,8 +65,6 @@ class Filtro:
         return True
 
 
-# ── Definición de escenario ────────────────────────────────────────────────
-
 CAMPO_RESPONSABLE = "responsable"
 CAMPO_COMENTARIO = "comentario"
 
@@ -103,14 +73,17 @@ CAMPO_COMENTARIO = "comentario"
 class Escenario:
     code: str
     title: str
-    #: Campo que marca la pertenencia base. Vacío = solo filtros.
+
     flag: str = ""
-    #: Cómo interpretar `flag`. "marca" exige X/Sí/TRUE; "positivo" es amplio.
+
     modo: ModoMarca = "positivo"
-    #: Si es True, una fila sin Responsable no cuenta ni sale en el detalle.
+
     exige_responsable: bool = False
+
+
+    reporta_responsable: bool = True
     campo_responsable: str = CAMPO_RESPONSABLE
-    #: Campos que se pintan en la hoja de detalle, en orden.
+
     columnas: tuple[str, ...] = ()
     filtros: tuple[Filtro, ...] = ()
 
@@ -122,13 +95,23 @@ class Escenario:
         return all(f.cumple(fila) for f in self.filtros)
 
 
+@dataclass(frozen=True)
+class ConfigResumen:
+    hallazgo_id: str
+    modelo: str
+    escenarios: tuple[Escenario, ...]
+
+    archivo: str
+
+    titulo: str
+
+    campo_grupo: str | None = None
+
+    etiqueta_grupo: str = ""
+
+
 def filas_de_escenario(filas: Sequence[dict], escenario: Escenario) -> list[dict]:
-    """Único punto de decisión: lo usan la vista previa y la exportación."""
     return [f for f in filas if escenario.cumple(f)]
-
-
-# ── Responsable ────────────────────────────────────────────────────────────
-# Clasificación NO excluyente: «GDH | ACCESOS» suma en ambas columnas.
 
 
 def tiene_gdh(valor: Any) -> bool:
@@ -154,9 +137,6 @@ def juntar_comentarios(filas: Sequence[dict], campo: str = CAMPO_COMENTARIO) -> 
         if texto:
             vistos.setdefault(texto, None)
     return " | ".join(vistos)
-
-
-# ── Resumen por escenario (Active Directory) ───────────────────────────────
 
 
 @dataclass
@@ -208,13 +188,10 @@ def por_escenario(
     )
 
 
-# ── Resumen por grupo (Aplicaciones) ───────────────────────────────────────
-
-
 @dataclass
 class FilaGrupo:
     grupo: str
-    #: {code_escenario: (total, gdh, accesos)}
+
     conteos: dict[str, tuple[int, int, int]] = field(default_factory=dict)
 
     def total(self, code: str) -> int:
@@ -240,7 +217,6 @@ class ResumenGrupos:
 
 
 def _clave_orden(texto: str) -> str:
-    """Orden alfabético tolerante a tildes (equivalente a localeCompare 'es')."""
     import unicodedata
 
     base = unicodedata.normalize("NFD", texto.upper())
@@ -285,14 +261,11 @@ def por_grupo(
     )
 
 
-# ── Utilidad de fechas (paridad con monthOf del front) ─────────────────────
-
 _ISO = re.compile(r"^(\d{4})-(\d{2})")
 _DMY = re.compile(r"^(\d{1,2})[/-](\d{1,2})[/-](\d{4})")
 
 
 def mes_de(valor: Any) -> str | None:
-    """'YYYY-MM' a partir de una fecha en ISO o dd/mm/yyyy. None si no parsea."""
     crudo = str(valor or "").strip()
     if not crudo:
         return None

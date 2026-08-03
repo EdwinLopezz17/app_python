@@ -51,7 +51,6 @@ class DataFrameModel(QAbstractTableModel):
         return str(section + 1)
 
     def grupo_de_columna(self, section: int) -> colors.GrupoColor | None:
-        """Grupo de color de la cabecera (lo consume CabeceraColoreada)."""
         if section < 0 or section >= len(self._df.columns):
             return None
         return colors.grupo(self._modelo, str(self._df.columns[section]))

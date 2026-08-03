@@ -24,12 +24,6 @@ def exportar(
     hoja: str = "Hallazgos",
     columnas_extra: Sequence[str] = (),
 ) -> Path:
-    """Exporta el detalle del hallazgo.
-
-    `columnas_extra` son campos que no vienen en el DataFrame y se agregan
-    VACÍOS al final para que el usuario los llene en Excel (Responsable y
-    Comentario) y devuelva el archivo en «Generar Resumen».
-    """
     destino = Path(destino)
     destino.parent.mkdir(parents=True, exist_ok=True)
 
@@ -47,8 +41,7 @@ def exportar(
         columnas = list(df.columns)
         salida = df
 
-    # Nombre de campo original por posición: la cabecera visible ya está
-    # renombrada, pero el grupo de color se resuelve por el campo del modelo.
+
     campos_origen = [str(c) for c in columnas]
 
     with pd.ExcelWriter(destino, engine="xlsxwriter") as writer:
@@ -61,8 +54,7 @@ def exportar(
             "font_name": "Inter", "font_size": 10,
         })
 
-        # Un formato por grupo de color; se reutiliza entre columnas del mismo
-        # origen. Mismos hex que la tabla y que el front (lib/theme.ts).
+
         cache_formatos: dict[str, object] = {}
 
         def formato_cabecera(campo: str):

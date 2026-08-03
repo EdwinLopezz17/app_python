@@ -29,8 +29,8 @@ APP_ROWS = {
     "escenario": "Escenario",
     "is_cesado_activo": "Cesado Activo",
     "is_no_identificado": "No Identificado",
-    # Columnas que la app exporta vacías para que el usuario las llene en Excel
-    # y las devuelva al subir el archivo en «Generar Resumen».
+
+
     "responsable": "Responsable",
     "comentario": "Comentario",
 }
@@ -174,6 +174,8 @@ DB_VIDA_ROW = {
     "is_no_identificado": "No Identificado",
     "is_sin_uso_90d": "Sin Uso 90 Días",
     "is_deshabilitado_180d": "Deshabilitado 180 Días",
+    "responsable": "Responsable",
+    "comentario": "Comentario",
 }
 
 DB_GENERALS_ROW = {
@@ -205,6 +207,8 @@ DB_GENERALS_ROW = {
     "is_sin_uso_90d": "Sin Uso 90 Días",
     "is_deshabilitado_180d": "Deshabilitado 180 Días",
     "is_no_cesado_oportunamente": "No Cesado Oportunamente",
+    "responsable": "Responsable",
+    "comentario": "Comentario",
 }
 
 

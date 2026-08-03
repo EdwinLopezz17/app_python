@@ -18,7 +18,6 @@ def _es_nulo(valor) -> bool:
 
 
 def _familia(valor) -> str:
-    """Agrupa el valor en la familia de tipos que pyarrow puede inferir."""
     if isinstance(valor, (datetime, pd.Timestamp)):
         return "fecha"
     if isinstance(valor, date):
@@ -41,7 +40,6 @@ def _familia(valor) -> str:
 
 
 def texto_de(valor) -> str:
-    """Representación de texto estable para cualquier valor escalar."""
     if _es_nulo(valor):
         return ""
     if isinstance(valor, (datetime, pd.Timestamp)):
@@ -73,7 +71,6 @@ def _necesita_normalizar(serie: pd.Series) -> bool:
 
 
 def normalizar(df: pd.DataFrame) -> pd.DataFrame:
-    """Devuelve una copia del DataFrame apta para `to_parquet`."""
     if df is None or df.empty:
         return df
 
@@ -91,7 +88,6 @@ def normalizar(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def forzar_texto(df: pd.DataFrame) -> pd.DataFrame:
-    """Último recurso: convierte a texto todas las columnas `object`."""
     if df is None or df.empty:
         return df
 

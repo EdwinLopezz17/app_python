@@ -19,7 +19,6 @@ ORDEN_GRUPOS = [OTROS_REPORTES, BASES_DE_DATOS, APLICACIONES]
 
 
 class CargarView(QWidget):
-
     progreso_cambiado = Signal(str, int, int)
     ir_hallazgo = Signal(str)
     ir_inicio = Signal()

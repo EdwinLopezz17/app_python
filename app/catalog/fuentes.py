@@ -11,7 +11,6 @@ FORMATOS_ACEPTADOS = (".csv", ".xls", ".xlsx")
 
 @dataclass(frozen=True)
 class Slot:
-
     file_name: FileName
     columns: list[str]
     label: str | None = None
@@ -30,7 +29,6 @@ class Slot:
 
 @dataclass(frozen=True)
 class Fuente:
-
     id: str
     label: str
     group: str

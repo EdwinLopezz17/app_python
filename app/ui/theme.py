@@ -37,7 +37,6 @@ RADIO_LG = 8
 FUENTE = "Inter"
 FUENTE_RESPALDO = "Segoe UI"
 
-
 def cargar_fuentes() -> str:
     carpeta = Path(__file__).parent / "fonts"
     if carpeta.is_dir():
@@ -46,7 +45,6 @@ def cargar_fuentes() -> str:
                 return FUENTE
     disponibles = set(QFontDatabase.families())
     return FUENTE if FUENTE in disponibles else FUENTE_RESPALDO
-
 
 def qss(familia: str = FUENTE) -> str:
     return f"""
@@ -254,17 +252,18 @@ QDateEdit::drop-down {{
     border-bottom-right-radius: {RADIO_SM}px;
 }}
 QDateEdit::drop-down:hover {{ background: {SURFACE_CONTAINER_HIGH}; }}
-QDateEdit::down-arrow {{ image: none; width: 0; height: 0; }}
+QDateEdit::down-arrow {{
+    image: none;
+    width: 0; height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid {ON_SURFACE_VARIANT};
+}}
+QDateEdit::down-arrow:hover {{ border-top-color: {PRIMARY}; }}
 QLabel#IconoCalendario {{
     color: {ON_SURFACE_VARIANT}; font-size: 14px;
 }}
 
-/* ── Calendario emergente ──────────────────────────────────────────────────
-   El popup de QDateEdit es un QCalendarWidget compuesto por sub-widgets con
-   nombres fijos (qt_calendar_navigationbar, qt_calendar_prevmonth,
-   qt_calendar_monthbutton, qt_calendar_yearbutton, qt_calendar_yearedit,
-   qt_calendar_calendarview). Si no se estilan TODOS, Qt mezcla su tema nativo
-   con el nuestro y el resultado se ve roto. */
 QCalendarWidget {{
     background: {SURFACE_CONTAINER_LOWEST};
     border: 1px solid {OUTLINE_VARIANT};
@@ -295,7 +294,6 @@ QCalendarWidget QToolButton:pressed {{ background: rgba(0, 0, 0, 0.12); }}
 QCalendarWidget QToolButton::menu-indicator {{ image: none; width: 0; }}
 QCalendarWidget QToolButton#qt_calendar_prevmonth,
 QCalendarWidget QToolButton#qt_calendar_nextmonth {{
-    qproperty-icon: none;
     font-size: 16px;
     font-weight: 700;
     padding: 0;
@@ -306,7 +304,6 @@ QCalendarWidget QToolButton#qt_calendar_nextmonth {{
     max-height: 30px;
 }}
 
-/* Selector de año (aparece al pulsar el año en la barra). */
 QCalendarWidget QSpinBox {{
     background: {SURFACE_CONTAINER_LOWEST};
     color: {ON_SURFACE};
@@ -321,17 +318,34 @@ QCalendarWidget QSpinBox {{
 QCalendarWidget QSpinBox::up-button, QCalendarWidget QSpinBox::down-button {{
     width: 14px;
     background: {SURFACE_CONTAINER_LOW};
+    border: none;
+}}
+QCalendarWidget QSpinBox QLineEdit {{
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    min-height: 0;
+    color: {ON_SURFACE};
 }}
 
-/* Menú de meses. */
 QCalendarWidget QMenu {{
     background: {SURFACE_CONTAINER_LOWEST};
+    color: {ON_SURFACE};
     border: 1px solid {OUTLINE_VARIANT};
     border-radius: {RADIO_SM}px;
     padding: 4px 0;
 }}
+QCalendarWidget QMenu::item {{
+    padding: 6px 22px;
+    background: transparent;
+    color: {ON_SURFACE};
+}}
+QCalendarWidget QMenu::item:selected {{
+    background: {PRIMARY};
+    color: {ON_PRIMARY};
+}}
 
-/* Rejilla de días. */
 QCalendarWidget QAbstractItemView#qt_calendar_calendarview {{
     background: {SURFACE_CONTAINER_LOWEST};
     border: none;
@@ -385,7 +399,6 @@ QLabel#PuntoEstado {{ font-size: 15px; }}
 QLabel#PuntoEstado[tono="ok"] {{ color: {SECONDARY}; }}
 QLabel#PuntoEstado[tono="falta"] {{ color: {OUTLINE_VARIANT}; }}
 
-/* ── Desplegable de columnas de cada card de carga ─────────────────────────*/
 QPushButton#Desplegable {{
     background: transparent;
     color: {ON_SURFACE_VARIANT};
@@ -411,7 +424,6 @@ QLabel#ListaColumnas[tono="error"] {{
     color: {ERROR};
 }}
 
-/* ── Sidebar de navegación (mismo árbol que el front Next.js) ──────────────*/
 QWidget#Sidebar {{
     background: {SIDEBAR_BG};
     border-right: 1px solid {SIDEBAR_BG};
@@ -462,7 +474,6 @@ QPushButton#NavItem:checked {{
 QPushButton#NavItem:disabled {{ color: {SIDEBAR_MUTED}; }}
 QFrame#SidebarSep {{ background: rgba(255, 255, 255, 0.10); max-height: 1px; }}
 
-/* ── Zona para soltar el Excel en «Generar Resumen» ────────────────────────*/
 QFrame#ZonaSoltar {{
     background: {SURFACE_CONTAINER_LOWEST};
     border: 2px dashed {OUTLINE_VARIANT};
@@ -476,15 +487,9 @@ QFrame#ZonaSoltar[soltar="activa"] {{
 QLabel#ZonaSoltarTitulo {{ font-size: 15px; font-weight: 600; }}
 """
 
-
 def configurar_fecha(campo) -> None:
-    """Deja un QDateEdit con el popup de calendario consistente en toda la app.
-
-    Centralizado aquí para que cualquier hallazgo que agregue una fecha de corte
-    herede el mismo calendario sin repetir la configuración.
-    """
     from PySide6.QtCore import QDate, QLocale, Qt
-    from PySide6.QtWidgets import QCalendarWidget
+    from PySide6.QtWidgets import QCalendarWidget, QToolButton
 
     campo.setCalendarPopup(True)
     campo.setDisplayFormat("dd/MM/yyyy")
@@ -503,18 +508,21 @@ def configurar_fecha(campo) -> None:
     calendario.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
     calendario.setHorizontalHeaderFormat(QCalendarWidget.SingleLetterDayNames)
     calendario.setNavigationBarVisible(True)
-    calendario.setMinimumSize(300, 260)
+    calendario.setMinimumSize(320, 280)
+    calendario.setWindowFlags(calendario.windowFlags() | Qt.FramelessWindowHint)
 
-    # Los botones de mes anterior/siguiente traen iconos nativos que chocan con
-    # el QSS; se reemplazan por texto para que hereden el estilo.
     for nombre, texto in (("qt_calendar_prevmonth", "‹"), ("qt_calendar_nextmonth", "›")):
-        boton = calendario.findChild(object, nombre)
+        boton = calendario.findChild(QToolButton, nombre)
         if boton is not None:
             boton.setIcon(QIcon())
             boton.setText(texto)
+            boton.setToolButtonStyle(Qt.ToolButtonTextOnly)
 
-    # Encabezado de días y fines de semana en el gris de la paleta (por defecto
-    # Qt pinta sábado y domingo en rojo).
+    for nombre in ("qt_calendar_monthbutton", "qt_calendar_yearbutton"):
+        boton = calendario.findChild(QToolButton, nombre)
+        if boton is not None:
+            boton.setToolButtonStyle(Qt.ToolButtonTextOnly)
+
     formato_cabecera = QTextCharFormat()
     formato_cabecera.setForeground(QColor(ON_SURFACE_VARIANT))
     formato_cabecera.setFontWeight(QFont.DemiBold)

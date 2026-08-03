@@ -75,15 +75,6 @@ _CIENTIFICA = re.compile(r"[+-]?\d+(?:\.\d+)?[eE][+-]?\d+")
 
 
 def normalizar_numero_texto(texto: str) -> str:
-    """Devuelve el texto tal cual, salvo que sea un entero disfrazado de decimal.
-
-    Excel y varios exportadores escriben los identificadores numéricos
-    (tickets, DNI, códigos) como '1234567.0' o '1.234567890123E+15'.
-    Guardarlos así distorsiona el dato porque luego no cruzan contra las
-    otras fuentes. Aquí se recorta la parte decimal SOLO cuando es cero,
-    conservando ceros a la izquierda y sin tocar decimales reales
-    ('1.50', '0.25', 'v1.0.0' quedan intactos).
-    """
     if "." not in texto and "e" not in texto and "E" not in texto:
         return texto
 
@@ -92,7 +83,6 @@ def normalizar_numero_texto(texto: str) -> str:
         return texto
 
     if _ENTERO_CON_DECIMAL_CERO.fullmatch(limpio):
-        # Corte textual, no int(): '00712345.0' -> '00712345'
         return limpio.split(".", 1)[0]
 
     if _CIENTIFICA.fullmatch(limpio):
