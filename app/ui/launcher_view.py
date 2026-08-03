@@ -40,7 +40,7 @@ class HallazgoFila(QFrame):
         texto.addWidget(self.meta)
         raiz.addLayout(texto, 1)
 
-        self.btn_cargar = QPushButton("Cargar")
+        self.btn_cargar = QPushButton("Subir Archivos")
         self.btn_cargar.setProperty("variante", "ghost")
         self.btn_cargar.setProperty("clase", "mini")
         self.btn_cargar.setCursor(Qt.PointingHandCursor)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import math
+import re
 from datetime import date, datetime, time
 from decimal import Decimal
 from pathlib import Path
@@ -14,6 +15,8 @@ _SEPARADORES = [";", ",", "\t", "|"]
 EXTENSIONES_EXCEL = {".xls", ".xlsx", ".xlsm"}
 EXTENSIONES_CSV = {".csv", ".txt"}
 
+_ENTERO_CON_DECIMAL_CERO = re.compile(r"[+-]?\d+\.0+")
+_CIENTIFICA = re.compile(r"[+-]?\d+(?:\.\d+)?[eE][+-]?\d+")
 
 class ErrorDeLectura(Exception):
     pass
@@ -68,6 +71,28 @@ def _leer_csv(path: Path) -> pd.DataFrame:
     )
     return _desenvolver_csv_doble(df)
 
+def normalizar_numero_texto(texto: str) -> str:
+    if "." not in texto and "e" not in texto and "E" not in texto:
+        return texto
+
+    limpio = texto.strip()
+    if not limpio:
+        return texto
+
+    if _ENTERO_CON_DECIMAL_CERO.fullmatch(limpio):
+        # Corte textual, no int(): '00712345.0' -> '00712345'
+        return limpio.split(".", 1)[0]
+
+    if _CIENTIFICA.fullmatch(limpio):
+        try:
+            numero = Decimal(limpio)
+        except Exception:
+            return texto
+        if numero == numero.to_integral_value():
+            return str(int(numero))
+        return format(numero, "f")
+
+    return texto
 
 def texto_celda(valor: object) -> str:
     if valor is None:

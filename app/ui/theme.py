@@ -26,6 +26,13 @@ TERTIARY_SOFT = "#fff1e6"
 ERROR = "#ba1a1a"
 ERROR_SOFT = "#ffdad6"
 
+TABLA_CABECERA_BG = "#dae2fd"
+TABLA_CABECERA_FG = "#131b2e"
+TABLA_CABECERA_BORDE = "#8f9bb3"
+TABLA_ZEBRA = "#f4f6ff"
+TABLA_SELECCION_BG = "#bfe3f2"
+TABLA_GRID = "#cfd6e4"
+
 SIDEBAR_BG = "#283044"
 SIDEBAR_FG = "#eef0ff"
 SIDEBAR_MUTED = "#98a2bd"
@@ -166,23 +173,50 @@ QLabel#Seccion {{
     letter-spacing: 1px;
 }}
 
+QDialog {{ background: {SURFACE}; }}
+QDialog QLabel {{ color: {ON_SURFACE}; }}
+
 QTableView {{
     background: {SURFACE_CONTAINER_LOWEST};
+    alternate-background-color: {TABLA_ZEBRA};
     border: 1px solid {OUTLINE_VARIANT};
     border-radius: {RADIO_LG}px;
-    gridline-color: {SURFACE_CONTAINER};
+    gridline-color: {TABLA_GRID};
     font-size: 13px;
-    selection-background-color: {SURFACE_CONTAINER_HIGH};
+    color: {ON_SURFACE};
+    selection-background-color: {TABLA_SELECCION_BG};
     selection-color: {ON_SURFACE};
 }}
-QHeaderView::section {{
-    background: {SURFACE_CONTAINER_LOW};
-    color: {ON_SURFACE_VARIANT};
+QTableView::item {{ padding: 4px 8px; }}
+QTableView::item:selected {{
+    background: {TABLA_SELECCION_BG};
+    color: {ON_SURFACE};
+}}
+
+QHeaderView {{
+    background: {TABLA_CABECERA_BG};
     border: none;
-    border-bottom: 1px solid {OUTLINE_VARIANT};
-    border-right: 1px solid {SURFACE_CONTAINER};
-    padding: 8px 12px;
-    font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+}}
+QHeaderView::section {{
+    background: {TABLA_CABECERA_BG};
+    color: {TABLA_CABECERA_FG};
+    border: none;
+    border-bottom: 2px solid {TABLA_CABECERA_BORDE};
+    border-right: 1px solid {TABLA_CABECERA_BORDE};
+    padding: 9px 12px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
+}}
+QHeaderView::section:last {{ border-right: none; }}
+QHeaderView::section:hover {{ background: {SURFACE_CONTAINER_HIGH}; }}
+QHeaderView::section:vertical {{
+    border-right: 2px solid {TABLA_CABECERA_BORDE};
+    border-bottom: 1px solid {TABLA_CABECERA_BORDE};
+}}
+QTableCornerButton::section {{
+    background: {TABLA_CABECERA_BG};
+    border: none;
+    border-bottom: 2px solid {TABLA_CABECERA_BORDE};
+    border-right: 2px solid {TABLA_CABECERA_BORDE};
 }}
 
 QLineEdit {{
