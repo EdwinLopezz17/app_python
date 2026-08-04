@@ -3,14 +3,16 @@ from logic.share.services.dni_vs_user_service import DNIUserService
 from logic.share.services.gdh_service import GDHUserService
 from logic.share.services.ad_service import ADService
 from logic.share.services.tickets_report import TicketInfoService
+from logic.share.services.entraid_service import EntraUserService
 from models.reports.ad_rows import ADRows
 
 def get_ad_report(fecha_ref: date)-> list[ADRows]:
     dni_user_srv = DNIUserService()
     gdh_user_srv = GDHUserService()
+    entra_user_srv = EntraUserService()
     ad_user_srv = ADService()
+    ad_user_srv.sync_last_activity_entra(entra_user_srv)
     ticket_info_srv = TicketInfoService()
-
     ahora = datetime.combine(fecha_ref, time.max) 
     limit_90 = timedelta(days=90)
     limit_180 = timedelta(days=180)
