@@ -14,6 +14,7 @@ from app.ingest.validate import formato_permitido
 from app.ingest.writer import ErrorDeCarga, cargar
 from app.storage.files import EstadoSlot, eliminar_slot, estado_slot
 from app.tasks.runner import POOL, Tarea
+from app.ui.responsive import ContenedorFlow
 
 FILTRO_ARCHIVOS = "Reportes (*.csv *.xls *.xlsx);;Todos los archivos (*)"
 
@@ -137,26 +138,33 @@ class SlotRow(QWidget):
 
         self._pintar_columnas([])
 
-        acciones = QHBoxLayout()
-        acciones.setSpacing(6)
+        # Flow en vez de fila fija: con la card angosta (1 o 2 columnas) los
+        # botones bajan de línea en lugar de forzar el ancho de toda la grilla.
+        acciones = ContenedorFlow(espacio_h=6, espacio_v=6)
 
         self.btn_cargar = QPushButton("Seleccionar archivo")
         self.btn_cargar.setProperty("variante", "ghost")
+        self.btn_cargar.setCursor(Qt.PointingHandCursor)
+        self.btn_cargar.setToolTip("Buscar el archivo en el disco")
         self.btn_cargar.clicked.connect(self._elegir_archivos)
-        acciones.addWidget(self.btn_cargar)
+        acciones.agregar(self.btn_cargar)
 
-        self.btn_ver = QPushButton("Ver")
+        self.btn_ver = QPushButton("Ver datos")
         self.btn_ver.setProperty("variante", "ghost")
+        self.btn_ver.setCursor(Qt.PointingHandCursor)
+        self.btn_ver.setToolTip("Previsualizar las filas ya guardadas")
         self.btn_ver.clicked.connect(lambda: self.ver_datos.emit(self.slot))
-        acciones.addWidget(self.btn_ver)
+        acciones.agregar(self.btn_ver)
 
         self.btn_borrar = QPushButton("Eliminar")
         self.btn_borrar.setProperty("variante", "ghost")
+        self.btn_borrar.setProperty("tono", "peligro")
+        self.btn_borrar.setCursor(Qt.PointingHandCursor)
+        self.btn_borrar.setToolTip("Quitar del disco el archivo cargado")
         self.btn_borrar.clicked.connect(self._eliminar)
-        acciones.addWidget(self.btn_borrar)
+        acciones.agregar(self.btn_borrar)
 
-        acciones.addStretch(1)
-        raiz.addLayout(acciones)
+        raiz.addWidget(acciones)
 
         self.refrescar()
 

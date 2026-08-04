@@ -6,7 +6,7 @@ from typing import Sequence
 
 import xlsxwriter
 
-from app.catalog import colors, display
+from app.catalog import colors, display, formatos
 from app.resumen import engine
 from app.resumen.engine import ConfigResumen, Escenario
 
@@ -88,11 +88,16 @@ class _Formatos:
         return self.cabecera(grupo.fill, grupo.text)
 
 
-def _texto(valor) -> str:
+def _texto(valor, modelo: str | None = None, campo: str = "") -> str:
+    # Mismo diccionario que la tabla y que el Excel de hallazgos.
+    if modelo and campo:
+        formateado = formatos.formatear(modelo, campo, valor)
+        if formateado is not None:
+            return formateado
     if valor is None:
         return ""
     if isinstance(valor, bool):
-        return "Sí" if valor else "No"
+        return "X" if valor else ""
     return str(valor)
 
 
@@ -115,12 +120,12 @@ def _hoja_detalle(
 
     for indice, fila in enumerate(filas):
         for col, campo in enumerate(campos):
-            hoja.write(3 + indice, col, _texto(fila.get(campo)), fmt.celda)
+            hoja.write(3 + indice, col, _texto(fila.get(campo), config.modelo, campo), fmt.celda)
 
     for col, campo in enumerate(campos):
         titulo = etiquetas.get(campo, campo)
         ancho = max(len(titulo) + 4, ANCHO_MIN)
-        muestra = [len(_texto(f.get(campo))) for f in filas[:200]]
+        muestra = [len(_texto(f.get(campo), config.modelo, campo)) for f in filas[:200]]
         if muestra:
             ancho = max(ancho, min(max(muestra) + 2, ANCHO_MAX))
         hoja.set_column(col, col, ancho)

@@ -38,6 +38,7 @@ class Sidebar(QWidget):
         super().__init__(parent)
         self.setObjectName("Sidebar")
         self.setFixedWidth(theme.SIDEBAR_WIDTH)
+        self._compacto = False
 
         self._certs = certificaciones()
         self._activa: Certificacion = self._certs[0]
@@ -66,6 +67,19 @@ class Sidebar(QWidget):
 
         self.marcar(INICIO)
 
+
+    def compactar(self, compacto: bool) -> None:
+        """Reduce el ancho del sidebar en ventanas angostas.
+
+        No se ocultan las etiquetas: la navegación es texto y con iconos solos
+        no se distinguiría «Cargar Información» de «Generar Resumen».
+        """
+        if compacto == self._compacto:
+            return
+        self._compacto = compacto
+        self.setFixedWidth(
+            theme.SIDEBAR_WIDTH_COMPACTO if compacto else theme.SIDEBAR_WIDTH
+        )
 
     def _separador(self) -> QFrame:
         linea = QFrame()

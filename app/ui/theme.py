@@ -30,6 +30,7 @@ SIDEBAR_BG = "#283044"
 SIDEBAR_FG = "#eef0ff"
 SIDEBAR_MUTED = "#98a2bd"
 SIDEBAR_WIDTH = 260
+SIDEBAR_WIDTH_COMPACTO = 216
 
 RADIO_SM = 4
 RADIO_LG = 8
@@ -98,6 +99,23 @@ QPushButton[variante="ghost"]:hover {{
 }}
 QPushButton[variante="peligro"] {{ background: {ERROR}; }}
 QPushButton[variante="peligro"]:hover {{ background: #93000a; }}
+
+/* Acción destructiva secundaria: fantasma con acento rojo, para que no
+   compita visualmente con el botón primario de la pantalla. */
+QPushButton[variante="ghost"][tono="peligro"] {{
+    color: {ERROR}; border: 1px solid {ERROR_SOFT};
+}}
+QPushButton[variante="ghost"][tono="peligro"]:hover {{
+    border-color: {ERROR}; color: {ERROR}; background: {ERROR_SOFT};
+}}
+
+QFrame#EstadoVacio {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border: 1px solid {OUTLINE_VARIANT};
+    border-radius: {RADIO_LG}px;
+}}
+QLabel#EstadoVacioTitulo {{ font-size: 16px; font-weight: 600; }}
+QLabel#EstadoVacioDetalle {{ font-size: 13px; color: {ON_SURFACE_VARIANT}; }}
 
 QFrame#Card {{
     background: {SURFACE_CONTAINER_LOWEST};

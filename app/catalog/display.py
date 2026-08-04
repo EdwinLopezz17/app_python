@@ -4,7 +4,7 @@ APP_ROWS = {
     "tipo_aplicacion": "Tipo de Aplicación",
     "aplicacion": "Aplicación",
     "usuario": "Usuario",
-    "is_active": "Activo",
+    "is_active": "Estado",
     "fecha_creacion": "Fecha de Creación",
     "fecha_ultimo_login": "Fecha Último Login",
     "dni": "DNI",
@@ -56,7 +56,7 @@ AD_ROWS = {
     "department": "Departamento",
     "company": "Empresa",
     "street_address": "Dirección",
-    "is_active": "Activo",
+    "is_active": "Estado",
     "fecha_ultimo_login_ad": "Último Login AD",
     "fecha_ultimo_login_entra": "Último Login Entra",
     "is_activo_gdh": "Activo GDH",
@@ -87,7 +87,7 @@ PROFILE_ROWS = {
     "tipo_dnivsuser": "Tipo (DNI vs User)",
     "usuario_dnivsuser": "Usuario (DNI vs User)",
     "comentario_dnivsuser": "Comentario (DNI vs User)",
-    "is_active": "Activo",
+    "is_active": "Estado",
     "perfil": "Perfil",
     "fecha_creacion": "Fecha de Creación",
     "fecha_login": "Fecha de Login",
@@ -150,7 +150,7 @@ DB_VIDA_ROW = {
     "db_name": "Base de Datos",
     "server_role": "Rol de Servidor",
     "database_rol": "Rol de Base de Datos",
-    "is_active": "Activo",
+    "is_active": "Estado",
     "fecha_creacion": "Fecha de Creación",
     "fecha_actualizacion": "Fecha de Actualización",
     "fecha_login": "Fecha de Login",
@@ -182,7 +182,7 @@ DB_GENERALS_ROW = {
     "nombre_archivo": "Nombre de Archivo",
     "username": "Usuario",
     "perfil": "Perfil",
-    "is_active": "Activo",
+    "is_active": "Estado",
     "fecha_bloqueo": "Fecha de Bloqueo",
     "fecha_creacion": "Fecha de Creación",
     "fecha_login": "Fecha de Login",
@@ -229,6 +229,11 @@ GENERALS_ROW = {
     "usuario corresponde": "Usuario que Corresponde",
     "validacion usuario corrsponde": "Validación Usuario que Corresponde",
 }
+
+
+#: Columnas que la app agrega para que el auditor las llene a mano al exportar.
+#: No existen en `models/reports/`, así que se excluyen de la verificación.
+COLUMNAS_ANOTACION = ("responsable", "comentario")
 
 
 MODELOS: dict[str, dict[str, str]] = {
@@ -282,6 +287,9 @@ def check_modelos() -> dict[str, dict[str, list[str]]]:
         etiquetados = campos(nombre)
         reporte[nombre] = {
             "faltan": [c for c in declarados if c not in etiquetados],
-            "sobran": [c for c in etiquetados if c not in declarados],
+            "sobran": [
+                c for c in etiquetados
+                if c not in declarados and c not in COLUMNAS_ANOTACION
+            ],
         }
     return reporte

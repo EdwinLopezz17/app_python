@@ -49,7 +49,7 @@ HALLAZGOS: list[Hallazgo] = [
         cert_label="Certificación de Usuarios",
         modelo="ADRows",
         descripcion="Cuentas de Active Directory contrastadas con GDH y ceses.",
-        fuente_ids=list(_BASE),
+        fuente_ids=["dni-vs-usuarios", "gdh", "entra-id", "ad", "tickets-ceses"],
     ),
 
     Hallazgo(

@@ -15,6 +15,7 @@ from app.catalog.hallazgos import Hallazgo
 from app.resumen import engine, export
 from app.resumen.importer import ErrorDeImportacion, leer_detalle
 from app.tasks.runner import POOL, Tarea
+from app.ui.responsive import ContenedorFlow
 
 FILTRO_ARCHIVOS = "Excel de detalle (*.xlsx *.xlsm *.xls);;Todos los archivos (*)"
 EXTENSIONES = {".xlsx", ".xlsm", ".xls"}
@@ -129,11 +130,8 @@ class ResumenView(QWidget):
         self.aviso.hide()
         layout.addWidget(self.aviso)
 
-        self.kpis = QWidget()
-        self.kpis.setObjectName("Canvas")
-        self._kpis_layout = QHBoxLayout(self.kpis)
-        self._kpis_layout.setContentsMargins(0, 0, 0, 0)
-        self._kpis_layout.setSpacing(12)
+        self.kpis = ContenedorFlow(espacio_h=12, espacio_v=12)
+        self._kpis_layout = self.kpis.flow
         self.kpis.hide()
         layout.addWidget(self.kpis)
 
@@ -161,6 +159,7 @@ class ResumenView(QWidget):
             "  ›  Generar Resumen"
         )
         breadcrumb.setObjectName("Breadcrumb")
+        breadcrumb.setWordWrap(True)
         layout.addWidget(breadcrumb)
 
         fila = QHBoxLayout()
@@ -170,19 +169,28 @@ class ResumenView(QWidget):
         titulo.setObjectName("Titulo")
         fila.addWidget(titulo)
         fila.addStretch(1)
+        layout.addLayout(fila)
 
-        self.btn_otro = QPushButton("Procesar otro")
+        acciones = ContenedorFlow(espacio_h=8, espacio_v=8)
+
+        self.btn_otro = QPushButton("Procesar otro archivo")
         self.btn_otro.setProperty("variante", "ghost")
+        self.btn_otro.setCursor(Qt.PointingHandCursor)
+        self.btn_otro.setToolTip("Volver a la zona de carga para subir otro Excel.")
         self.btn_otro.clicked.connect(self.reiniciar)
         self.btn_otro.setEnabled(False)
-        fila.addWidget(self.btn_otro)
+        acciones.agregar(self.btn_otro)
 
         self.btn_descargar = QPushButton("Descargar Resumen")
+        self.btn_descargar.setCursor(Qt.PointingHandCursor)
+        self.btn_descargar.setToolTip(
+            "Genera el .xlsx con una hoja por escenario y el consolidado."
+        )
         self.btn_descargar.clicked.connect(self._descargar)
         self.btn_descargar.setEnabled(False)
-        fila.addWidget(self.btn_descargar)
+        acciones.agregar(self.btn_descargar)
 
-        layout.addLayout(fila)
+        layout.addWidget(acciones)
         return barra
 
     def _instrucciones(self) -> QWidget:
@@ -369,9 +377,9 @@ class ResumenView(QWidget):
             desc.setWordWrap(True)
             interno.addWidget(desc)
 
+            tarjeta.setMinimumWidth(150)
             self._kpis_layout.addWidget(tarjeta)
 
-        self._kpis_layout.addStretch(1)
         self.kpis.show()
 
 

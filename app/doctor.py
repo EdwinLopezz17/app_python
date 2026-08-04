@@ -56,7 +56,7 @@ def _rutas() -> bool:
 def _contratos() -> bool:
     from models.file_names import FileName
 
-    from app.catalog import display, fuentes, hallazgos
+    from app.catalog import display, formatos, fuentes, hallazgos
 
     print("\nContrato con models/")
     todo_bien = True
@@ -79,6 +79,14 @@ def _contratos() -> bool:
                 print(f"{MAL} {modelo}: etiqueta sobrante -> {resultado['sobran']}")
         else:
             print(f"{OK} {modelo}: etiquetas alineadas con models/reports/")
+
+    for modelo, sin_formato in formatos.check_formatos().items():
+        if sin_formato:
+            todo_bien = False
+            print(f"{MAL} {modelo}: booleanos sin formato declarado en "
+                  f"catalog/formatos.py -> {sin_formato}")
+    if not any(formatos.check_formatos().values()):
+        print(f"{OK} todos los booleanos tienen formato declarado (X / SI-NO / Estado)")
 
     for hallazgo in hallazgos.HALLAZGOS:
         for fid in hallazgo.fuente_ids:

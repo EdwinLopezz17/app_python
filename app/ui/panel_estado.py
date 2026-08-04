@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QVBoxLayout, QWidget,
+    QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QSizePolicy,
+    QVBoxLayout, QWidget,
 )
 
 from app.catalog.hallazgos import Hallazgo
 from app.storage.files import estado_slot
 
-ANCHO = 290
+ANCHO_MIN = 250
+ANCHO_MAX = 300
 
 
 class FilaEstado(QFrame):
@@ -76,7 +78,12 @@ class PanelEstado(QWidget):
         super().__init__(parent)
         self.hallazgo = hallazgo
         self.setObjectName("PanelEstado")
-        self.setFixedWidth(ANCHO)
+        # Ancho flexible dentro de un rango: el panel empuja las cards a la
+        # izquierda (nunca se superpone) y puede ceder algo de espacio cuando
+        # la ventana está a media pantalla.
+        self.setMinimumWidth(ANCHO_MIN)
+        self.setMaximumWidth(ANCHO_MAX)
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
         raiz = QVBoxLayout(self)
         raiz.setContentsMargins(0, 0, 0, 0)

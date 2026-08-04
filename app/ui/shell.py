@@ -19,7 +19,9 @@ class VentanaPrincipal(QMainWindow):
         super().__init__()
         self.setWindowTitle("Certificación de Accesos · Pacífico Seguros")
         self.resize(1440, 900)
-        self.setMinimumSize(1180, 720)
+        # La app se usa mucho a media pantalla en monitores Full HD (~960 px).
+        # Con el piso anterior (1180) nunca se llegaba a los anchos angostos.
+        self.setMinimumSize(900, 600)
 
         self._cargar_views: dict[str, CargarView] = {}
         self._hallazgo_views: dict[str, HallazgoView] = {}
@@ -58,6 +60,14 @@ class VentanaPrincipal(QMainWindow):
         self.setCentralWidget(central)
         self.abrir_inicio()
 
+
+    #: Debajo de este ancho de ventana el sidebar se estrecha para dejarle
+    #: más aire al contenido (la app se usa a media pantalla en Full HD).
+    UMBRAL_SIDEBAR = 1100
+
+    def resizeEvent(self, evento) -> None:
+        super().resizeEvent(evento)
+        self.sidebar.compactar(self.width() < self.UMBRAL_SIDEBAR)
 
     def abrir_inicio(self) -> None:
         self.launcher.refrescar()

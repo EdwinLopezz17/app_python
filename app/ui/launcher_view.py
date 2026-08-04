@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
+    QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea,
     QSizePolicy, QVBoxLayout, QWidget,
 )
 
@@ -11,8 +11,10 @@ from app.cache.store import EstadoCache
 from app.catalog.hallazgos import Certificacion, Hallazgo, certificaciones
 from app.generation import reports
 from app.storage.files import estado_slot
+from app.ui.responsive import ContenedorFlow, GridResponsivo
 
-COLUMNAS = 2
+#: Ancho mínimo de una card de certificación.
+ANCHO_MIN_CERT = 380
 
 
 class HallazgoFila(QFrame):
@@ -146,26 +148,22 @@ class LauncherView(QWidget):
 
         cuerpo.addWidget(self._resumen())
 
-        grid_cont = QWidget()
-        grid_cont.setObjectName("Canvas")
-        grid = QGridLayout(grid_cont)
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(16)
-        grid.setVerticalSpacing(16)
+        grid_cont = GridResponsivo(
+            ancho_min=ANCHO_MIN_CERT, espacio=16, max_columnas=2
+        )
 
         self.cards: list[CertificacionCard] = []
-        for indice, cert in enumerate(certificaciones()):
+        for cert in certificaciones():
             card = CertificacionCard(cert)
             card.ir_cargar.connect(self.ir_cargar.emit)
             card.ir_generar.connect(self.ir_generar.emit)
-            grid.addWidget(card, indice // COLUMNAS, indice % COLUMNAS, Qt.AlignTop)
+            grid_cont.agregar(card)
             self.cards.append(card)
-        for col in range(COLUMNAS):
-            grid.setColumnStretch(col, 1)
 
         cuerpo.addWidget(grid_cont)
         cuerpo.addStretch(1)
         scroll.setWidget(contenido)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         raiz.addWidget(scroll, 1)
 
     def _cabecera(self) -> QWidget:
@@ -185,11 +183,7 @@ class LauncherView(QWidget):
         return barra
 
     def _resumen(self) -> QWidget:
-        contenedor = QWidget()
-        contenedor.setObjectName("Canvas")
-        fila = QHBoxLayout(contenedor)
-        fila.setContentsMargins(0, 0, 0, 0)
-        fila.setSpacing(16)
+        contenedor = ContenedorFlow(espacio_h=16, espacio_v=12)
 
         self._kpis: dict[str, QLabel] = {}
         for clave, etiqueta in [
@@ -211,8 +205,9 @@ class LauncherView(QWidget):
             desc.setObjectName("KpiEtiqueta")
             interno.addWidget(desc)
 
+            tarjeta.setMinimumWidth(200)
             self._kpis[clave] = valor
-            fila.addWidget(tarjeta, 1)
+            contenedor.agregar(tarjeta)
 
         return contenedor
 

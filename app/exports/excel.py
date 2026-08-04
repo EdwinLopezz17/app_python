@@ -6,7 +6,7 @@ from typing import Sequence
 
 import pandas as pd
 
-from app.catalog import colors, display
+from app.catalog import colors, display, formatos
 
 GRIS_BORDE = "#BDC8D0"
 ANCHO_MIN, ANCHO_MAX = 12, 45
@@ -31,6 +31,13 @@ def exportar(
     for extra in columnas_extra:
         if extra not in df.columns:
             df[extra] = ""
+
+    # X / SI / Activo. Se hace ANTES del rename para poder consultar el
+    # formato por el nombre técnico del campo, no por la etiqueta visible.
+    for campo in list(df.columns):
+        fmt = formatos.formato(modelo, str(campo))
+        if fmt is not None:
+            df[campo] = df[campo].map(lambda v, f=fmt: formatos.texto(v, f))
 
     if modelo:
         etiquetas = display.etiquetas(modelo)

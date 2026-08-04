@@ -103,7 +103,8 @@ app/
 │   ├── columns.py     cabeceras esperadas por fuente
 │   ├── fuentes.py     definición única de cada fuente
 │   ├── hallazgos.py   qué fuentes necesita cada hallazgo
-│   └── display.py     nombre técnico -> etiqueta visible
+│   ├── display.py     nombre técnico -> etiqueta visible
+│   └── formatos.py    booleano -> X / SI-NO / Activo-Inactivo
 │
 ├── ingest/            CÓMO se carga  (sin dependencias de Qt, testeable)
 │   ├── normalize.py   normalización de cabeceras
@@ -121,6 +122,7 @@ app/
 ├── exports/excel.py   exportación .xlsx con las etiquetas visibles
 ├── tasks/runner.py    trabajo pesado fuera del hilo de la UI
 └── ui/                PySide6
+    └── responsive.py  grilla que reflowea + flow layout de acciones
 ```
 
 `catalog/` e `ingest/` no importan PySide6. Se pueden probar con pytest sin
@@ -137,11 +139,47 @@ interfaz.
 | Agregar una fuente nueva | `catalog/fuentes.py` (una entrada) |
 | Cambiar qué fuentes pide un hallazgo | `catalog/hallazgos.py` (lista de ids) |
 | Renombrar una columna en pantalla y en el Excel | `catalog/display.py` (una línea) |
+| Cambiar cómo se muestra un booleano (X, SI/NO, Activo) | `catalog/formatos.py` (una línea) |
 | Cambiar el azul corporativo, tipografía o radios | `ui/theme.py` |
 | Conectar un hallazgo nuevo a su reporte | `generation/reports.py` |
 
 Renombrar una columna en `display.py` la cambia a la vez en la tabla y en el
 Excel exportado. Salen del mismo diccionario, así que no se pueden desalinear.
+Lo mismo vale para `formatos.py`: la tabla, el Excel del hallazgo y el Excel
+del resumen leen el mismo diccionario.
+
+### Agregar una fuente nueva (una card en «Cargar Información»)
+
+Tres pasos, ninguno en la interfaz:
+
+1. **`catalog/columns.py`** — las cabeceras que se validan del archivo:
+
+   ```python
+   MI_FUENTE = ["USUARIO", "DNI", "FECHA CREACION"]
+   ```
+
+2. **`catalog/fuentes.py`** — una línea, igual que las demás:
+
+   ```python
+   _reg(Fuente("mi-fuente", "Mi Fuente", OTROS_REPORTES,
+               _one(FileName.MI_FUENTE, C.MI_FUENTE)))
+   ```
+
+   `FileName.MI_FUENTE` tiene que existir ya en `models/file_names.py`; ese
+   archivo lo mantiene el backend, no esta capa.
+
+   Si la fuente admite varios archivos que se consolidan, `multiple=True`. Si
+   además hay que conservar de qué archivo vino cada fila, `origin_file=True`
+   y un `subfolder=`.
+
+3. **`catalog/hallazgos.py`** — agregar `"mi-fuente"` a la lista `fuente_ids`
+   del hallazgo (o de varios: las fuentes transversales se comparten y quedan
+   cargadas para todos a la vez).
+
+Con eso ya está: la card, el arrastrar y soltar, la validación de cabeceras,
+el panel lateral de estado, el contador de progreso y el borrado se generan
+solos a partir del catálogo. `python -m app.doctor` avisa si el `FileName` no
+existe o si un hallazgo apunta a una fuente que no está registrada.
 
 ---
 
@@ -156,6 +194,25 @@ de cada campo. Así un DNI `00123456` no pierde los ceros y una fecha
 **El BOM se elimina a nivel de bytes**, antes de decodificar. Hacerlo sobre el
 texto ya decodificado falla cuando el decoder cae a windows-1252 y el BOM
 aparece como los tres caracteres `ï»¿` pegados al nombre de la primera columna.
+
+**El formato de los booleanos es solo presentación.** `logic/` devuelve `bool`
+nativos; `catalog/formatos.py` los traduce a `X` / `SI`-`NO` /
+`Activo`-`Inactivo` al pintarlos y al exportarlos, pero el Parquet de caché
+conserva el booleano. Así los conteos siguen operando sobre booleanos y no
+sobre texto. El tercer estado (celda en blanco) es real: `logic/` escribe
+`is_activo_gdh = (gdh_user and gdh_user.isActive)`, que vale `None` cuando el
+DNI no aparece en GDH; eso es distinto de "No".
+
+**La lectura del formato es idempotente.** `formatos.a_bool()` acepta tanto el
+`bool` de `logic/` como el texto ya formateado. Hace falta porque el resumen
+vuelve a leer el Excel que la propia app exportó: ahí la celda ya dice `X`, no
+`True`.
+
+**La interfaz se adapta al ancho.** La app se usa a media pantalla en monitores
+Full HD (~960 px). Las grillas de cards recalculan sus columnas (1 a 3) en cada
+cambio de tamaño y las barras de acciones bajan de línea en vez de recortarse.
+El panel de estado ocupa su propia columna: empuja las cards a la izquierda,
+nunca se superpone, y se oculta solo cuando no hay espacio para dos columnas.
 
 **No hay estado de carga guardado.** La única verdad es el disco: si el
 `.parquet` existe, la fuente está cargada. Esto elimina por construcción los
@@ -174,6 +231,12 @@ Si alguna cambió, el hallazgo se marca como desactualizado automáticamente.
 ## Pendientes
 
 - Eliminar `generation/compat.py` cuando `logic/` lea Parquet.
+- **Bug en `logic/` (reportar al backend):** `ADService.sync_last_activity_entra()`
+  no la llama nadie, y aunque se llamara asigna `user.last_activity`, mientras
+  que `ad_report.py` lee `ad_user.ultima_actividad_entra`, que nunca se escribe.
+  Por eso la columna "Último Login Entra" del hallazgo de AD sale vacía aunque
+  el archivo de Entra ID esté cargado. No se arregla desde `app/` por la regla
+  del proyecto.
 - Confirmar el mapeo de fuentes de la Certificación de Generales y Especiales
   (hoy en `catalog/hallazgos.py` marcado con `TODO`).
 - Empaquetado con PyInstaller.

@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 
-from app.catalog import colors, display
+from app.catalog import colors, display, formatos
 
 
 class DataFrameModel(QAbstractTableModel):
@@ -25,18 +25,22 @@ class DataFrameModel(QAbstractTableModel):
             return None
 
         valor = self._df.iat[index.row(), index.column()]
+        campo = str(self._df.columns[index.column()])
 
         if role == Qt.DisplayRole:
+            # X / SI / Activo: el formato manda sobre cualquier otra regla.
+            formateado = formatos.formatear(self._modelo, campo, valor)
+            if formateado is not None:
+                return formateado
+
             if valor is None or (isinstance(valor, float) and pd.isna(valor)):
                 return ""
-            if isinstance(valor, bool):
-                return "Sí" if valor else "No"
             if isinstance(valor, pd.Timestamp):
                 return valor.strftime("%d/%m/%Y %H:%M")
             return str(valor)
 
         if role == Qt.TextAlignmentRole:
-            if isinstance(valor, bool):
+            if formatos.formato(self._modelo, campo) is not None:
                 return int(Qt.AlignCenter)
             return int(Qt.AlignLeft | Qt.AlignVCenter)
 
