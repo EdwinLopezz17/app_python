@@ -49,8 +49,6 @@ AD_ROWS = {
     "descripcion": "Descripción",
     "fecha_creacion": "Fecha de Creación",
     "fecha_cambio": "Fecha de Cambio",
-    "passwordneverexpires": "Password No Expira",
-    "cannotchangepassword": "No Puede Cambiar Password",
     "passwordlastset": "Último Cambio de Password",
     "title": "Cargo",
     "department": "Departamento",
@@ -71,6 +69,9 @@ AD_ROWS = {
     "is_no_identificado": "No Identificado",
     "is_sin_uso_90d": "Sin Uso 90 Días",
     "is_deshabilitado_180d": "Deshabilitado 180 Días",
+    "passwordneverexpires": "Password No Expira",
+    "cannotchangepassword": "No Puede Cambiar Password",
+    
     "responsable": "Responsable",
     "comentario": "Comentario",
 }
