@@ -80,7 +80,6 @@ class ADService():
                 if cache_key in self._cache: continue
 
                 correo_ad = str(row.get('EMAILADDRESS', '')).strip()
-
                 dni_val = str(row.get('FACSIMILETELEPHONENUMBER', '')).strip()
 
                 login_date = to_datetime(row.get('LASTLOGONDATE'), "DMA")
@@ -183,21 +182,25 @@ class ADService():
         return self._cache_dni.get(cache_key, None)
 
     def sync_last_activity_entra(self, entra_service: EntraUserService) -> None:
-        for user in self._cache.values():
-            eu = entra_service.get_by_email(user.email) if user.email else None
-            if eu is None and user.email:
-                eu = entra_service.get_by_upn(user.email)
-            if eu is None:
-                continue
+        try:
+            for user in self._cache.values():
+                eu = entra_service.get_by_email(user.correo) if user.correo else None
+                if eu is None and user.correo:
+                    eu = entra_service.get_by_upn(user.correo)
+                
+                if eu is None:
+                    continue
 
-            user.last_activity = eu.lastActivityDateTime
+                user.ultima_actividad_entra = eu.lastActivityDateTime 
 
-            dt_entra = to_datetime(eu.lastActivityDateTime)
-            dt_ad = user.lastLogonDate
+                dt_entra = to_datetime(eu.lastActivityDateTime)
+                dt_ad = user.fecha_ult_login
 
-            if dt_entra and dt_ad:
-                user.lastActivity = max(dt_entra, dt_ad)
-            else:
-                user.lastActivity = dt_entra or dt_ad
+                if dt_entra and dt_ad:
+                    user.last_activity = max(dt_entra, dt_ad)
+                else:
+                    user.last_activity = dt_entra or dt_ad
 
-    
+        except Exception as e:
+            print(f"Error sincronizando AD con Entra: {e}")
+        

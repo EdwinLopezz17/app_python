@@ -13,7 +13,6 @@ def get_ad_report(fecha_ref: date)-> list[ADRows]:
     ad_user_srv = ADService()
     ad_user_srv.sync_last_activity_entra(entra_user_srv)
     ticket_info_srv = TicketInfoService()
-
     ahora = datetime.combine(fecha_ref, time.max) 
     limit_90 = timedelta(days=90)
     limit_180 = timedelta(days=180)
