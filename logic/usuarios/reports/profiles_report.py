@@ -135,6 +135,8 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
         rol_ad_pps=ad_user_pps.rol if ad_user_pps else "*No esta en AD PPS*",
         username_vida=ad_user_vida.usuario if ad_user_vida else "*No esta en AD VIDA*",
         rol_ad_vida=ad_user_vida.rol if ad_user_vida else "*No esta en AD VIDA*",
+        ticket="",
+        rol_ticket="",
         rol_final=rol_final,
         exist_rol_mr=mr_srv.exists_by_rol(rol_final),
         perfil_mr=profiles_mr,

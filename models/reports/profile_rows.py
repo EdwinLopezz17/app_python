@@ -29,6 +29,8 @@ class ProfileRows:
     rol_ad_pps: str
     username_vida: str
     rol_ad_vida: str
+    ticket:str
+    rol_ticket: str
     rol_final: str
     exist_rol_mr: bool
     perfil_mr: str
