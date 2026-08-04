@@ -83,13 +83,16 @@ class ADService():
 
                 dni_val = str(row.get('FACSIMILETELEPHONENUMBER', '')).strip()
 
+                login_date = to_datetime(row.get('LASTLOGONDATE'), "DMA")
+
                 user_info = ADUserInfo(
                     usuario = str(row.get('SAMACCOUNTNAME', '')).strip(),
                     nombre = str(row.get('DISPLAYNAME', '')).strip(),
                     correo = correo_ad,
                     rol = str(row.get('IPPHONE', '')).strip(),
                     fecha_creacion = to_datetime(row.get('WHENCREATED'), "DMA"),
-                    fecha_ult_login = to_datetime(row.get('LASTLOGONDATE'), "DMA"),
+                    fecha_ult_login = login_date,
+                    last_activity = login_date,
                     fecha_cambio = to_datetime(row.get('WHENCHANGED'), "DMA"),
                     dni = dni_val,
                     description = str(row.get('DESCRIPTION', '')).strip(),
