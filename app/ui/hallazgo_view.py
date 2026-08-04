@@ -211,6 +211,9 @@ class HallazgoView(QWidget):
 
         self.vacio_boton = QPushButton("Generar Hallazgos")
         self.vacio_boton.setCursor(Qt.PointingHandCursor)
+        # Mismo destino que el botón de la barra superior: sin esta conexión el
+        # botón del estado vacío quedaba decorativo.
+        self.vacio_boton.clicked.connect(self._generar)
         layout.addWidget(self.vacio_boton, 0, Qt.AlignHCenter)
 
         return marco

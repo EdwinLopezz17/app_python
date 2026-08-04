@@ -85,6 +85,10 @@ class SlotRow(QWidget):
         self.slot = slot
         self._ocupado = False
         self._ultimas_faltantes: list[str] = []
+        #: Error de la última carga. Sobrevive a `refrescar()` para que el badge
+        #: rojo no se borre solo cuando la vista repinta todas las cards.
+        self._error: tuple[str, str] | None = None
+        self._faltantes_visibles: list[str] = []
         self.setAcceptDrops(True)
 
         raiz = QVBoxLayout(self)
@@ -200,7 +204,35 @@ class SlotRow(QWidget):
 
         self.btn_ver.setEnabled(estado.existe)
         self.btn_borrar.setEnabled(estado.existe)
+
+        # El error de la última carga manda sobre lo que dice el disco. Sin
+        # esto, el `cambiado.emit()` de `_al_fallar` provoca un `refrescar()`
+        # de toda la vista que devolvía el badge a PENDIENTE/CARGADO y hacía
+        # desaparecer el aviso rojo casi al instante.
+        if self._error:
+            titulo, detalle = self._error
+            self.badge.setText("ERROR")
+            self.badge.setProperty("tono", "error")
+            self.meta.setText(
+                "No se cargó ningún archivo nuevo."
+                if estado.existe
+                else "No se cargó ningún archivo."
+            )
+            self._mostrar_alerta(titulo, detalle)
+            self._pintar_columnas(self._faltantes_visibles)
+
         self._repintar_estilo(self.badge)
+
+    @property
+    def tiene_error(self) -> bool:
+        return self._error is not None
+
+    def limpiar_error(self) -> None:
+        self._error = None
+        self._ultimas_faltantes = []
+        self._faltantes_visibles = []
+        self._ocultar_alerta()
+        self._pintar_columnas([])
 
     @staticmethod
     def _repintar_estilo(widget: QWidget) -> None:
@@ -237,7 +269,7 @@ class SlotRow(QWidget):
             self._cargar(rutas)
 
     def _cargar(self, rutas: list[str]) -> None:
-        self._ocultar_alerta()
+        self.limpiar_error()
         nombres = ", ".join(Path(r).name for r in rutas[:2])
         if len(rutas) > 2:
             nombres += f" y {len(rutas) - 2} más"
@@ -261,31 +293,36 @@ class SlotRow(QWidget):
             self.desp_columnas.poblar("Columnas requeridas", list(self.slot.columns))
 
     def _al_cargar(self, resultado) -> None:
+        self.limpiar_error()
         self._liberar()
-
-
-        self._ocultar_alerta()
-        self._pintar_columnas([])
         self.cambiado.emit()
+
+    @staticmethod
+    def _listar(faltantes: list[str], tope: int = 6) -> str:
+        visibles = " · ".join(faltantes[:tope])
+        sobran = len(faltantes) - tope
+        return f"{visibles} y {sobran} más" if sobran > 0 else visibles
 
     def _al_fallar(self, mensaje: str) -> None:
         self._ocupado = False
         self.btn_cargar.setEnabled(True)
-        self.badge.setText("ERROR")
-        self.badge.setProperty("tono", "error")
-        self._repintar_estilo(self.badge)
-        self.meta.setText("No se cargó ningún archivo")
 
         faltantes = self._ultimas_faltantes
+        self._ultimas_faltantes = []
+        self._faltantes_visibles = faltantes
+
         if faltantes:
-            self._mostrar_alerta(
-                f"Faltan {len(faltantes)} columna(s) requerida(s)",
-                "Revisa el detalle en «Columnas faltantes».",
-            )
-            self._pintar_columnas(faltantes)
-            self._ultimas_faltantes = []
+            plural = "cabeceras" if len(faltantes) != 1 else "cabecera"
+            titulo = f"Faltan {len(faltantes)} {plural} en el archivo"
+            detalle = f"No se encontró: {self._listar(faltantes)}."
         else:
-            self._mostrar_alerta("No se pudo cargar el archivo", mensaje)
+            titulo = "No se pudo cargar el archivo"
+            detalle = mensaje
+
+        self._error = (titulo, detalle)
+        # `refrescar()` ahora conserva el error y pinta badge + alerta +
+        # desplegable rojo en un solo lugar.
+        self.refrescar()
         self.cambiado.emit()
 
     def _mostrar_alerta(self, titulo: str, detalle: str = "", tono: str = "error") -> None:
@@ -354,6 +391,7 @@ class SlotRow(QWidget):
         if confirmar != QMessageBox.Yes:
             return
         eliminar_slot(self.slot)
+        self.limpiar_error()
         self.refrescar()
         self.cambiado.emit()
 
@@ -394,7 +432,14 @@ class FuenteCard(QFrame):
     def refrescar(self) -> None:
         for fila in self.filas:
             fila.refrescar()
-        completo = all(estado_slot(f.slot).existe for f in self.filas)
-        self.setProperty("estado", "cargado" if completo else "")
+        if any(f.tiene_error for f in self.filas):
+            estado = "error"
+        elif all(estado_slot(f.slot).existe for f in self.filas):
+            estado = "cargado"
+        else:
+            estado = ""
+        # El borde rojo de QFrame#Card[estado="error"] ya existía en theme.py
+        # pero nunca se activaba.
+        self.setProperty("estado", estado)
         self.style().unpolish(self)
         self.style().polish(self)
