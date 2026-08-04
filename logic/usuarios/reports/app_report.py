@@ -232,7 +232,7 @@ _APP_CONFIGS: list[AppConfig] = [
 
 def _rows_para_app(
     cfg: AppConfig,
-    dni_user_srv, gdh_user_srv, ad_user_srv, ticket_info_srv, app_login_srv,
+    dni_user_srv, gdh_user_srv, ad_user_srv, ticket_info_srv, app_login_srv, entraid_srv,
 ) -> list[AppRows]:
     service = cfg.service_factory()
     vistos: dict = {}
@@ -245,7 +245,6 @@ def _rows_para_app(
             tipo_app=cfg.tipo_app,
             nombre_app=user.app_name,
             usuario=cfg.get_usuario(user),
-            perfil_rol=cfg.get_perfil_rol(user),
             fecha_creacion=cfg.get_fecha_creacion(user),
             ultimo_login=cfg.get_ultimo_login(user),
             dni_user_srv=dni_user_srv,
@@ -253,6 +252,7 @@ def _rows_para_app(
             ad_user_srv=ad_user_srv,
             ticket_info_srv=ticket_info_srv,
             app_login_srv=app_login_srv,
+            entraid_srv=entraid_srv,
         )
 
         clave = cfg.clave_duplicados(fila)
@@ -266,9 +266,8 @@ def _construir_fila_reporte(
     fecha_creacion: datetime, ultimo_login: datetime,
     dni_user_srv: DNIUserService, gdh_user_srv: GDHUserService,
     ad_user_srv: ADService, ticket_info_srv: TicketInfoService,
-    app_login_srv: AppLoginService,
+    app_login_srv: AppLoginService, entraid_srv: EntraUserService
 ) -> AppRows:
-    entra_srv = ad_user_srv.entra_service_instance
 
     dni_user_info = dni_user_srv.get_by_username(usuario)
     dni = dni_user_info.dni if dni_user_info else None
@@ -289,7 +288,7 @@ def _construir_fila_reporte(
     if ad_user_vida_info:
         dni_vida = ad_user_vida_info.dni
 
-    user_entraid = entra_srv.get_by_email(usuario) or entra_srv.get_by_upn(usuario)
+    user_entraid = entraid_srv.get_by_email(usuario) or entraid_srv.get_by_upn(usuario)
 
     escenario_val = ""
     ces_act:bool = False
@@ -345,11 +344,12 @@ def get_app_report() -> list[AppRows]:
     dni_user_srv = DNIUserService()
     gdh_user_srv = GDHUserService()
     entraid_srv = EntraUserService()
-    ad_user_srv = ADService(entra_service=entraid_srv)
+    ad_user_srv = ADService()
+    ad_user_srv.sync_last_activity_entra(entraid_srv)
     ticket_info_srv = TicketInfoService()
     app_login_srv = AppLoginService()
 
-    shared_args = (dni_user_srv, gdh_user_srv, ad_user_srv, ticket_info_srv, app_login_srv)
+    shared_args = (dni_user_srv, gdh_user_srv, ad_user_srv, ticket_info_srv, app_login_srv, entraid_srv)
 
     rows_report = [
         fila

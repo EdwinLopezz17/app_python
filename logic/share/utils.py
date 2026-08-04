@@ -37,6 +37,9 @@ def to_datetime(val, format=None) -> datetime | None:
 
     dt = ts.to_pydatetime()
 
+    if dt.tzinfo is not None:
+        dt = dt.replace(tzinfo=None)
+
     # Si la fecha no tiene horas, minutos ni segundos, se asume el fin del día (23:59:59)
     if dt.hour == 0 and dt.minute == 0 and dt.second == 0 and dt.microsecond == 0:
         if not _original_has_time(val):

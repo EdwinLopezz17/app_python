@@ -7,6 +7,8 @@ from logic.share.services.entraid_service import EntraUserService
 from models.reports.ad_rows import ADRows
 
 def get_ad_report(fecha_ref: date)-> list[ADRows]:
+    print(f"Generando reporte de AD - fecha referencia: {fecha_ref}")
+
     dni_user_srv = DNIUserService()
     gdh_user_srv = GDHUserService()
     entra_user_srv = EntraUserService()
@@ -89,8 +91,6 @@ def get_ad_report(fecha_ref: date)-> list[ADRows]:
                 descripcion=ad_user.description,
                 fecha_creacion=ad_user.fecha_creacion,
                 fecha_cambio=ad_user.fecha_cambio,
-                passwordneverexpires=ad_user.passwordneverexpires,
-                cannotchangepassword=ad_user.cannotchangepassword,
                 passwordlastset=ad_user.passwordlastset,
                 title=ad_user.title,
                 department=ad_user.department,
@@ -111,6 +111,8 @@ def get_ad_report(fecha_ref: date)-> list[ADRows]:
                 is_no_identificado=no_ident,
                 is_sin_uso_90d=s90d,
                 is_deshabilitado_180d=b180d,
+                passwordneverexpires=ad_user.passwordneverexpires,
+                cannotchangepassword=ad_user.cannotchangepassword,
             )
         )
 

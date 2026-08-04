@@ -45,7 +45,7 @@ class EntraUserService():
             return None
         try:
             clean_str = date_str.strip().replace('Z', '+00:00')
-            return datetime.fromisoformat(clean_str)
+            return datetime.fromisoformat(clean_str).replace(tzinfo=None)
         except Exception:
             return None
 

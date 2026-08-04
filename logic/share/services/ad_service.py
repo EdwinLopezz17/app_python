@@ -53,15 +53,6 @@ class ADService():
         if not lazy:
             self.load_data()
 
-    def _parse_entra_datetime(self, date_str: str) -> datetime | None:
-        if not date_str:
-            return None
-        try:
-            clean_str = date_str.strip().replace('Z', '+00:00')
-            return datetime.fromisoformat(clean_str).replace(tzinfo=None)
-        except Exception:
-            return None
-
     def _procesar_archivo(self, file_path: str, origen_nombre: str) -> None:
         if not file_path or not os.path.exists(file_path):
             print(f"Error: No se encontró el archivo mapeado para AD {origen_nombre} en {file_path}")
