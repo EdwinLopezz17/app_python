@@ -17,13 +17,21 @@ from app.generation import reports
 from app.storage.files import estado_slot
 from app.tasks.runner import POOL, Tarea
 from app.ui import theme
-from app.ui.responsive import ContenedorFlow
+from app.ui.responsive import ContenedorFlow, EtiquetaAjustable
 from app.ui.table_header import CabeceraColoreada
 from app.ui.table_model import DataFrameModel
 
+#: Banderas que llevan tarjeta de conteo arriba de la tabla.
+#:
+#: Ojo con el nombre: `passwordneverexpires` y `cannotchangepassword` vienen
+#: de `models/reports/ad_rows.py` SIN el prefijo `is_`, así que no entran por
+#: ninguna regla automática y hay que declararlas a mano. Se muestran solo si
+#: el campo existe en el DataFrame, o sea que aparecen en AD y se ignoran en
+#: el resto de hallazgos.
 BANDERAS_KPI = [
     "is_cesado_activo", "is_login_post_cese", "is_no_identificado",
     "is_sin_uso_90d", "is_deshabilitado_180d", "is_no_cesado_oportunamente",
+    "passwordneverexpires", "cannotchangepassword",
 ]
 
 #: Debajo de este ancho la fecha de corte y el buscador pasan a una fila propia.
@@ -441,9 +449,8 @@ class HallazgoView(QWidget):
             numero.setObjectName("Kpi")
             interno.addWidget(numero)
 
-            desc = QLabel(etiqueta.upper())
+            desc = EtiquetaAjustable(etiqueta.upper())
             desc.setObjectName("KpiEtiqueta")
-            desc.setWordWrap(True)
             interno.addWidget(desc)
 
             self.kpis.agregar(tarjeta)
