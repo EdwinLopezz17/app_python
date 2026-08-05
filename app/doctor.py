@@ -14,7 +14,7 @@ def _dependencias() -> bool:
     print("Dependencias")
     todo_bien = True
     for modulo, etiqueta in [
-        ("PySide6", "PySide6"), ("pyarrow", "pyarrow"), ("pandas", "pandas"),
+        ("PySide6", "PySide6"), ("pandas", "pandas"),
         ("platformdirs", "platformdirs"), ("xlsxwriter", "XlsxWriter"),
         ("dotenv", "python-dotenv"),
     ]:
@@ -49,7 +49,7 @@ def _rutas() -> bool:
     print(f"{OK} CACHE_PATH = {cache}")
     if "OneDrive" in str(cache):
         print(f"{AVISO} la caché está dentro de OneDrive; conviene moverla "
-              f"fuera para evitar sincronización de archivos binarios grandes")
+              f"fuera para evitar sincronización de archivos grandes")
     return True
 
 
@@ -102,13 +102,14 @@ def _generacion() -> None:
     from app.catalog import hallazgos
 
     print("\nGeneración de hallazgos")
-    migrado = compat.logic_ya_migrado()
-    if migrado:
-        print(f"{OK} logic/ ya lee Parquet; el puente de compatibilidad no se usa")
+    pendientes = compat.servicios_con_parquet()
+    if compat.logic_lee_csv():
+        print(f"{OK} logic/ lee .csv; el puente de compatibilidad no se usa")
     else:
-        print(f"{AVISO} logic/ todavía lee .csv; se usa el puente de "
-              f"app/generation/compat.py")
-        print(f"         (temporal, eliminar cuando el backend migre)")
+        print(f"{AVISO} logic/ todavía llama read_parquet en: "
+              f"{', '.join(pendientes)}")
+        print(f"         se usa el puente de app/generation/compat.py "
+              f"(temporal, eliminar cuando logic/ migre a read_csv)")
 
     for hallazgo in hallazgos.HALLAZGOS:
         marca = OK if reports.disponible(hallazgo.id) else AVISO
@@ -124,11 +125,13 @@ def _estado() -> None:
     print("\nEstado de carga")
     for hallazgo in hallazgos.HALLAZGOS:
         slots = [s for f in hallazgo.fuentes for s in f.slots]
+        obligatorios = hallazgo.slots_requeridos
         cargados = sum(1 for s in slots if estado_slot(s).existe)
+        listos = sum(1 for s in obligatorios if estado_slot(s).existe)
         cache = store.estado(hallazgo).value
-        marca = OK if cargados == len(slots) else AVISO
+        marca = OK if listos == len(obligatorios) else AVISO
         print(f"{marca} {hallazgo.label:24s} {cargados:2d}/{len(slots):2d} archivos "
-              f"· caché: {cache}")
+              f"· obligatorios {listos}/{len(obligatorios)} · caché: {cache}")
 
 
 def main() -> int:

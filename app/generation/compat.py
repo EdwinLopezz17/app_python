@@ -8,63 +8,124 @@ import pandas as pd
 
 from app import config
 
+#: Firma de un archivo Parquet real.
+_MAGIC_PARQUET = b"PAR1"
 
-def _equivalente_parquet(ruta: str | os.PathLike) -> Path | None:
+#: Codificaciones de rescate si el archivo no es UTF-8 limpio.
+_ENCODINGS_FALLBACK = ("utf-8-sig", "cp1252", "latin-1")
+
+
+def _es_parquet(path: Path) -> bool:
     try:
-        p = Path(ruta)
-    except TypeError:
-        return None
-    if p.suffix.lower() != ".csv":
-        return None
-    candidato = p.with_suffix(config.EXTENSION_DATOS)
-    return candidato if candidato.exists() else None
+        with open(path, "rb") as fh:
+            return fh.read(4) == _MAGIC_PARQUET
+    except OSError:
+        return False
+
+
+def _leer_csv(path: Path, columns=None, **kwargs) -> pd.DataFrame:
+    base = dict(
+        sep=config.CSV_SEP,
+        dtype=str,
+        keep_default_na=False,
+        na_filter=False,
+        low_memory=False,
+    )
+    if columns:
+        base["usecols"] = list(columns)
+
+    errores: list[Exception] = []
+    for encoding in (config.CSV_ENCODING, *_ENCODINGS_FALLBACK):
+        try:
+            df = pd.read_csv(path, encoding=encoding, **base)
+            return df.fillna("")
+        except UnicodeDecodeError as exc:
+            errores.append(exc)
+            continue
+    raise errores[-1]
 
 
 @contextmanager
-def puente_parquet():
-    exists_original = os.path.exists
-    isfile_original = os.path.isfile
-    read_csv_original = pd.read_csv
+def puente_csv():
+    """Permite que `logic/` siga llamando `pd.read_parquet` sobre archivos CSV.
 
-    def exists_parcheado(ruta):
-        if exists_original(ruta):
-            return True
-        return _equivalente_parquet(ruta) is not None
+    Los datos manuales ahora se guardan en `.csv` (mismo path que espera
+    `logic/`: `DATA_PATH / FileName.value`). Varios servicios todavía usan
+    `pd.read_parquet(self.path_file)`, así que se intercepta la llamada y se
+    redirige a `read_csv` cuando el archivo no es Parquet de verdad.
 
-    def isfile_parcheado(ruta):
-        if isfile_original(ruta):
-            return True
-        return _equivalente_parquet(ruta) is not None
+    Es temporal: cuando todos los servicios de `logic/` lean CSV, este puente
+    y su uso en `app/generation/reports.py` se pueden borrar.
+    """
+    read_parquet_original = pd.read_parquet
 
-    def read_csv_parcheado(ruta, *args, **kwargs):
-        equivalente = _equivalente_parquet(ruta) if not exists_original(ruta) else None
-        if equivalente is None:
-            return read_csv_original(ruta, *args, **kwargs)
+    def read_parquet_parcheado(ruta, *args, **kwargs):
+        try:
+            path = Path(ruta)
+        except TypeError:
+            return read_parquet_original(ruta, *args, **kwargs)
 
-        df = pd.read_parquet(equivalente, engine="pyarrow")
-        return df.fillna("").astype(str)
+        if path.exists() and not _es_parquet(path):
+            return _leer_csv(path, columns=kwargs.get("columns"))
 
-    os.path.exists = exists_parcheado
-    os.path.isfile = isfile_parcheado
-    pd.read_csv = read_csv_parcheado
+        # El archivo no existe con ese nombre: puede haber quedado el CSV
+        # equivalente de la carga manual.
+        if not path.exists():
+            gemelo = path.with_suffix(config.EXTENSION_DATOS)
+            if gemelo.exists():
+                return _leer_csv(gemelo, columns=kwargs.get("columns"))
+
+        return read_parquet_original(ruta, *args, **kwargs)
+
+    pd.read_parquet = read_parquet_parcheado
     try:
         yield
     finally:
-        os.path.exists = exists_original
-        os.path.isfile = isfile_original
-        pd.read_csv = read_csv_original
+        pd.read_parquet = read_parquet_original
 
 
-def logic_ya_migrado() -> bool:
-    try:
-        from logic.share.services.dni_vs_user_service import DNIUserService
-    except Exception:
-        return False
-
+def logic_lee_csv() -> bool:
+    """True si `logic/` ya lee CSV en todos sus servicios base."""
     import inspect
 
-    try:
-        fuente = inspect.getsource(DNIUserService)
-    except (OSError, TypeError):
-        return False
-    return "read_parquet" in fuente
+    modulos = [
+        ("logic.share.services.ad_service", "ADService"),
+        ("logic.share.services.gdh_service", "GDHUserService"),
+        ("logic.share.services.dni_vs_user_service", "DNIUserService"),
+        ("logic.share.services.entraid_service", "EntraUserService"),
+        ("logic.share.services.tickets_report", "TicketInfoService"),
+        ("logic.share.services.mr_service", "MatrizRolesService"),
+    ]
+
+    for modulo, clase in modulos:
+        try:
+            mod = __import__(modulo, fromlist=[clase])
+            fuente = inspect.getsource(getattr(mod, clase))
+        except Exception:
+            return False
+        if "read_parquet" in fuente:
+            return False
+    return True
+
+
+def servicios_con_parquet() -> list[str]:
+    """Servicios de `logic/` que todavía dependen del puente."""
+    import inspect
+
+    pendientes: list[str] = []
+    modulos = [
+        ("logic.share.services.ad_service", "ADService"),
+        ("logic.share.services.gdh_service", "GDHUserService"),
+        ("logic.share.services.dni_vs_user_service", "DNIUserService"),
+        ("logic.share.services.entraid_service", "EntraUserService"),
+        ("logic.share.services.tickets_report", "TicketInfoService"),
+        ("logic.share.services.mr_service", "MatrizRolesService"),
+    ]
+    for modulo, clase in modulos:
+        try:
+            mod = __import__(modulo, fromlist=[clase])
+            if "read_parquet" in inspect.getsource(getattr(mod, clase)):
+                pendientes.append(clase)
+        except Exception:
+            continue
+    return pendientes

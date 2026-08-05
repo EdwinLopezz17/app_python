@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-import pyarrow.parquet as pq
+import pandas as pd
 
 from app import config
 from app.catalog.fuentes import Fuente, Slot
@@ -50,13 +50,7 @@ def estado_slot(slot: Slot) -> EstadoSlot:
         return EstadoSlot(slot=slot, existe=False, path=path)
 
     stat = path.stat()
-    filas = columnas = 0
-    try:
-        meta = pq.read_metadata(path)
-        filas = meta.num_rows
-        columnas = meta.num_columns
-    except Exception:
-        pass
+    filas, columnas = _dimensiones(path)
 
     return EstadoSlot(
         slot=slot,
@@ -70,6 +64,49 @@ def estado_slot(slot: Slot) -> EstadoSlot:
     )
 
 
+def _leer_csv(path: Path, columnas: list[str] | int | None = None) -> pd.DataFrame:
+    """Lectura estándar del formato que escribe la app: `;`, UTF-8, todo texto."""
+    return pd.read_csv(
+        path,
+        sep=config.CSV_SEP,
+        encoding=config.CSV_ENCODING,
+        dtype=str,
+        keep_default_na=False,
+        na_filter=False,
+        usecols=columnas,
+        low_memory=False,
+    )
+
+
+def _dimensiones(path: Path) -> tuple[int, int]:
+    """Filas y columnas sin cargar el archivo completo en memoria."""
+    try:
+        cabecera = pd.read_csv(
+            path, sep=config.CSV_SEP, encoding=config.CSV_ENCODING,
+            dtype=str, nrows=0,
+        )
+    except Exception:
+        return 0, 0
+
+    columnas = len(cabecera.columns)
+    if not columnas:
+        return 0, 0
+
+    filas = 0
+    try:
+        lector = pd.read_csv(
+            path, sep=config.CSV_SEP, encoding=config.CSV_ENCODING,
+            dtype=str, keep_default_na=False, na_filter=False,
+            usecols=[0], chunksize=200_000,
+        )
+        for bloque in lector:
+            filas += len(bloque)
+    except Exception:
+        filas = 0
+
+    return filas, columnas
+
+
 def archivos_origen(slot: Slot, path: Path | None = None) -> list[str]:
     if not slot.origin_file:
         return []
@@ -78,16 +115,21 @@ def archivos_origen(slot: Slot, path: Path | None = None) -> list[str]:
     if not path.exists():
         return []
 
+    vistos: dict[str, None] = {}
     try:
-        tabla = pq.read_table(path, columns=[COLUMNA_ORIGEN])
+        lector = pd.read_csv(
+            path, sep=config.CSV_SEP, encoding=config.CSV_ENCODING,
+            dtype=str, keep_default_na=False, na_filter=False,
+            usecols=[COLUMNA_ORIGEN], chunksize=200_000,
+        )
+        for bloque in lector:
+            for valor in bloque[COLUMNA_ORIGEN]:
+                nombre = str(valor or "").strip()
+                if nombre:
+                    vistos.setdefault(nombre, None)
     except Exception:
         return []
 
-    vistos: dict[str, None] = {}
-    for valor in tabla.column(COLUMNA_ORIGEN).to_pylist():
-        nombre = str(valor or "").strip()
-        if nombre:
-            vistos.setdefault(nombre, None)
     return list(vistos)
 
 
@@ -118,8 +160,14 @@ def _residuos_de(path: Path) -> list[Path]:
     carpeta = path.parent
     if not carpeta.exists():
         return []
-    doble = carpeta / f"{path.name}{config.EXTENSION_DATOS}"
-    encontrados = [doble] if doble.exists() else []
+    candidatos = [carpeta / f"{path.name}{config.EXTENSION_DATOS}"]
+    # Restos de la etapa Parquet: usuarios_x.parquet y usuarios_x.csv.parquet
+    for ext in config.EXTENSIONES_LEGADAS:
+        candidatos.append(path.with_suffix(ext))
+        candidatos.append(carpeta / f"{path.name}{ext}")
+
+    encontrados = [c for c in candidatos if c != path and c.exists()]
+    encontrados += sorted(carpeta.glob(f"{path.stem}-*.csv.tmp"))
     encontrados += sorted(carpeta.glob(f"{path.stem}-*.parquet.tmp"))
     return encontrados
 
@@ -142,9 +190,7 @@ def eliminar_slots(slots: Iterable[Slot]) -> int:
 
 
 def leer_datos(slot: Slot, columnas: list[str] | None = None):
-    import pandas as pd
-
     path = config.destino(slot.key, slot.subfolder)
     if not path.exists():
         raise FileNotFoundError(f"No hay datos cargados para {slot.display_label}")
-    return pd.read_parquet(path, engine="pyarrow", columns=columnas)
+    return _leer_csv(path, columnas)

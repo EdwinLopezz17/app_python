@@ -235,7 +235,13 @@ class HallazgoView(QWidget):
             return
 
         slots = [s for f in self.hallazgo.fuentes for s in f.slots]
-        faltantes = [s for s in slots if not estado_slot(s).existe]
+        # Solo las fuentes obligatorias bloquean la generación. Las opcionales
+        # (p. ej. cada aplicación en «Aplicaciones» o «Perfiles») pueden faltar:
+        # el reporte se ejecuta con las que estén cargadas.
+        faltantes = [s for s in self.hallazgo.slots_requeridos
+                     if not estado_slot(s).existe]
+        opcionales = self.hallazgo.slots_opcionales
+        opc_faltantes = [s for s in opcionales if not estado_slot(s).existe]
         conectado = reports.disponible(self.hallazgo.id)
         hay_datos = self.modelo.total_original > 0
 
@@ -255,8 +261,9 @@ class HallazgoView(QWidget):
             tip = "Este hallazgo aún no está conectado a su reporte en logic/."
         elif faltantes:
             plural = "archivos" if len(faltantes) != 1 else "archivo"
-            texto_boton = f"Faltan {len(faltantes)} {plural}"
-            tip = f"Carga los {len(faltantes)} {plural} que faltan para poder generar."
+            texto_boton = f"Faltan {len(faltantes)} {plural} obligatorio(s)"
+            tip = (f"Carga los {len(faltantes)} {plural} obligatorio(s) que faltan "
+                   f"para poder generar.")
         elif hay_datos:
             texto_boton = "Regenerar Hallazgos"
             tip = "Vuelve a ejecutar el reporte con las fuentes actuales."
@@ -283,15 +290,39 @@ class HallazgoView(QWidget):
             nombres = ", ".join(s.display_label for s in faltantes[:4])
             if len(faltantes) > 4:
                 nombres += f" y {len(faltantes) - 4} más"
+            obligatorios = len(self.hallazgo.slots_requeridos)
             self._vacio(
-                f"Faltan {len(faltantes)} de {len(slots)} archivos por cargar.",
+                f"Faltan {len(faltantes)} de {obligatorios} archivos obligatorios.",
                 f"Pendientes: {nombres}. Usa «Cargar Información» para completarlos.",
             )
         elif faltantes:
             self._badge("FALTAN FUENTES", "aviso")
             self._mostrar_aviso(
-                f"Faltan {len(faltantes)} de {len(slots)} archivos. Los datos "
-                "mostrados corresponden a la última generación completa.", "aviso")
+                f"Faltan {len(faltantes)} archivos obligatorios. Los datos "
+                "mostrados corresponden a la última generación.", "aviso")
+        elif opc_faltantes:
+            # Caso normal en Aplicaciones y Perfiles: no hace falta subirlas todas.
+            cargadas = len(opcionales) - len(opc_faltantes)
+            self._badge(
+                "VIGENTE" if estado is EstadoCache.VIGENTE and meta else "PARCIAL",
+                "ok" if estado is EstadoCache.VIGENTE and meta else "aviso",
+            )
+            if estado is EstadoCache.DESACTUALIZADA:
+                self._mostrar_aviso(
+                    "Las fuentes cambiaron desde la última generación. "
+                    "Los datos mostrados corresponden a la ejecución anterior.",
+                    "aviso")
+            else:
+                self._mostrar_aviso(
+                    f"Se generará con {cargadas} de {len(opcionales)} fuentes "
+                    "opcionales cargadas. Las no cargadas simplemente no aportan "
+                    "filas al hallazgo.", "info")
+            if not hay_datos:
+                self._vacio(
+                    "Aún no has generado los hallazgos.",
+                    "El reporte solo se ejecuta cuando lo pides. No necesitas "
+                    "cargar todas las fuentes opcionales.",
+                )
         elif estado is EstadoCache.DESACTUALIZADA:
             self._badge("DESACTUALIZADO", "aviso")
             self._mostrar_aviso(

@@ -15,10 +15,38 @@ class Hallazgo:
     modelo: str | None = None
     descripcion: str = ""
     usa_fecha_corte: bool = False
+    #: Fuentes sin las cuales el reporte no puede ejecutarse. Si queda vacío,
+    #: se asume que TODAS las fuentes del hallazgo son obligatorias (que es el
+    #: comportamiento histórico). Las que no estén aquí son opcionales: el
+    #: hallazgo se genera igual y simplemente no aporta filas esa fuente.
+    requeridas: list[str] = field(default_factory=list)
 
     @property
     def fuentes(self) -> list[Fuente]:
         return [get_fuente(fid) for fid in self.fuente_ids]
+
+    @property
+    def requeridas_efectivas(self) -> list[str]:
+        return list(self.requeridas) if self.requeridas else list(self.fuente_ids)
+
+    def es_opcional(self, fuente_id: str) -> bool:
+        return fuente_id not in self.requeridas_efectivas
+
+    @property
+    def fuentes_requeridas(self) -> list[Fuente]:
+        return [get_fuente(fid) for fid in self.requeridas_efectivas]
+
+    @property
+    def fuentes_opcionales(self) -> list[Fuente]:
+        return [get_fuente(fid) for fid in self.fuente_ids if self.es_opcional(fid)]
+
+    @property
+    def slots_requeridos(self) -> list:
+        return [s for f in self.fuentes_requeridas for s in f.slots]
+
+    @property
+    def slots_opcionales(self) -> list:
+        return [s for f in self.fuentes_opcionales for s in f.slots]
 
 
 _BASE = ["dni-vs-usuarios", "gdh", "ad", "tickets-ceses"]
@@ -40,6 +68,9 @@ HALLAZGOS: list[Hallazgo] = [
             "addactis", "monokera", "siniestros-web", "datalake", "crm",
             "qualys", "ssa",
         ],
+        # Las aplicaciones son opcionales: se puede certificar con las que ya
+        # estén cargadas. Lo obligatorio es el núcleo de identidad/RRHH.
+        requeridas=["dni-vs-usuarios", "gdh", "ad", "entra-id", "tickets-ceses"],
     ),
     Hallazgo(
         id="active-directory",
@@ -88,6 +119,10 @@ HALLAZGOS: list[Hallazgo] = [
             "pms", "salesforce", "siniestros-web", "exactus-perfiles",
             "botmaker",
         ],
+        requeridas=[
+            "dni-vs-usuarios", "matriz-roles", "rol-ticket", "gdh", "ad",
+            "entra-id",
+        ],
     ),
     Hallazgo(
         id="activos-gdh",
@@ -107,6 +142,7 @@ HALLAZGOS: list[Hallazgo] = [
         modelo="GeneralsRow",
         descripcion="Accesos a bases de datos del entorno AC (EPPS e IGWPRD).",
         fuente_ids=["usuarios-autorizados", "epps-ac", "igwprd-ac"],
+        requeridas=["usuarios-autorizados"],
     ),
     Hallazgo(
         id="generales-ae",
@@ -116,6 +152,7 @@ HALLAZGOS: list[Hallazgo] = [
         modelo="GeneralsRow",
         descripcion="Accesos a bases de datos del entorno AE (EPPS e IGWPRD).",
         fuente_ids=["usuarios-autorizados", "epps-ae", "igwprd-ae"],
+        requeridas=["usuarios-autorizados"],
     ),
 ]
 

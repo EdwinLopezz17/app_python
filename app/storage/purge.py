@@ -35,7 +35,7 @@ class ResultadoBorrado:
 def _invalidar(hallazgo: Hallazgo) -> int:
     from app.cache import store
 
-    existia = store.ruta_parquet(hallazgo).exists() or store.ruta_meta(hallazgo).exists()
+    existia = store.ruta_datos(hallazgo).exists() or store.ruta_meta(hallazgo).exists()
     store.invalidar(hallazgo)
     return 1 if existia else 0
 
@@ -72,7 +72,7 @@ def borrar_certificacion(cert_id: str) -> ResultadoBorrado:
     carpeta = config.cache_dir() / cert_id
     generados = 0
     if carpeta.exists():
-        generados = len(list(carpeta.glob("*.parquet")))
+        generados = len(list(carpeta.glob(f"*{config.EXTENSION_DATOS}")))
         shutil.rmtree(carpeta, ignore_errors=True)
 
     return ResultadoBorrado(archivos=archivos, hallazgos_cache=generados)

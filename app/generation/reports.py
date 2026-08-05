@@ -6,7 +6,7 @@ from typing import Callable
 
 import pandas as pd
 
-from app.generation.compat import puente_parquet
+from app.generation.compat import puente_csv
 
 
 def a_dataframe(filas: list) -> pd.DataFrame:
@@ -107,5 +107,5 @@ def generar(hallazgo_id: str, fecha_ref: date) -> pd.DataFrame:
         raise NotImplementedError(
             f"La generación de «{hallazgo_id}» aún no está conectada."
         )
-    with puente_parquet():
+    with puente_csv():
         return generador(fecha_ref)

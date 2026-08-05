@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import csv
 import json
+import os
+import tempfile
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -13,7 +16,9 @@ from app.cache import fingerprint
 from app.catalog.hallazgos import Hallazgo
 from app.generation import sanitize
 
-VERSION_CACHE = 1
+#: v2 = caché en CSV (antes Parquet). El cambio de versión invalida la
+#: caché anterior, que se regenera sola en la primera ejecución.
+VERSION_CACHE = 2
 
 
 class EstadoCache(str, Enum):
@@ -31,6 +36,9 @@ class Metadatos:
     generado_en: str
     version: int = VERSION_CACHE
     fuentes: list[str] = field(default_factory=list)
+    #: {columna: dtype} para poder reconstruir booleanos y fechas al releer
+    #: el CSV, que por definición no guarda tipos.
+    dtypes: dict[str, str] = field(default_factory=dict)
 
     @property
     def generado_texto(self) -> str:
@@ -53,8 +61,8 @@ def _carpeta(hallazgo: Hallazgo) -> Path:
     return carpeta
 
 
-def ruta_parquet(hallazgo: Hallazgo) -> Path:
-    return _carpeta(hallazgo) / f"{hallazgo.id}.parquet"
+def ruta_datos(hallazgo: Hallazgo) -> Path:
+    return _carpeta(hallazgo) / f"{hallazgo.id}{config.EXTENSION_DATOS}"
 
 
 def ruta_meta(hallazgo: Hallazgo) -> Path:
@@ -71,22 +79,77 @@ def leer_meta(hallazgo: Hallazgo) -> Metadatos | None:
     except Exception:
         return None
 
-def _escribir_parquet(df: pd.DataFrame, destino: Path) -> None:
-    def _volcar(datos: pd.DataFrame) -> None:
-        datos.to_parquet(
-            destino, engine="pyarrow",
-            compression=config.COMPRESION, index=False,
-        )
-
+def _volcar_csv(datos: pd.DataFrame, destino: Path) -> None:
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(
+        suffix=".csv.tmp", prefix=destino.stem + "-", dir=destino.parent
+    )
+    os.close(fd)
+    tmp = Path(tmp_name)
     try:
-        _volcar(sanitize.normalizar(df))
+        datos.to_csv(
+            tmp,
+            sep=config.CSV_SEP,
+            index=False,
+            encoding=config.CSV_ENCODING,
+            lineterminator=config.CSV_TERMINADOR,
+            quotechar=config.CSV_QUOTECHAR,
+            quoting=csv.QUOTE_MINIMAL,
+            na_rep="",
+            date_format="%Y-%m-%d %H:%M:%S",
+        )
+        os.replace(tmp, destino)
     except Exception:
-        _volcar(sanitize.forzar_texto(df))
+        tmp.unlink(missing_ok=True)
+        raise
+
+
+def _escribir_csv(df: pd.DataFrame, destino: Path) -> pd.DataFrame:
+    """Devuelve el DataFrame realmente escrito (para leer sus dtypes)."""
+    try:
+        datos = sanitize.normalizar(df)
+        _volcar_csv(datos, destino)
+    except Exception:
+        datos = sanitize.forzar_texto(df)
+        _volcar_csv(datos, destino)
+    return datos
+
+
+def _mapa_dtypes(df: pd.DataFrame) -> dict[str, str]:
+    if df is None or df.empty:
+        return {}
+    return {str(c): str(df[c].dtype) for c in df.columns}
+
+
+def _restaurar_dtypes(df: pd.DataFrame, dtypes: dict[str, str]) -> pd.DataFrame:
+    """El CSV vuelve como texto; se recuperan booleanos, fechas y números."""
+    if df is None or df.empty or not dtypes:
+        return df
+
+    for col in df.columns:
+        tipo = str(dtypes.get(str(col), ""))
+        if not tipo:
+            continue
+        try:
+            if tipo == "bool":
+                df[col] = df[col].map(
+                    {"True": True, "False": False, "true": True, "false": False}
+                ).fillna(False).astype(bool)
+            elif tipo.startswith("datetime64"):
+                df[col] = pd.to_datetime(df[col], errors="coerce")
+            elif tipo.startswith(("int", "uint", "float")):
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+        except Exception:
+            # Un tipo que no se puede reconstruir se queda como texto: es
+            # preferible mostrarlo tal cual a romper la vista del hallazgo.
+            continue
+    return df
+
 
 def guardar(hallazgo: Hallazgo, df: pd.DataFrame) -> Metadatos:
     huella = fingerprint.calcular(hallazgo)
 
-    _escribir_parquet(df, ruta_parquet(hallazgo))
+    escrito = _escribir_csv(df, ruta_datos(hallazgo))
 
     meta = Metadatos(
         hallazgo_id=hallazgo.id,
@@ -95,6 +158,7 @@ def guardar(hallazgo: Hallazgo, df: pd.DataFrame) -> Metadatos:
         filas=len(df),
         generado_en=datetime.now().isoformat(timespec="seconds"),
         fuentes=[s.key for f in hallazgo.fuentes for s in f.slots],
+        dtypes=_mapa_dtypes(escrito),
     )
     ruta_meta(hallazgo).write_text(
         json.dumps(asdict(meta), ensure_ascii=False, indent=2), encoding="utf-8"
@@ -104,7 +168,7 @@ def guardar(hallazgo: Hallazgo, df: pd.DataFrame) -> Metadatos:
 
 def estado(hallazgo: Hallazgo) -> EstadoCache:
     meta = leer_meta(hallazgo)
-    if meta is None or not ruta_parquet(hallazgo).exists():
+    if meta is None or not ruta_datos(hallazgo).exists():
         return EstadoCache.AUSENTE
     if meta.version != VERSION_CACHE:
         return EstadoCache.DESACTUALIZADA
@@ -117,10 +181,24 @@ def cargar(hallazgo: Hallazgo, columnas: list[str] | None = None) -> ResultadoCa
     if st is EstadoCache.AUSENTE:
         return ResultadoCache(estado=st)
 
-    df = pd.read_parquet(ruta_parquet(hallazgo), engine="pyarrow", columns=columnas)
-    return ResultadoCache(estado=st, df=df, meta=leer_meta(hallazgo))
+    meta = leer_meta(hallazgo)
+    df = pd.read_csv(
+        ruta_datos(hallazgo),
+        sep=config.CSV_SEP,
+        encoding=config.CSV_ENCODING,
+        dtype=str,
+        keep_default_na=False,
+        na_filter=False,
+        usecols=columnas,
+        low_memory=False,
+    )
+    df = _restaurar_dtypes(df, meta.dtypes if meta else {})
+    return ResultadoCache(estado=st, df=df, meta=meta)
 
 
 def invalidar(hallazgo: Hallazgo) -> None:
-    ruta_parquet(hallazgo).unlink(missing_ok=True)
+    ruta_datos(hallazgo).unlink(missing_ok=True)
     ruta_meta(hallazgo).unlink(missing_ok=True)
+    # Restos de la caché Parquet anterior.
+    for ext in config.EXTENSIONES_LEGADAS:
+        (_carpeta(hallazgo) / f"{hallazgo.id}{ext}").unlink(missing_ok=True)

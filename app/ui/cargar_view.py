@@ -201,8 +201,10 @@ class CargarView(QWidget):
         slots = [s for f in self.hallazgo.fuentes for s in f.slots]
         cargados = sum(1 for s in slots if estado_slot(s).existe)
         total = len(slots)
-        faltan = total - cargados
-        completo = faltan == 0 and total > 0
+        # «Listo para generar» depende solo de las fuentes obligatorias.
+        obligatorios = self.hallazgo.slots_requeridos
+        faltan = sum(1 for s in obligatorios if not estado_slot(s).existe)
+        completo = faltan == 0 and len(obligatorios) > 0
 
         self.lbl_progreso.setText(f"{cargados} / {total} archivos cargados")
         self.lbl_progreso.setProperty("tono", "ok" if completo else "pendiente")
@@ -214,14 +216,20 @@ class CargarView(QWidget):
         self.btn_generar.setEnabled(completo)
         if completo:
             self.btn_generar.setText("Generar Hallazgos  →")
+            pendientes = total - cargados
             self.btn_generar.setToolTip(
-                "Todas las fuentes están cargadas. Ir a la pantalla de hallazgos."
+                "Las fuentes obligatorias están cargadas. Ir a la pantalla de "
+                "hallazgos." + (
+                    f" Quedan {pendientes} fuentes opcionales sin cargar; "
+                    "no son necesarias." if pendientes else ""
+                )
             )
         else:
             plural = "archivos" if faltan != 1 else "archivo"
-            self.btn_generar.setText(f"Faltan {faltan} {plural}")
+            self.btn_generar.setText(f"Faltan {faltan} {plural} obligatorio(s)")
             self.btn_generar.setToolTip(
-                f"Carga los {faltan} {plural} que faltan para poder generar."
+                f"Carga los {faltan} {plural} obligatorio(s) que faltan para "
+                "poder generar."
             )
 
         self.progreso_cambiado.emit(self.hallazgo.id, cargados, total)

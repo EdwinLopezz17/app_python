@@ -59,7 +59,10 @@ class HallazgoFila(QFrame):
         slots = [s for f in self.hallazgo.fuentes for s in f.slots]
         cargados = sum(1 for s in slots if estado_slot(s).existe)
         total = len(slots)
-        completo = cargados == total and total > 0
+        obligatorios = self.hallazgo.slots_requeridos
+        completo = bool(obligatorios) and all(
+            estado_slot(s).existe for s in obligatorios
+        )
 
         partes = [f"{cargados}/{total} archivos"]
 
@@ -225,7 +228,7 @@ class LauncherView(QWidget):
 
         listos = generados = 0
         for hallazgo in HALLAZGOS:
-            hs = [s for f in hallazgo.fuentes for s in f.slots]
+            hs = hallazgo.slots_requeridos
             if hs and all(estado_slot(s).existe for s in hs):
                 listos += 1
             if store.estado(hallazgo) is EstadoCache.VIGENTE:
