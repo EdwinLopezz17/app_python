@@ -17,16 +17,23 @@ from logic.share.services.ad_service import ADService
 from logic.share.services.dni_vs_user_service import DNIUserService
 from logic.share.services.gdh_service import GDHUserService
 from logic.share.services.entraid_service import EntraUserService
+from logic.usuarios.services.rol_ticket import RolTicketService
 
 from models.reports.profile_rows import ProfileRows
 
 def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_rol: str, 
                             fecha_creacion: str, ultimo_login: str, 
                             dni_user_srv:DNIUserService, gdh_user_srv:GDHUserService,
-                            ad_user_srv:ADService, mr_srv:MatrizRolesService, entra_srv:EntraUserService) -> ProfileRows:
+                            ad_user_srv:ADService, mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                            rol_ticket_srv:RolTicketService
+                            ) -> ProfileRows:
 
     dni_user_info = dni_user_srv.get_by_username(usuario)
     dni = dni_user_info.dni if dni_user_info else None
+
+    rol_ticket_obj = rol_ticket_srv.get_by_dni(dni)
+    rol_ticket = rol_ticket_obj.assigned_role if rol_ticket_obj else ""
+    ticket = rol_ticket_obj.ticket_number if rol_ticket_obj else ""
 
     gdh_user = gdh_user_srv.get_by_dni(dni_user_info.dni) if dni_user_info else None
 
@@ -135,8 +142,8 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
         rol_ad_pps=ad_user_pps.rol if ad_user_pps else "*No esta en AD PPS*",
         username_vida=ad_user_vida.usuario if ad_user_vida else "*No esta en AD VIDA*",
         rol_ad_vida=ad_user_vida.rol if ad_user_vida else "*No esta en AD VIDA*",
-        ticket="",
-        rol_ticket="",
+        ticket=ticket,
+        rol_ticket=rol_ticket,
         rol_final=rol_final,
         exist_rol_mr=mr_srv.exists_by_rol(rol_final),
         perfil_mr=profiles_mr,
@@ -150,7 +157,8 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
     )
 
 def _rows_acselx(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-                 mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+                 mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                 rol_ticket_srv:RolTicketService):
     acselx_srv = AcselxUserService()
     
     rows = []
@@ -171,13 +179,15 @@ def _rows_acselx(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADServic
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
             entra_srv=entra_srv,
+            rol_ticket_srv=rol_ticket_srv
         )
         rows.append(fila)
     
     return rows
 
 def _rows_onbase(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-                 mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+                 mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                 rol_ticket_srv:RolTicketService):
     onbase_srv = OnbaseUserService()
     
     rows = []
@@ -198,13 +208,15 @@ def _rows_onbase(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADServic
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
             entra_srv=entra_srv,
+            rol_ticket_srv=rol_ticket_srv
         )
         rows.append(fila)
     
     return rows
 
 def _rows_sox_vida(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-                   mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+                   mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                 rol_ticket_srv:RolTicketService):
     soxvida_srv = SoxVidaUserService()
     rows = []
     
@@ -226,6 +238,7 @@ def _rows_sox_vida(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADServ
             gdh_user_srv = gdh_srv,
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
+            rol_ticket_srv=rol_ticket_srv,
             entra_srv=entra_srv,
         )
         rows.append(fila)
@@ -233,7 +246,7 @@ def _rows_sox_vida(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADServ
     return rows
 
 def _rows_eas(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-              mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+              mr_srv:MatrizRolesService, entra_srv:EntraUserService, rol_ticket_srv:RolTicketService):
     eas_srv = EasUserService()
     rows = []
     
@@ -253,13 +266,15 @@ def _rows_eas(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
             entra_srv=entra_srv,
+            rol_ticket_srv=rol_ticket_srv,
         )
         rows.append(fila)
     
     return rows
 
 def _rows_billing_center(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-                         mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+                         mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                 rol_ticket_srv:RolTicketService):
     billing_center_srv = BillingCenterUserService()
     rows = []
     
@@ -279,13 +294,15 @@ def _rows_billing_center(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
             entra_srv=entra_srv,
+            rol_ticket_srv=rol_ticket_srv,
         )
         rows.append(fila)
     
     return rows
 
 def _rows_claim_center(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-                       mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+                       mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                 rol_ticket_srv:RolTicketService):
     claim_center_srv = ClaimCenterUserService()
     rows = []
     
@@ -305,13 +322,15 @@ def _rows_claim_center(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:AD
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
             entra_srv=entra_srv,
+            rol_ticket_srv=rol_ticket_srv
         )
         rows.append(fila)
     
     return rows
 
 def _rows_contact_manager(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-                          mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+                          mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                 rol_ticket_srv:RolTicketService):
     contact_manager_srv =ContactManagerUserService()
     rows = []
     
@@ -331,13 +350,15 @@ def _rows_contact_manager(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
             entra_srv=entra_srv,
+            rol_ticket_srv=rol_ticket_srv
         )
         rows.append(fila)
     
     return rows
 
 def _rows_policy_center(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-                        mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+                        mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                 rol_ticket_srv:RolTicketService):
     policy_center_srv = PolicycenterUserService()
     rows = []
     
@@ -357,13 +378,15 @@ def _rows_policy_center(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:A
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
             entra_srv=entra_srv,
+            rol_ticket_srv=rol_ticket_srv
         )
         rows.append(fila)
     
     return rows
 
 def _rows_prophet(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-                  mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+                  mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                 rol_ticket_srv:RolTicketService):
     prophet_srv = ProphetUserService()
     rows = []
     
@@ -383,13 +406,15 @@ def _rows_prophet(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADServi
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
             entra_srv=entra_srv,
+            rol_ticket_srv=rol_ticket_srv
         )
         rows.append(fila)
     
     return rows
 
 def _rows_pms(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-              mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+              mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                 rol_ticket_srv:RolTicketService):
     pms_srv = PmsUserService()
     rows = []
     
@@ -409,13 +434,15 @@ def _rows_pms(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
             entra_srv=entra_srv,
+            rol_ticket_srv=rol_ticket_srv
         )
         rows.append(fila)
     
     return rows
 
 def _rows_salesforce(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-                     mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+                     mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                 rol_ticket_srv:RolTicketService):
     salesforce_srv = SalesforceUserService()
     rows = []
     
@@ -435,13 +462,15 @@ def _rows_salesforce(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADSe
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
             entra_srv=entra_srv,
+            rol_ticket_srv=rol_ticket_srv
         )
         rows.append(fila)
     
     return rows
 
 def _rows_siniestros_web(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-                         mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+                         mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                 rol_ticket_srv:RolTicketService):
     siniestrosweb_srv = SiniestrosWebUserService()
     rows = []
     
@@ -461,13 +490,15 @@ def _rows_siniestros_web(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
             entra_srv=entra_srv,
+            rol_ticket_srv=rol_ticket_srv
         )
         rows.append(fila)
     
     return rows
 
 def _rows_exactus(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-                  mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+                  mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                 rol_ticket_srv:RolTicketService):
     exactus_prf_srv = ExactusPflService()
     rows = []
     
@@ -487,13 +518,15 @@ def _rows_exactus(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADServi
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
             entra_srv=entra_srv,
+            rol_ticket_srv=rol_ticket_srv
         )
         rows.append(fila)
     
     return rows
 
 def _rows_botmaker(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADService,
-                   mr_srv:MatrizRolesService, entra_srv:EntraUserService):
+                   mr_srv:MatrizRolesService, entra_srv:EntraUserService,
+                 rol_ticket_srv:RolTicketService):
     botmaker_srv = BotmakerUserService()
     rows = []
     
@@ -513,6 +546,7 @@ def _rows_botmaker(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADServ
             ad_user_srv = ad_srv,
             mr_srv= mr_srv,
             entra_srv=entra_srv,
+            rol_ticket_srv=rol_ticket_srv,
         )
         rows.append(fila)
     
@@ -524,23 +558,24 @@ def get_profiles_report()-> list[ProfileRows]:
     dni_user_srv = DNIUserService()
     gdh_srv = GDHUserService()
     entra_srv = EntraUserService()
+    rol_ticket_srv = RolTicketService()
     
     reporte_total = []
 
-    reporte_total.extend(_rows_acselx(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
-    reporte_total.extend(_rows_onbase(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
-    reporte_total.extend(_rows_sox_vida(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
-    reporte_total.extend(_rows_eas(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
-    reporte_total.extend(_rows_billing_center(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
-    reporte_total.extend(_rows_claim_center(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
-    reporte_total.extend(_rows_contact_manager(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
-    reporte_total.extend(_rows_policy_center(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
-    reporte_total.extend(_rows_prophet(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
-    reporte_total.extend(_rows_pms(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
-    reporte_total.extend(_rows_salesforce(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
-    reporte_total.extend(_rows_siniestros_web(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
-    reporte_total.extend(_rows_exactus(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
-    reporte_total.extend(_rows_botmaker(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv))
+    reporte_total.extend(_rows_acselx(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
+    reporte_total.extend(_rows_onbase(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
+    reporte_total.extend(_rows_sox_vida(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
+    reporte_total.extend(_rows_eas(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
+    reporte_total.extend(_rows_billing_center(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
+    reporte_total.extend(_rows_claim_center(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
+    reporte_total.extend(_rows_contact_manager(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
+    reporte_total.extend(_rows_policy_center(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
+    reporte_total.extend(_rows_prophet(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
+    reporte_total.extend(_rows_pms(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
+    reporte_total.extend(_rows_salesforce(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
+    reporte_total.extend(_rows_siniestros_web(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
+    reporte_total.extend(_rows_exactus(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
+    reporte_total.extend(_rows_botmaker(dni_user_srv, gdh_srv, ad_srv,mr_srv,entra_srv,rol_ticket_srv))
 
     reporte_total.sort(key=lambda x: str(x.aplicacion).strip().upper())
 
