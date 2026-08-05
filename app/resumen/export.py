@@ -6,7 +6,7 @@ from typing import Sequence
 
 import xlsxwriter
 
-from app.catalog import colors, display, formatos
+from app.catalog import colors, formatos, hallazgo_columns as cols
 from app.resumen import engine
 from app.resumen.engine import ConfigResumen, Escenario
 
@@ -84,7 +84,7 @@ class _Formatos:
         return self._cabeceras[clave]
 
     def cabecera_campo(self, modelo: str, campo: str):
-        grupo = colors.grupo(modelo, campo)
+        grupo = cols.grupo(modelo, campo)
         return self.cabecera(grupo.fill, grupo.text)
 
 
@@ -106,7 +106,7 @@ def _hoja_detalle(
     escenario: Escenario, filas: Sequence[dict],
 ) -> None:
     hoja = libro.add_worksheet(escenario.code)
-    etiquetas = display.etiquetas(config.modelo)
+    etiquetas = cols.etiquetas(config.modelo)
     campos = list(escenario.columnas)
 
 

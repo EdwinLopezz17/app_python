@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 
 from app.cache import store
 from app.cache.store import EstadoCache
-from app.catalog import display, formatos, resumenes
+from app.catalog import formatos, hallazgo_columns as cols, resumenes
 from app.catalog.hallazgos import Hallazgo
 from app.exports import excel
 from app.generation import reports
@@ -407,10 +407,11 @@ class HallazgoView(QWidget):
         self.modelo.set_dataframe(df, self.hallazgo.modelo)
         self.buscador.clear()
         self._construir_kpis(df)
-        self.tabla.resizeColumnsToContents()
+        # El ancho lo manda `hallazgo_columns.py`, no el contenido: así la
+        # tabla se ve igual con 10 filas que con 90 000.
         for col in range(self.modelo.columnCount()):
-            if self.tabla.columnWidth(col) > 300:
-                self.tabla.setColumnWidth(col, 300)
+            campo = str(self.modelo.dataframe.columns[col])
+            self.tabla.setColumnWidth(col, cols.ancho(self.hallazgo.modelo, campo))
         self.btn_exportar.setEnabled(len(df) > 0)
 
     def _construir_kpis(self, df) -> None:
@@ -419,7 +420,7 @@ class HallazgoView(QWidget):
             if item.widget():
                 item.widget().deleteLater()
 
-        etiquetas = display.etiquetas(self.hallazgo.modelo) if self.hallazgo.modelo else {}
+        etiquetas = cols.etiquetas(self.hallazgo.modelo)
         tarjetas = [("Total de filas", len(df))]
         for campo in BANDERAS_KPI:
             if campo in df.columns:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.catalog import display
+from app.catalog import hallazgo_columns as cols
 from app.resumen.engine import ConfigResumen, Escenario
 
 
@@ -9,7 +9,7 @@ ETIQUETA_MONITOREO = "Escenarios de monitoreo"
 
 
 def _columnas(modelo: str) -> tuple[str, ...]:
-    return tuple(display.etiquetas(modelo))
+    return tuple(cols.etiquetas(modelo))
 
 
 ESCENARIOS_BD_GENERALES: tuple[Escenario, ...] = (

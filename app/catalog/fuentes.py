@@ -80,6 +80,9 @@ _reg(Fuente("entra-id", "Entra ID", OTROS_REPORTES,
 _reg(Fuente("matriz-roles", "Matriz de Roles", OTROS_REPORTES,
             _one(FileName.MATRIZ_ROLES, C.MATRIZ_ROLES)))
 
+_reg(Fuente("rol-ticket", "Rol Ticket", OTROS_REPORTES,
+            _one(FileName.ROL_TICKET, C.ROL_TICKET)))
+
 
 _reg(Fuente("app-login", "Login de Aplicaciones", APLICACIONES,
             _one(FileName.APP_LOGIN, C.APP_LOGIN)))

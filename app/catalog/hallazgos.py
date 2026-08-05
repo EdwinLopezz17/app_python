@@ -81,7 +81,8 @@ HALLAZGOS: list[Hallazgo] = [
         modelo="ProfileRows",
         descripcion="Perfiles y roles asignados contrastados con la Matriz de Roles.",
         fuente_ids=[
-            "dni-vs-usuarios", "matriz-roles", "gdh", "ad", "entra-id",
+            "dni-vs-usuarios", "matriz-roles", "rol-ticket", "gdh", "ad",
+            "entra-id",
             "acselx", "onbase", "sox-vida", "eas", "billing-center",
             "claim-center", "contact-manager", "policycenter", "prophet",
             "pms", "salesforce", "siniestros-web", "exactus-perfiles",

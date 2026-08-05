@@ -8,11 +8,98 @@ que nada puede depender de que la ventana esté maximizada.
 
 from __future__ import annotations
 
-from PySide6.QtCore import QMargins, QPoint, QRect, QSize, Qt
-from PySide6.QtWidgets import QGridLayout, QLayout, QSizePolicy, QWidget
+from PySide6.QtCore import QEvent, QMargins, QObject, QPoint, QRect, QSize, Qt
+from PySide6.QtWidgets import QGridLayout, QLabel, QLayout, QSizePolicy, QWidget
 
 #: Ancho mínimo legible de una card de fuente.
 ANCHO_MIN_CARD = 300
+
+
+class _AutoAlto(QObject):
+    """Fija `minimumHeight` al alto que realmente pide el layout del widget.
+
+    Qt negocia la altura con `sizeHint()`/`minimumSizeHint()`, que son
+    *sugerencias*: un `QGridLayout` sin espacio suficiente las ignora y recorta
+    al hijo. Con contenido que depende del ancho (QLabel con `wordWrap`,
+    `FlowLayout` que baja de línea) esa negociación se queda con valores viejos
+    y la card acaba más baja de lo que necesita: el contenido se ve cortado.
+
+    `minimumHeight` sí es un límite duro. Se recalcula en cada `LayoutRequest`,
+    que es el evento que Qt manda cuando un hijo cambia de tamaño ideal.
+    """
+
+    def eventFilter(self, obj: QWidget, evento) -> bool:
+        if evento.type() == QEvent.LayoutRequest:
+            self._aplicar(obj)
+        return False
+
+    @staticmethod
+    def _aplicar(widget: QWidget) -> None:
+        layout = widget.layout()
+        if layout is None:
+            return
+        layout.invalidate()
+        alto = layout.minimumSize().height()
+        if alto and alto != widget.minimumHeight():
+            widget.setMinimumHeight(alto)
+            widget.updateGeometry()
+
+
+class EtiquetaAjustable(QLabel):
+    """`QLabel` con `wordWrap` que sí reserva el alto que necesita.
+
+    Un `QLabel` envuelto tiene `heightForWidth`, pero para que el layout padre
+    lo consulte hace falta que TODOS los ancestros lleven el flag
+    `heightForWidth` en su `sizePolicy`. En una card con varios niveles de
+    `QVBoxLayout` esa cadena se rompe y el texto largo se corta a una línea.
+
+    Aquí se resuelve por abajo: la propia etiqueta fija su `minimumHeight`
+    (que sí es un límite duro) cada vez que cambia de ancho o de texto.
+    """
+
+    def __init__(self, texto: str = "", parent: QWidget | None = None) -> None:
+        super().__init__(texto, parent)
+        self.setWordWrap(True)
+        politica = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        politica.setHeightForWidth(True)
+        self.setSizePolicy(politica)
+
+    def _ajustar(self) -> None:
+        if not self.isVisibleTo(self.parentWidget() or self):
+            return
+        alto = self.heightForWidth(max(self.width(), 1))
+        if alto and alto != self.minimumHeight():
+            self.setMinimumHeight(alto)
+            self.updateGeometry()
+
+    def setText(self, texto: str) -> None:
+        super().setText(texto)
+        self._ajustar()
+
+    def setVisible(self, visible: bool) -> None:
+        super().setVisible(visible)
+        if not visible:
+            self.setMinimumHeight(0)
+        else:
+            self._ajustar()
+
+    def resizeEvent(self, evento) -> None:
+        super().resizeEvent(evento)
+        self._ajustar()
+
+    def showEvent(self, evento) -> None:
+        super().showEvent(evento)
+        self._ajustar()
+
+
+def auto_alto(widget: QWidget) -> None:
+    """Engancha `_AutoAlto` al widget (idempotente)."""
+    if getattr(widget, "_auto_alto", None) is not None:
+        return
+    filtro = _AutoAlto(widget)
+    widget._auto_alto = filtro
+    widget.installEventFilter(filtro)
+    _AutoAlto._aplicar(widget)
 
 
 class GridResponsivo(QWidget):
@@ -42,6 +129,7 @@ class GridResponsivo(QWidget):
         self._grid.setContentsMargins(0, 0, 0, 0)
         self._grid.setHorizontalSpacing(espacio)
         self._grid.setVerticalSpacing(espacio)
+        auto_alto(self)
 
     def agregar(self, widget: QWidget) -> None:
         self._widgets.append(widget)
@@ -81,6 +169,12 @@ class GridResponsivo(QWidget):
         for col in range(self._max_columnas):
             self._grid.setColumnStretch(col, 1 if col < columnas else 0)
             self._grid.setColumnMinimumWidth(col, 0)
+
+        self._grid.invalidate()
+        alto = self._grid.minimumSize().height()
+        if alto and alto != self.minimumHeight():
+            self.setMinimumHeight(alto)
+        self.updateGeometry()
 
     def resizeEvent(self, evento) -> None:
         super().resizeEvent(evento)
@@ -208,4 +302,14 @@ class ContenedorFlow(QWidget):
 
     def resizeEvent(self, evento) -> None:
         super().resizeEvent(evento)
-        self.setMinimumHeight(self.flow.heightForWidth(self.width()))
+        self._ajustar()
+
+    def showEvent(self, evento) -> None:
+        super().showEvent(evento)
+        self._ajustar()
+
+    def _ajustar(self) -> None:
+        alto = self.flow.heightForWidth(max(self.width(), 1))
+        if alto and alto != self.minimumHeight():
+            self.setMinimumHeight(alto)
+            self.updateGeometry()

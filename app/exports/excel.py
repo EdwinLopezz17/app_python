@@ -6,10 +6,11 @@ from typing import Sequence
 
 import pandas as pd
 
-from app.catalog import colors, display, formatos
+from app.catalog import formatos, hallazgo_columns as cols
 
 GRIS_BORDE = "#BDC8D0"
-ANCHO_MIN, ANCHO_MAX = 12, 45
+#: Límites del ancho de columna en caracteres de Excel.
+ANCHO_MIN, ANCHO_MAX = 10, 45
 
 
 def nombre_sugerido(hallazgo_id: str) -> str:
@@ -39,13 +40,13 @@ def exportar(
         if fmt is not None:
             df[campo] = df[campo].map(lambda v, f=fmt: formatos.texto(v, f))
 
+    # Mismo orden y mismas etiquetas que la tabla de la app: los dos lados
+    # leen `app/catalog/hallazgo_columns.py`.
     if modelo:
-        etiquetas = display.etiquetas(modelo)
-        columnas = [c for c in etiquetas if c in df.columns]
-        columnas += [c for c in df.columns if c not in etiquetas]
-        salida = df[columnas].rename(columns=etiquetas)
+        columnas = cols.ordenar(modelo, [str(c) for c in df.columns])
+        salida = df[columnas].rename(columns=cols.etiquetas(modelo))
     else:
-        columnas = list(df.columns)
+        columnas = [str(c) for c in df.columns]
         salida = df
 
 
@@ -65,7 +66,7 @@ def exportar(
         cache_formatos: dict[str, object] = {}
 
         def formato_cabecera(campo: str):
-            grupo = colors.grupo(modelo, campo)
+            grupo = cols.grupo(modelo, campo)
             if grupo.id not in cache_formatos:
                 cache_formatos[grupo.id] = libro.add_format({
                     "bold": True, "font_color": grupo.text, "bg_color": grupo.fill,
@@ -76,13 +77,16 @@ def exportar(
             return cache_formatos[grupo.id]
 
         for idx, nombre in enumerate(salida.columns):
-            hoja_xl.write(0, idx, str(nombre), formato_cabecera(campos_origen[idx]))
-            ancho = max(len(str(nombre)) + 4, ANCHO_MIN)
-            if len(salida) and idx < len(salida.columns):
+            campo = campos_origen[idx]
+            hoja_xl.write(0, idx, str(nombre), formato_cabecera(campo))
+            # El ancho declarado en `hallazgo_columns.py` manda; el contenido
+            # solo puede ensancharlo, nunca angostarlo por debajo del mínimo.
+            ancho = cols.definicion(modelo, campo).ancho_excel
+            if len(salida):
                 muestra = salida.iloc[: min(200, len(salida)), idx].astype(str)
                 largo = int(muestra.str.len().max() or 0)
                 ancho = max(ancho, min(largo + 2, ANCHO_MAX))
-            hoja_xl.set_column(idx, idx, ancho, fmt_celda)
+            hoja_xl.set_column(idx, idx, max(ancho, ANCHO_MIN), fmt_celda)
 
         hoja_xl.freeze_panes(1, 0)
         if len(salida.columns):

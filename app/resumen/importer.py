@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.catalog import display
+from app.catalog import hallazgo_columns as cols
 from app.ingest.normalize import norm_header
 from app.ingest.readers import ErrorDeLectura, leer_como_texto
 
@@ -14,7 +14,7 @@ class ErrorDeImportacion(Exception):
 
 
 def _mapa_cabeceras(modelo: str) -> dict[str, str]:
-    etiquetas = display.etiquetas(modelo)
+    etiquetas = cols.etiquetas(modelo)
     mapa: dict[str, str] = {}
     for campo, etiqueta in etiquetas.items():
         mapa.setdefault(norm_header(etiqueta), campo)
@@ -50,4 +50,4 @@ def campos_presentes(filas: list[dict], modelo: str) -> list[str]:
     if not filas:
         return []
     presentes = set(filas[0])
-    return [c for c in display.etiquetas(modelo) if c in presentes]
+    return [c for c in cols.etiquetas(modelo) if c in presentes]

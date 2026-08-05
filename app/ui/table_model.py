@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 
-from app.catalog import colors, display, formatos
+from app.catalog import colors, formatos, hallazgo_columns as cols
 
 
 class DataFrameModel(QAbstractTableModel):
@@ -12,7 +12,9 @@ class DataFrameModel(QAbstractTableModel):
         self._original = df if df is not None else pd.DataFrame()
         self._df = self._original
         self._modelo = modelo
-        self._etiquetas = display.etiquetas(modelo) if modelo else {}
+        self._etiquetas = cols.etiquetas(modelo) if modelo else {}
+        self._original = self._ordenar(self._original)
+        self._df = self._original
 
     def rowCount(self, parent=QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self._df)
@@ -57,15 +59,27 @@ class DataFrameModel(QAbstractTableModel):
     def grupo_de_columna(self, section: int) -> colors.GrupoColor | None:
         if section < 0 or section >= len(self._df.columns):
             return None
-        return colors.grupo(self._modelo, str(self._df.columns[section]))
+        return cols.grupo(self._modelo, str(self._df.columns[section]))
+
+    def _ordenar(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Aplica el orden declarado en `hallazgo_columns.py`.
+
+        Lo que `logic/` devuelve viene en el orden del dataclass. El orden
+        visible lo manda la lista de `ColumnDef`, igual que en el Next.js.
+        """
+        if df is None or df.empty and not len(df.columns):
+            return df
+        if not self._modelo:
+            return df
+        return df[cols.ordenar(self._modelo, [str(c) for c in df.columns])]
 
     def set_dataframe(self, df: pd.DataFrame, modelo: str | None = None) -> None:
         self.beginResetModel()
-        self._original = df
-        self._df = df
         if modelo is not None:
             self._modelo = modelo
-            self._etiquetas = display.etiquetas(modelo)
+            self._etiquetas = cols.etiquetas(modelo)
+        self._original = self._ordenar(df)
+        self._df = self._original
         self.endResetModel()
 
     def aplicar_filtro(self, texto: str) -> None:

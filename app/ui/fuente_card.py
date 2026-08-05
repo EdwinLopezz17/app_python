@@ -14,7 +14,7 @@ from app.ingest.validate import formato_permitido
 from app.ingest.writer import ErrorDeCarga, cargar
 from app.storage.files import EstadoSlot, eliminar_slot, estado_slot
 from app.tasks.runner import POOL, Tarea
-from app.ui.responsive import ContenedorFlow
+from app.ui.responsive import ContenedorFlow, EtiquetaAjustable, auto_alto
 
 FILTRO_ARCHIVOS = "Reportes (*.csv *.xls *.xlsx);;Todos los archivos (*)"
 
@@ -43,9 +43,8 @@ class Desplegable(QWidget):
         self.boton.toggled.connect(self._alternar)
         raiz.addWidget(self.boton)
 
-        self.lista = QLabel()
+        self.lista = EtiquetaAjustable()
         self.lista.setObjectName("ListaColumnas")
-        self.lista.setWordWrap(True)
         self.lista.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.lista.hide()
         raiz.addWidget(self.lista)
@@ -53,6 +52,15 @@ class Desplegable(QWidget):
     def _alternar(self, abierto: bool) -> None:
         self.lista.setVisible(abierto)
         self.boton.setText(self._etiqueta(abierto))
+        self._ajustar_alto()
+
+    def _ajustar_alto(self) -> None:
+        self.lista._ajustar()
+        self.updateGeometry()
+
+    def resizeEvent(self, evento) -> None:
+        super().resizeEvent(evento)
+        self._ajustar_alto()
 
     def _etiqueta(self, abierto: bool) -> str:
         return f"{'▾' if abierto else '▸'}  {self._titulo}"
@@ -73,6 +81,7 @@ class Desplegable(QWidget):
         self.lista.setVisible(abierto)
         self.boton.setText(self._etiqueta(abierto))
         self.setVisible(bool(items))
+        self._ajustar_alto()
 
 
 class SlotRow(QWidget):
@@ -82,6 +91,10 @@ class SlotRow(QWidget):
 
     def __init__(self, slot: Slot, mostrar_label: bool, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        politica = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        politica.setHeightForWidth(True)
+        self.setSizePolicy(politica)
+
         self.slot = slot
         self._ocupado = False
         self._ultimas_faltantes: list[str] = []
@@ -108,9 +121,8 @@ class SlotRow(QWidget):
         cabecera.addStretch(1)
         raiz.addLayout(cabecera)
 
-        self.meta = QLabel("Arrastra el archivo aquí o selecciónalo")
+        self.meta = EtiquetaAjustable("Arrastra el archivo aquí o selecciónalo")
         self.meta.setObjectName("CardMeta")
-        self.meta.setWordWrap(True)
         raiz.addWidget(self.meta)
 
         self.alerta = QFrame()
@@ -119,14 +131,12 @@ class SlotRow(QWidget):
         alerta_layout.setContentsMargins(10, 8, 10, 8)
         alerta_layout.setSpacing(4)
 
-        self.alerta_titulo = QLabel()
+        self.alerta_titulo = EtiquetaAjustable()
         self.alerta_titulo.setObjectName("AlertaTitulo")
-        self.alerta_titulo.setWordWrap(True)
         alerta_layout.addWidget(self.alerta_titulo)
 
-        self.alerta_detalle = QLabel()
+        self.alerta_detalle = EtiquetaAjustable()
         self.alerta_detalle.setObjectName("AlertaDetalle")
-        self.alerta_detalle.setWordWrap(True)
         alerta_layout.addWidget(self.alerta_detalle)
 
         self.alerta.hide()
@@ -170,6 +180,7 @@ class SlotRow(QWidget):
 
         raiz.addWidget(acciones)
 
+        auto_alto(self)
         self.refrescar()
 
     def refrescar(self) -> None:
@@ -404,15 +415,16 @@ class FuenteCard(QFrame):
         super().__init__(parent)
         self.fuente = fuente
         self.setObjectName("Card")
-        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        politica = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        politica.setHeightForWidth(True)
+        self.setSizePolicy(politica)
 
         raiz = QVBoxLayout(self)
         raiz.setContentsMargins(16, 14, 16, 14)
         raiz.setSpacing(10)
 
-        titulo = QLabel(fuente.label)
+        titulo = EtiquetaAjustable(fuente.label)
         titulo.setObjectName("CardTitulo")
-        titulo.setWordWrap(True)
         raiz.addWidget(titulo)
 
         self.filas: list[SlotRow] = []
@@ -428,6 +440,8 @@ class FuenteCard(QFrame):
             fila.ver_datos.connect(self.ver_datos.emit)
             raiz.addWidget(fila)
             self.filas.append(fila)
+
+        auto_alto(self)
 
     def refrescar(self) -> None:
         for fila in self.filas:
