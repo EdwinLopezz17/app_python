@@ -166,12 +166,31 @@ def _recortar_cola_vacia(valores: list) -> list:
     return valores[:fin]
 
 
+def _hoja_principal(libro):
+    """Devuelve la primera hoja, con las dimensiones recalculadas.
+
+    Algunos exportadores corporativos (ServiceNow, entre otros) escriben
+    `<dimension ref="A1"/>` en el XML aunque la hoja tenga miles de filas. Con
+    `read_only=True` openpyxl confía en ese valor y recorta la lectura a una
+    sola celda: la app veía 1 columna y 0 filas, y la validación fallaba con
+    "faltan cabeceras" aunque en Excel el archivo se viera completo.
+
+    `reset_dimensions()` descarta el valor declarado y calcula el rango real al
+    recorrer. En un archivo bien formado el resultado es el mismo, así que es
+    seguro aplicarlo siempre.
+    """
+    hoja = libro[libro.sheetnames[0]]
+    if hasattr(hoja, "reset_dimensions"):
+        hoja.reset_dimensions()
+    return hoja
+
+
 def _leer_xlsx(path: Path) -> pd.DataFrame:
     from openpyxl import load_workbook
 
     libro = load_workbook(path, read_only=True, data_only=True)
     try:
-        hoja = libro[libro.sheetnames[0]]
+        hoja = _hoja_principal(libro)
         filas = hoja.iter_rows(values_only=True)
 
         try:
@@ -260,7 +279,7 @@ def leer_cabeceras(path: str | Path) -> list[str]:
 
         libro = load_workbook(path, read_only=True, data_only=True)
         try:
-            hoja = libro[libro.sheetnames[0]]
+            hoja = _hoja_principal(libro)
             cruda = next(hoja.iter_rows(min_row=1, max_row=1, values_only=True), None)
         finally:
             libro.close()

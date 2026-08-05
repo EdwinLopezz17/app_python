@@ -40,13 +40,20 @@ from typing import Any, Iterable
 MARCA = "marca"
 SI_NO = "si_no"
 ESTADO = "estado"
+#: Validaciones de configuración: True = Correcto. El HALLAZGO es el False.
+VALIDACION = "validacion"
 
 #: texto para (verdadero, falso). El "sin dato" siempre es cadena vacía.
 TEXTOS: dict[str, tuple[str, str]] = {
     MARCA: ("X", ""),
     SI_NO: ("SI", "NO"),
     ESTADO: ("Activo", "Inactivo"),
+    VALIDACION: ("Correcto", "Incorrecto"),
 }
+
+#: Formatos en los que el hallazgo es el False, no el True. Los KPIs y el
+#: resumen consultan esto en vez de tener listas paralelas que se desincronizan.
+FORMATOS_INVERTIDOS = {VALIDACION}
 
 VACIO = ""
 
@@ -78,6 +85,9 @@ FORMATOS: dict[str, dict[str, str]] = {
     "ProfileRows": {
         "is_active": ESTADO,
         "exist_rol_mr": SI_NO,
+        "val_rol_app": VALIDACION,
+        "val_rol_app_perfil": VALIDACION,
+        "val_rol_perfil": VALIDACION,
     },
     "DBVidaRow": {
         "is_active": ESTADO,
@@ -115,9 +125,11 @@ PREFIJO_MARCA = "is_"
 
 _VERDADEROS = {
     "X", "SI", "SÍ", "TRUE", "VERDADERO", "1", "Y", "YES", "ACTIVO",
+    "CORRECTO",
 }
 _FALSOS = {
     "NO", "FALSE", "FALSO", "0", "N", "INACTIVO", "BLOQUEADO",
+    "INCORRECTO",
 }
 
 
@@ -190,6 +202,27 @@ def campos_formateados(modelo: str | None) -> dict[str, str]:
 def contar_verdaderos(valores: Iterable[Any]) -> int:
     """Conteo tolerante para los KPIs: cuenta True, "X", "SI"…"""
     return sum(1 for v in valores if a_bool(v) is True)
+
+
+def contar_falsos(valores: Iterable[Any]) -> int:
+    """Cuenta False, "NO", "Incorrecto"…
+
+    Usa `is False` y no `not`: el sin-dato (None) NO se cuenta como incorrecto.
+    Una fila sin rol que validar no es un hallazgo.
+    """
+    return sum(1 for v in valores if a_bool(v) is False)
+
+
+def invertido(modelo: str | None, campo: str) -> bool:
+    """True si el hallazgo de este campo es el False (validaciones)."""
+    return formato(modelo, campo) in FORMATOS_INVERTIDOS
+
+
+def contar_hallazgos(modelo: str | None, campo: str, valores: Iterable[Any]) -> int:
+    """Cuenta las filas que SON hallazgo, según el sentido del campo."""
+    if invertido(modelo, campo):
+        return contar_falsos(valores)
+    return contar_verdaderos(valores)
 
 
 def check_formatos() -> dict[str, list[str]]:

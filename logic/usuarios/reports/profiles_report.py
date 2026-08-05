@@ -148,9 +148,9 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
         exist_rol_mr=mr_srv.exists_by_rol(rol_final),
         perfil_mr=profiles_mr,
         app_mr=apps_mr,
-        val_rol_app="Correcto" if mr_srv.exists_by_rol_and_activo(rol_final, app_name) else "Incorrecto",
-        val_rol_app_perfil="Correcto" if mr_srv.exists_by_rol_activo_and_perfil(rol_final, app_name,perfil_rol) else "Incorrecto",
-        val_rol_perfil="Correcto" if mr_srv.exists_by_rol_and_perfil(rol_final, perfil_rol) else "Incorrecto",
+        val_rol_app=mr_srv.exists_by_rol_and_activo(rol_final, app_name),
+        val_rol_app_perfil=mr_srv.exists_by_rol_activo_and_perfil(rol_final, app_name,perfil_rol),
+        val_rol_perfil=mr_srv.exists_by_rol_and_perfil(rol_final, perfil_rol),
         escenario="",
         responsable="",
         comentario=""

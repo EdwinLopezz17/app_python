@@ -35,9 +35,9 @@ class ProfileRows:
     exist_rol_mr: bool
     perfil_mr: str
     app_mr: str
-    val_rol_app: str
-    val_rol_app_perfil: str
-    val_rol_perfil: str
+    val_rol_app: bool
+    val_rol_app_perfil: bool
+    val_rol_perfil: bool
     escenario: str
     responsable: str
     comentario: str

@@ -32,6 +32,9 @@ BANDERAS_KPI = [
     "is_cesado_activo", "is_login_post_cese", "is_no_identificado",
     "is_sin_uso_90d", "is_deshabilitado_180d", "is_no_cesado_oportunamente",
     "passwordneverexpires", "cannotchangepassword",
+    # Validaciones de Perfiles: el hallazgo es el "Incorrecto" (False).
+    # El sentido no se declara aquí, sale de formatos.FORMATOS_INVERTIDOS.
+    "val_rol_app", "val_rol_app_perfil", "val_rol_perfil",
 ]
 
 #: Debajo de este ancho la fecha de corte y el buscador pasan a una fila propia.
@@ -463,10 +466,14 @@ class HallazgoView(QWidget):
         tarjetas = [("Total de filas", len(df))]
         for campo in BANDERAS_KPI:
             if campo in df.columns:
-                # Conteo tolerante: cuenta True y también "X" si el DataFrame
-                # llegara ya como texto desde una caché antigua.
-                conteo = formatos.contar_verdaderos(df[campo])
-                tarjetas.append((etiquetas.get(campo, campo), conteo))
+                # Conteo tolerante: acepta bool nativo y también el texto ya
+                # formateado ("X", "SI", "Incorrecto") de una caché antigua.
+                # En los campos de validación el hallazgo es el False.
+                conteo = formatos.contar_hallazgos(self.hallazgo.modelo, campo, df[campo])
+                etiqueta = etiquetas.get(campo, campo)
+                if formatos.invertido(self.hallazgo.modelo, campo):
+                    etiqueta = f"{etiqueta} (incorrecta)"
+                tarjetas.append((etiqueta, conteo))
 
         for etiqueta, valor in tarjetas:
             tarjeta = QFrame()
