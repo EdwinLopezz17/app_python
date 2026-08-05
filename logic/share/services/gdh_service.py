@@ -100,7 +100,8 @@ class GDHUserService():
             
             df_activos.columns = [str(c).strip().upper() for c in df_activos.columns]
 
-            df_cesados = pd.read_parquet(self.path_file_cesados, engine='pyarrow').fillna('')
+            #df_cesados = pd.read_parquet(self.path_file_cesados, engine='pyarrow').fillna('')
+            df_cesados = pd.read_csv(self.path_file_cesados, sep=';', dtype=str, encoding='utf-8').fillna('')
             df_cesados.columns = [str(c).strip().upper() for c in df_cesados.columns]
 
             for _, row in df_activos.iterrows():
