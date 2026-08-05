@@ -1,6 +1,6 @@
 from enum import Enum
 
-extension_file = ".parquet"
+extension_file = ".csv"
 class FileName(str, Enum):
 
     ACSELX = f"usuarios_acselx{extension_file}"
