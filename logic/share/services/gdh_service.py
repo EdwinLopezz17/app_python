@@ -95,7 +95,9 @@ class GDHUserService():
             return
 
         try:
-            df_activos = pd.read_parquet(self.path_file_activos, engine='pyarrow').fillna('')
+            #df_activos = pd.read_parquet(self.path_file_activos, engine='pyarrow').fillna('')
+            df_activos = pd.read_csv(self.path_file_activos, sep=';', dtype=str, encoding='utf-8').fillna('')
+            
             df_activos.columns = [str(c).strip().upper() for c in df_activos.columns]
 
             df_cesados = pd.read_parquet(self.path_file_cesados, engine='pyarrow').fillna('')

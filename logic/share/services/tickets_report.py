@@ -36,7 +36,8 @@ class TicketInfoService():
             return
 
         try:
-            df = pd.read_parquet(self.path_file, engine='pyarrow').fillna('')
+            #df = pd.read_parquet(self.path_file, engine='pyarrow').fillna('')
+            df = pd.read_csv(self.path_file, sep=';', dtype=str, encoding='utf-8').fillna('')
             df.columns = [str(c).strip().upper() for c in df.columns]
 
             if 'CREADO' in df.columns:

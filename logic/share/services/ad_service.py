@@ -59,7 +59,9 @@ class ADService():
             return
 
         try:
-            df = pd.read_parquet(file_path, engine='pyarrow').fillna('')
+            #df = pd.read_parquet(file_path, engine='pyarrow').fillna('')
+            df = pd.read_csv(file_path, sep=';', encoding='utf-8').fillna('')
+            
             df.columns = [c.strip().upper() for c in df.columns]
 
             for _, row in df.iterrows():
