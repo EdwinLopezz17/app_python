@@ -3,13 +3,18 @@ import os
 import re
 from datetime import date, datetime, time
 
+_ISO = re.compile(r'^\s*\d{4}-\d{1,2}-\d{1,2}([ T].*)?$')
+
+
 def to_datetime(val, format=None) -> datetime | None:
     if val is None or pd.isna(val):
         return None
 
     ts = None
 
-    if format is not None:
+    if isinstance(val, str) and _ISO.match(val):
+            ts = pd.to_datetime(val, errors='coerce')
+    elif format is not None:
         try:
             if format == "DMA":
                 ts = pd.to_datetime(val, dayfirst=True, format='mixed', errors='coerce')
@@ -19,7 +24,7 @@ def to_datetime(val, format=None) -> datetime | None:
                 ts = pd.to_datetime(val, format='mixed', errors='coerce')
         except Exception:
             pass
-
+            
     if ts is None or pd.isna(ts):
         if hasattr(val, 'date'):
             try:
