@@ -289,6 +289,34 @@ QLabel#CertChevron {{ color: {SIDEBAR_MUTED_FUERTE}; font-size: {TEXTO_LG}px; }}
 /* Menús: el texto al 75% de opacidad no llegaba a contrastar con el navy.
    Se sube a color pleno atenuado y el activo lleva además una línea inferior
    en el primario, que se distingue aunque el fondo apenas cambie. */
+/* Botón «Certificar»: es el único control de navegación de la barra, así que
+   tiene que leerse como un desplegable a primera vista y no como una etiqueta.
+   Por eso lleva fondo y borde propios en reposo (no fantasma), un chevron en
+   el texto, y estados de hover/pressed/abierto claramente distintos. */
+QToolButton#BotonCertificar {{
+    background: {SIDEBAR_ELEVADO}; color: {SIDEBAR_FG};
+    border: 1px solid {SIDEBAR_BORDE}; border-radius: {RADIO_MD}px;
+    padding: 8px 15px; font-size: {TEXTO_MD}px; font-weight: 600;
+    text-align: left;
+}}
+QToolButton#BotonCertificar:hover {{
+    background: {SIDEBAR_ELEVADO_HOVER}; border-color: {SIDEBAR_ACENTO};
+}}
+QToolButton#BotonCertificar:pressed {{ background: {SIDEBAR_BORDE}; }}
+/* Menú abierto: Qt marca el botón como "checked" mientras el popup está
+   desplegado. Se invierte el color para dejar clarísimo que está activo. */
+QToolButton#BotonCertificar:checked {{
+    background: {PRIMARY_HOVER}; color: {ON_PRIMARY};
+    border-color: {PRIMARY_HOVER};
+}}
+QToolButton#BotonCertificar[activo="si"] {{
+    border-color: {SIDEBAR_ACENTO};
+    border-bottom: 2px solid {SIDEBAR_ACENTO};
+}}
+/* El chevron va en el texto, así que se oculta el indicador nativo, que en
+   Windows dibuja una segunda flecha pegada al borde. */
+QToolButton#BotonCertificar::menu-indicator {{ image: none; width: 0; }}
+
 QToolButton#TopBarMenu {{
     background: transparent; border: none;
     border-bottom: 2px solid transparent; border-radius: 0;
@@ -320,6 +348,25 @@ QPushButton#BuscarGlobal:disabled {{
     background: {SIDEBAR_ELEVADO}; color: {SIDEBAR_MUTED_FUERTE};
     border-color: {SIDEBAR_BORDE};
 }}
+
+/* Desplegables del toolbar. Sin esto Qt usa el menú nativo de Windows, que
+   choca con el resto de la app. */
+QMenu {{
+    background: {SURFACE_CONTAINER_LOWEST}; color: {ON_SURFACE};
+    border: 1px solid {OUTLINE_VARIANT}; border-radius: {RADIO_MD}px;
+    padding: 5px;
+}}
+QMenu::item {{
+    padding: 7px 22px 7px 14px; border-radius: {RADIO_SM}px;
+    font-size: {TEXTO_MD}px;
+}}
+QMenu::item:selected {{ background: {SURFACE_CONTAINER}; color: {PRIMARY}; }}
+QMenu::right-arrow {{ width: 10px; margin-right: 6px; }}
+QMenu::item {{ min-width: 190px; }}
+QMenu::separator {{
+    height: 1px; background: {OUTLINE_VARIANT}; margin: 5px 8px;
+}}
+QMenu[objectName=""] QLabel {{ color: {ON_SURFACE_VARIANT}; }}
 
 QLabel#PieDatos {{
     color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_XS}px;
@@ -390,6 +437,8 @@ QMenu::item:selected {{
     color: {PRIMARY};
 }}
 QMenu::item:disabled {{ color: {OUTLINE_VARIANT}; }}
+QMenu::right-arrow {{ width: 10px; margin-right: 6px; }}
+QMenu::item {{ min-width: 190px; }}
 QMenu::separator {{
     height: 1px;
     background: {OUTLINE_VARIANT};

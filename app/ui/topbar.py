@@ -81,7 +81,9 @@ class TopBar(QWidget):
         self._certs = certificaciones()
         self._activa: Certificacion = self._certs[0]
         self._ruta = INICIO
-        #: hallazgo_id -> botón de menú, para poder marcar el activo.
+        #: hallazgo_id -> submenú, por si hace falta marcarlo desde fuera.
+        self._submenus: dict[str, QMenu] = {}
+        #: Compatibilidad con el código que consultaba los botones por menú.
         self._menus: dict[str, QToolButton] = {}
 
         raiz = QHBoxLayout(self)
@@ -197,46 +199,58 @@ class TopBar(QWidget):
         return self.btn_buscar
 
     def _reconstruir_menus(self) -> None:
-        """Menús de primer nivel, con el árbol de `certifications.ts`.
+        """Un único botón «Certificar» con los hallazgos de la certificación.
 
-        La referencia NO pone un botón por hallazgo. El árbol de cada
-        certificación es:
+            Certificar ▾
+              └ BD Vida       ▸  Cargar Información · Ver Hallazgos · Generar Resumen
+              └ BD Generales  ▸  Cargar Información · Ver Hallazgos · Generar Resumen
 
-            Hallazgos                (grupo, sin destino propio)
-              └ Aplicaciones         → Generar Resumen
-              └ Active Directory     → Generar Resumen
-            Cargar Información       (hoja directa)
+        «Certificar» y no «Hallazgos» porque esa palabra ya nombra a una de las
+        hojas de dentro, y tenerla en los dos niveles hacía ambigua la
+        navegación: se leía «Hallazgos › Aplicaciones › Hallazgos». El verbo
+        además comunica que ahí está el trabajo, no un listado pasivo. Por eso
+        la hoja se llama «Ver Hallazgos».
 
-        O sea dos botones de primer nivel. Los hallazgos son el SEGUNDO nivel,
-        dentro del desplegable de «Hallazgos», y «Generar Resumen» cuelga del
-        hallazgo al que pertenece.
-
-        Divergencia consciente: en la web «Cargar Información» es una sola
-        pantalla por certificación; aquí cada hallazgo tiene sus propias
-        fuentes, así que ese botón despliega la lista de hallazgos en vez de
-        navegar directo. Es la única forma de mantener la jerarquía de la web
-        sin inventarse una pantalla que no existe.
+        Cada submenú repite el flujo completo en su orden real: primero se
+        cargan los archivos, luego se revisan los hallazgos, al final se genera
+        el resumen. Los hallazgos sin resumen disponible no muestran esa
+        tercera opción.
         """
         while self._menus_layout.count():
             item = self._menus_layout.takeAt(0)
-            if item.widget() is not None:
-                item.widget().deleteLater()
+            widget = item.widget()
+            if widget is not None:
+                # `deleteLater` solo programa el borrado: hasta que el bucle de
+                # eventos lo procesa, el widget sigue pintándose y quedaban
+                # botones fantasma de la certificación anterior encima de los
+                # nuevos. Desvincularlo del padre lo saca del render ya.
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()
         self._menus.clear()
 
-        hallazgos = self._activa.hallazgos
+        menu = QMenu(self)
+        menu.setObjectName("MenuNav")
+        menu.addSection(self._activa.label_corto)
 
-        # ── Botón 1: Hallazgos ──────────────────────────────────────────
-        menu_hallazgos = QMenu(self)
-        for hallazgo in hallazgos:
+        for hallazgo in self._activa.hallazgos:
+            sub = menu.addMenu(hallazgo.label)
+            sub.setObjectName("MenuNav")
+            sub.setToolTip(hallazgo.descripcion)
+
+            accion = sub.addAction("Cargar Información")
+            accion.setToolTip(f"Archivos fuente de {hallazgo.label}.")
+            accion.triggered.connect(
+                lambda _=False, hid=hallazgo.id: self.ir_cargar.emit(hid)
+            )
+
+            accion = sub.addAction("Ver Hallazgos")
+            accion.setToolTip(hallazgo.descripcion)
+            accion.triggered.connect(
+                lambda _=False, hid=hallazgo.id: self.ir_hallazgo.emit(hid)
+            )
+
             if resumenes.disponible(hallazgo.id):
-                # Nodo con hijos: submenú que repite el propio hallazgo como
-                # primera fila, igual que el `treeItems` del MenuButton.
-                sub = menu_hallazgos.addMenu(hallazgo.label)
-                accion = sub.addAction("Hallazgos")
-                accion.setToolTip(hallazgo.descripcion)
-                accion.triggered.connect(
-                    lambda _=False, hid=hallazgo.id: self.ir_hallazgo.emit(hid)
-                )
                 accion = sub.addAction("Generar Resumen")
                 accion.setToolTip(
                     "Resumen por escenarios a partir del Excel de detalle."
@@ -244,38 +258,23 @@ class TopBar(QWidget):
                 accion.triggered.connect(
                     lambda _=False, hid=hallazgo.id: self.ir_resumen.emit(hid)
                 )
-            else:
-                accion = menu_hallazgos.addAction(hallazgo.label)
-                accion.setToolTip(hallazgo.descripcion)
-                accion.triggered.connect(
-                    lambda _=False, hid=hallazgo.id: self.ir_hallazgo.emit(hid)
-                )
 
-        self._agregar_menu("hallazgos", "Hallazgos", menu_hallazgos)
+            self._submenus[hallazgo.id] = sub
 
-        # ── Botón 2: Cargar Información ─────────────────────────────────
-        menu_cargar = QMenu(self)
-        for hallazgo in hallazgos:
-            accion = menu_cargar.addAction(hallazgo.label)
-            accion.setToolTip(f"Archivos fuente de {hallazgo.label}.")
-            accion.triggered.connect(
-                lambda _=False, hid=hallazgo.id: self.ir_cargar.emit(hid)
-            )
-
-        self._agregar_menu("cargar", "Cargar Información", menu_cargar)
-
+        self.btn_certificar = QToolButton()
+        self.btn_certificar.setObjectName("BotonCertificar")
+        self.btn_certificar.setCursor(Qt.PointingHandCursor)
+        self.btn_certificar.setPopupMode(QToolButton.InstantPopup)
+        # ToolButtonTextBesideIcon + un icono de texto no da control fino, así
+        # que el chevron va en el propio texto: es la única forma de garantizar
+        # que se ve siempre, en cualquier estilo de Qt y en cualquier DPI.
+        self.btn_certificar.setText("Certificar   ⌄")
+        self.btn_certificar.setToolTip(
+            "Hallazgos de esta certificación y sus acciones"
+        )
+        self.btn_certificar.setMenu(menu)
+        self._menus_layout.addWidget(self.btn_certificar)
         self._menus_layout.addStretch(1)
-
-    def _agregar_menu(self, clave: str, etiqueta: str, menu: QMenu) -> None:
-        boton = QToolButton()
-        boton.setObjectName("TopBarMenu")
-        boton.setCursor(Qt.PointingHandCursor)
-        boton.setPopupMode(QToolButton.InstantPopup)
-        boton.setText(etiqueta)
-        boton.setMenu(menu)
-        boton.setProperty("base", etiqueta)
-        self._menus_layout.addWidget(boton)
-        self._menus[clave] = boton
 
     # ------------------------------------------------------------------
     # Estado
@@ -299,29 +298,26 @@ class TopBar(QWidget):
         self.lbl_cert.setText(self._activa.label_corto)
         self.btn_switcher.setToolTip(self._activa.descripcion)
 
-        # Qué botón de primer nivel está activo, y qué camino cuelga de él.
-        # Equivale al `subPath` del MenuButton: los segmentos más profundos que
-        # el propio botón, para desambiguar hojas homónimas entre hallazgos.
-        activo = ""
-        cola: list[str] = []
-        if hallazgo_id:
-            etiqueta = get_hallazgo(hallazgo_id).label
-            if vista == "cargar":
-                activo, cola = "cargar", [etiqueta]
-            elif vista == "hallazgo":
-                activo, cola = "hallazgos", [etiqueta]
-            elif vista == "resumen":
-                activo, cola = "hallazgos", [etiqueta, "Generar Resumen"]
+        hojas = {
+            "cargar": "Cargar Información",
+            "hallazgo": "Ver Hallazgos",
+            "resumen": "Generar Resumen",
+        }
 
-        for clave, boton in self._menus.items():
-            base = boton.property("base")
-            if clave == activo and cola:
-                boton.setText(f"{base}  /  {'  /  '.join(cola)}")
-            else:
-                boton.setText(base)
-            boton.setProperty("activo", "si" if clave == activo else "")
-            boton.style().unpolish(boton)
-            boton.style().polish(boton)
+        # Con un solo botón, el camino activo es lo único que dice dónde se
+        # está: «Certificar / BD Vida / Cargar Información».
+        if hallazgo_id and vista in hojas:
+            etiqueta = get_hallazgo(hallazgo_id).label
+            self.btn_certificar.setText(
+                f"Certificar  /  {etiqueta}  /  {hojas[vista]}   ⌄"
+            )
+            self.btn_certificar.setProperty("activo", "si")
+        else:
+            self.btn_certificar.setText("Certificar   ⌄")
+            self.btn_certificar.setProperty("activo", "")
+
+        self.btn_certificar.style().unpolish(self.btn_certificar)
+        self.btn_certificar.style().polish(self.btn_certificar)
 
     def ruta_actual(self) -> str:
         return self._ruta
