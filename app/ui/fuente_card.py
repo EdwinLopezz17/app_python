@@ -14,7 +14,9 @@ from app.ingest.validate import formato_permitido
 from app.ingest.writer import ErrorDeCarga, cargar
 from app.storage.files import EstadoSlot, eliminar_slot, estado_slot
 from app.tasks.runner import POOL, Tarea
-from app.ui.responsive import ContenedorFlow, EtiquetaAjustable, auto_alto
+from app.ui.responsive import (
+    ContenedorFlow, EtiquetaAjustable, alto_vbox, auto_alto,
+)
 
 FILTRO_ARCHIVOS = "Reportes (*.csv *.xls *.xlsx);;Todos los archivos (*)"
 
@@ -28,9 +30,16 @@ def _badge(texto: str, tono: str) -> QLabel:
 
 
 class Desplegable(QWidget):
+    #: Se emite cuando el alto del widget puede haber cambiado (abrir/cerrar,
+    #: repoblar). La grilla la escucha para recolocar las cards.
+    alto_cambiado = Signal()
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._titulo = ""
+        politica = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        politica.setHeightForWidth(True)
+        self.setSizePolicy(politica)
 
         raiz = QVBoxLayout(self)
         raiz.setContentsMargins(0, 0, 0, 0)
@@ -49,21 +58,21 @@ class Desplegable(QWidget):
         self.lista.hide()
         raiz.addWidget(self.lista)
 
+    def hasHeightForWidth(self) -> bool:
+        return True
+
+    def heightForWidth(self, ancho: int) -> int:
+        return alto_vbox(self.layout(), ancho)
+
     def _alternar(self, abierto: bool) -> None:
         self.lista.setVisible(abierto)
         self.boton.setText(self._etiqueta(abierto))
         self._ajustar_alto()
 
     def _ajustar_alto(self) -> None:
-        # Medida inmediata + medida diferida. La inmediata evita un parpadeo;
-        # la diferida es la que vale, porque corre cuando Qt ya asignó el ancho
-        # definitivo a la etiqueta. Sin ella, abrir el desplegable en una card
-        # angosta calculaba el alto con el ancho anterior y la lista de
-        # columnas se dibujaba fuera de la card, por detrás de la de abajo.
         self.lista._ajustar()
-        self.lista.ajustar_diferido()
         self.updateGeometry()
-        QTimer.singleShot(0, self.updateGeometry)
+        self.alto_cambiado.emit()
 
     def resizeEvent(self, evento) -> None:
         super().resizeEvent(evento)
@@ -95,6 +104,7 @@ class SlotRow(QWidget):
     cambiado = Signal()
     ver_datos = Signal(object)
     alerta_error = Signal(bool)
+    alto_cambiado = Signal()
 
     def __init__(self, slot: Slot, mostrar_label: bool, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -151,9 +161,11 @@ class SlotRow(QWidget):
 
 
         self.desp_columnas = Desplegable()
+        self.desp_columnas.alto_cambiado.connect(self.alto_cambiado.emit)
         raiz.addWidget(self.desp_columnas)
 
         self.desp_archivos = Desplegable()
+        self.desp_archivos.alto_cambiado.connect(self.alto_cambiado.emit)
         self.desp_archivos.hide()
         raiz.addWidget(self.desp_archivos)
 
@@ -186,10 +198,17 @@ class SlotRow(QWidget):
         acciones.agregar(self.btn_borrar)
 
         self._acciones = acciones
+        self._acciones = acciones
         raiz.addWidget(acciones)
 
         auto_alto(self)
         self.refrescar()
+
+    def hasHeightForWidth(self) -> bool:
+        return True
+
+    def heightForWidth(self, ancho: int) -> int:
+        return alto_vbox(self.layout(), ancho)
 
     def refrescar(self) -> None:
         estado = estado_slot(self.slot)
@@ -245,6 +264,7 @@ class SlotRow(QWidget):
             self._pintar_columnas(self._faltantes_visibles)
 
         self._repintar_estilo(self.badge)
+        self.alto_cambiado.emit()
 
     @property
     def tiene_error(self) -> bool:
@@ -357,10 +377,12 @@ class SlotRow(QWidget):
         self._repintar_estilo(self.alerta_titulo)
         self.alerta.show()
         self.alerta_error.emit(tono == "error")
+        self.alto_cambiado.emit()
 
     def _ocultar_alerta(self) -> None:
         self.alerta.hide()
         self.alerta_error.emit(False)
+        self.alto_cambiado.emit()
 
     def _rutas_validas(self, evento) -> list[str]:
         if not evento.mimeData().hasUrls():
@@ -422,6 +444,7 @@ class SlotRow(QWidget):
 class FuenteCard(QFrame):
     cambiado = Signal()
     ver_datos = Signal(object)
+    alto_cambiado = Signal()
 
     def __init__(self, fuente: Fuente, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -450,10 +473,17 @@ class FuenteCard(QFrame):
             fila = SlotRow(slot, mostrar_label, self)
             fila.cambiado.connect(self.cambiado.emit)
             fila.ver_datos.connect(self.ver_datos.emit)
+            fila.alto_cambiado.connect(self.alto_cambiado.emit)
             raiz.addWidget(fila)
             self.filas.append(fila)
 
         auto_alto(self)
+
+    def hasHeightForWidth(self) -> bool:
+        return True
+
+    def heightForWidth(self, ancho: int) -> int:
+        return alto_vbox(self.layout(), ancho)
 
     def refrescar(self) -> None:
         for fila in self.filas:
@@ -469,3 +499,4 @@ class FuenteCard(QFrame):
         self.setProperty("estado", estado)
         self.style().unpolish(self)
         self.style().polish(self)
+        self.alto_cambiado.emit()
