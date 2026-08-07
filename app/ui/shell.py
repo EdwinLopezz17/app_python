@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
-    QHBoxLayout, QMainWindow, QStackedWidget, QVBoxLayout, QWidget,
+    QMainWindow, QStackedWidget, QVBoxLayout, QWidget,
 )
 
 from app.catalog.hallazgos import HALLAZGOS_BY_ID, get as get_hallazgo
@@ -10,8 +10,8 @@ from app.ui.hallazgo_view import HallazgoView
 from app.ui.launcher_view import LauncherView
 from app.ui.resumen_view import ResumenView
 from app.ui import preferencias
-from app.ui.sidebar import (
-    INICIO, Sidebar, ruta_cargar, ruta_hallazgo, ruta_resumen,
+from app.ui.topbar import (
+    INICIO, PieDatos, TopBar, ruta_cargar, ruta_hallazgo, ruta_resumen,
 )
 
 
@@ -35,24 +35,21 @@ class VentanaPrincipal(QMainWindow):
         self._hallazgo_views: dict[str, HallazgoView] = {}
         self._resumen_views: dict[str, ResumenView] = {}
 
+        # Tres franjas apiladas, como el AppShell de la referencia: barra de
+        # navegación, contenido (cada vista trae su propia cabecera de migas y
+        # título) y un pie discreto con la ruta de datos.
         central = QWidget()
         central.setObjectName("Canvas")
-        raiz = QHBoxLayout(central)
+        raiz = QVBoxLayout(central)
         raiz.setContentsMargins(0, 0, 0, 0)
         raiz.setSpacing(0)
 
-        self.sidebar = Sidebar()
-        self.sidebar.ir_inicio.connect(self.abrir_inicio)
-        self.sidebar.ir_hallazgo.connect(self.abrir_hallazgo)
-        self.sidebar.ir_cargar.connect(self.abrir_cargar)
-        self.sidebar.ir_resumen.connect(self.abrir_resumen)
-        raiz.addWidget(self.sidebar)
-
-        contenido = QWidget()
-        contenido.setObjectName("Canvas")
-        columna = QVBoxLayout(contenido)
-        columna.setContentsMargins(0, 0, 0, 0)
-        columna.setSpacing(0)
+        self.topbar = TopBar()
+        self.topbar.ir_inicio.connect(self.abrir_inicio)
+        self.topbar.ir_hallazgo.connect(self.abrir_hallazgo)
+        self.topbar.ir_cargar.connect(self.abrir_cargar)
+        self.topbar.ir_resumen.connect(self.abrir_resumen)
+        raiz.addWidget(self.topbar)
 
         self.stack = QStackedWidget()
         self.stack.setObjectName("Canvas")
@@ -62,20 +59,13 @@ class VentanaPrincipal(QMainWindow):
         self.launcher.ir_generar.connect(self.abrir_hallazgo)
         self.stack.addWidget(self.launcher)
 
-        columna.addWidget(self.stack, 1)
-        raiz.addWidget(contenido, 1)
+        raiz.addWidget(self.stack, 1)
+        raiz.addWidget(PieDatos())
 
         self.setCentralWidget(central)
         self._restaurar_vista()
 
 
-    #: Debajo de este ancho de ventana el sidebar se estrecha para dejarle
-    #: más aire al contenido (la app se usa a media pantalla en Full HD).
-    UMBRAL_SIDEBAR = 1100
-
-    def resizeEvent(self, evento) -> None:
-        super().resizeEvent(evento)
-        self.sidebar.compactar(self.width() < self.UMBRAL_SIDEBAR)
 
     def _restaurar_vista(self) -> None:
         """Reabre la vista en la que se cerró la app la última vez.
@@ -106,7 +96,7 @@ class VentanaPrincipal(QMainWindow):
     def abrir_inicio(self) -> None:
         self.launcher.refrescar()
         self.stack.setCurrentWidget(self.launcher)
-        self.sidebar.marcar(INICIO)
+        self.topbar.marcar(INICIO)
         preferencias.guardar_ultima_vista(INICIO)
 
     def abrir_cargar(self, hallazgo_id: str) -> None:
@@ -122,7 +112,7 @@ class VentanaPrincipal(QMainWindow):
             vista.refrescar()
 
         self.stack.setCurrentWidget(vista)
-        self.sidebar.marcar(ruta_cargar(hallazgo_id))
+        self.topbar.marcar(ruta_cargar(hallazgo_id))
         preferencias.guardar_ultima_vista(ruta_cargar(hallazgo_id))
 
     def abrir_hallazgo(self, hallazgo_id: str) -> None:
@@ -137,7 +127,7 @@ class VentanaPrincipal(QMainWindow):
             vista.refrescar()
 
         self.stack.setCurrentWidget(vista)
-        self.sidebar.marcar(ruta_hallazgo(hallazgo_id))
+        self.topbar.marcar(ruta_hallazgo(hallazgo_id))
         preferencias.guardar_ultima_vista(ruta_hallazgo(hallazgo_id))
 
     def abrir_resumen(self, hallazgo_id: str) -> None:
@@ -149,7 +139,7 @@ class VentanaPrincipal(QMainWindow):
             self.stack.addWidget(vista)
 
         self.stack.setCurrentWidget(vista)
-        self.sidebar.marcar(ruta_resumen(hallazgo_id))
+        self.topbar.marcar(ruta_resumen(hallazgo_id))
         preferencias.guardar_ultima_vista(ruta_resumen(hallazgo_id))
 
     def _al_cambiar_carga(self, hallazgo_id: str, cargadas: int, total: int) -> None:

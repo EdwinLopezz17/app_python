@@ -32,7 +32,11 @@ SIDEBAR_MUTED = "#98a2bd"
 SIDEBAR_WIDTH = 260
 SIDEBAR_WIDTH_COMPACTO = 216
 
+#: Alto de la barra superior de navegación (h-14 en la referencia Next.js).
+TOPBAR_ALTO = 56
+
 RADIO_SM = 4
+RADIO_MD = 6
 RADIO_LG = 8
 
 # Tamaños de texto en un solo sitio. Antes había `font-size` sueltos en
@@ -227,6 +231,73 @@ QPushButton[variante="chip"][tono="error"]:disabled {{
 QLabel#SinResultados {{
     color: {ON_SURFACE_VARIANT}; font-size: 13px;
     padding: 28px 0;
+}}
+
+/* ── Barra superior de navegación (equivalente al TopBar.tsx) ───────────── */
+QWidget#TopBar {{ background: {SIDEBAR_BG}; }}
+QWidget#TopBar QLabel {{ color: {SIDEBAR_FG}; background: transparent; }}
+QFrame#TopBarSep {{ background: rgba(255,255,255,0.12); border: none; }}
+QScrollArea#TopBarScroll {{ background: {SIDEBAR_BG}; border: none; }}
+QScrollArea#TopBarScroll > QWidget > QWidget {{ background: {SIDEBAR_BG}; }}
+QScrollArea#TopBarScroll QScrollBar:horizontal {{
+    height: 4px; background: transparent; margin: 0;
+}}
+QScrollArea#TopBarScroll QScrollBar::handle:horizontal {{
+    background: rgba(255,255,255,0.2); border-radius: 2px; min-width: 30px;
+}}
+QScrollArea#TopBarScroll QScrollBar::add-line:horizontal,
+QScrollArea#TopBarScroll QScrollBar::sub-line:horizontal {{ width: 0; }}
+
+QToolButton#CertSwitcher {{
+    background: transparent; border: none; border-radius: {RADIO_MD}px;
+}}
+QToolButton#CertSwitcher:hover {{ background: rgba(255,255,255,0.08); }}
+QToolButton#CertSwitcher::menu-indicator {{
+    subcontrol-position: right center; right: 7px; width: 10px;
+}}
+QLabel#CertMarca {{
+    background: {PRIMARY}; color: {ON_PRIMARY};
+    border-radius: {RADIO_MD}px; font-size: {TEXTO_SM}px; font-weight: 700;
+}}
+QLabel#CertEyebrow {{
+    color: rgba(238,240,255,0.55); font-size: 9px; font-weight: 700;
+    letter-spacing: 1.1px;
+}}
+QLabel#CertNombre {{
+    color: {SIDEBAR_FG}; font-size: {TEXTO_MD}px; font-weight: 600;
+}}
+
+QToolButton#TopBarMenu {{
+    background: transparent; border: none; border-radius: {RADIO_MD}px;
+    color: rgba(238,240,255,0.75); padding: 7px 24px 7px 11px;
+    font-size: {TEXTO_MD}px; font-weight: 500; text-align: left;
+}}
+QToolButton#TopBarMenu:hover {{
+    background: rgba(255,255,255,0.08); color: {SIDEBAR_FG};
+}}
+QToolButton#TopBarMenu[activo="si"] {{
+    background: rgba(255,255,255,0.12); color: {SIDEBAR_FG};
+}}
+QToolButton#TopBarMenu::menu-indicator {{
+    subcontrol-position: right center; right: 8px; width: 10px;
+}}
+
+QPushButton#BuscarGlobal {{
+    background: rgba(255,255,255,0.04); color: rgba(238,240,255,0.7);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: {RADIO_MD}px;
+    padding: 7px 13px; font-size: {TEXTO_MD}px; text-align: left;
+}}
+QPushButton#BuscarGlobal:hover {{
+    background: rgba(255,255,255,0.09); color: {SIDEBAR_FG};
+}}
+QPushButton#BuscarGlobal:disabled {{
+    color: rgba(238,240,255,0.4); border-color: rgba(255,255,255,0.07);
+}}
+
+QLabel#PieDatos {{
+    color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_XS}px;
+    padding: 5px 16px; background: {SURFACE_CONTAINER_LOWEST};
+    border-top: 1px solid {OUTLINE_VARIANT};
 }}
 
 QLabel#Seccion {{
