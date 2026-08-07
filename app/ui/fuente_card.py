@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent
 from PySide6.QtWidgets import (
     QFileDialog, QFrame, QHBoxLayout, QLabel, QMessageBox, QPushButton,
@@ -55,8 +55,15 @@ class Desplegable(QWidget):
         self._ajustar_alto()
 
     def _ajustar_alto(self) -> None:
+        # Medida inmediata + medida diferida. La inmediata evita un parpadeo;
+        # la diferida es la que vale, porque corre cuando Qt ya asignó el ancho
+        # definitivo a la etiqueta. Sin ella, abrir el desplegable en una card
+        # angosta calculaba el alto con el ancho anterior y la lista de
+        # columnas se dibujaba fuera de la card, por detrás de la de abajo.
         self.lista._ajustar()
+        self.lista.ajustar_diferido()
         self.updateGeometry()
+        QTimer.singleShot(0, self.updateGeometry)
 
     def resizeEvent(self, evento) -> None:
         super().resizeEvent(evento)
@@ -178,6 +185,7 @@ class SlotRow(QWidget):
         self.btn_borrar.clicked.connect(self._eliminar)
         acciones.agregar(self.btn_borrar)
 
+        self._acciones = acciones
         raiz.addWidget(acciones)
 
         auto_alto(self)
@@ -215,6 +223,10 @@ class SlotRow(QWidget):
 
         self.btn_ver.setEnabled(estado.existe)
         self.btn_borrar.setEnabled(estado.existe)
+
+        # «Seleccionar archivo» -> «Reemplazar» cambia el ancho del botón y
+        # puede hacer que el flow suba o baje de línea. Hay que remedir.
+        self._acciones.ajustar_diferido()
 
         # El error de la última carga manda sobre lo que dice el disco. Sin
         # esto, el `cambiado.emit()` de `_al_fallar` provoca un `refrescar()`
