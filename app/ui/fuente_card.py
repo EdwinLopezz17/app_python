@@ -20,13 +20,34 @@ from app.ui.responsive import (
 
 FILTRO_ARCHIVOS = "Reportes (*.csv *.xls *.xlsx);;Todos los archivos (*)"
 
+#: Glifo por tono. El color por sí solo no es accesible: con deuteranopia o
+#: protanopia el verde de CARGADO y el rojo de ERROR se confunden. El símbolo
+#: hace el estado legible sin depender del color.
+GLIFOS = {
+    "ok": "✓",
+    "error": "!",
+    "aviso": "◐",
+    "pendiente": "○",
+}
+
+
+def _texto_badge(texto: str, tono: str) -> str:
+    glifo = GLIFOS.get(tono)
+    return f"{glifo}  {texto}" if glifo else texto
+
 
 def _badge(texto: str, tono: str) -> QLabel:
-    etiqueta = QLabel(texto)
+    etiqueta = QLabel(_texto_badge(texto, tono))
     etiqueta.setObjectName("Badge")
     etiqueta.setProperty("tono", tono)
     etiqueta.setAlignment(Qt.AlignCenter)
     return etiqueta
+
+
+def _pintar_badge(etiqueta: QLabel, texto: str, tono: str) -> None:
+    """Cambia texto y tono a la vez para que el glifo nunca se desincronice."""
+    etiqueta.setText(_texto_badge(texto, tono))
+    etiqueta.setProperty("tono", tono)
 
 
 class Desplegable(QWidget):
@@ -105,6 +126,8 @@ class SlotRow(QWidget):
     ver_datos = Signal(object)
     alerta_error = Signal(bool)
     alto_cambiado = Signal()
+    #: True al empezar a procesar un archivo, False al terminar o fallar.
+    ocupado_cambiado = Signal(bool)
 
     def __init__(self, slot: Slot, mostrar_label: bool, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -130,7 +153,7 @@ class SlotRow(QWidget):
 
         if mostrar_label:
             titulo = QLabel(slot.display_label)
-            titulo.setStyleSheet("font-weight:600; font-size:13px;")
+            titulo.setObjectName("SlotTitulo")
             cabecera.addWidget(titulo)
 
         self.badge = _badge("PENDIENTE", "pendiente")
@@ -218,8 +241,7 @@ class SlotRow(QWidget):
         if self._ocupado:
             return
         if estado.existe:
-            self.badge.setText("CARGADO")
-            self.badge.setProperty("tono", "ok")
+            _pintar_badge(self.badge, "CARGADO", "ok")
 
             partes = [
                 f"{estado.filas:,} filas".replace(",", " "),
@@ -234,8 +256,7 @@ class SlotRow(QWidget):
             self.btn_cargar.setText("Reemplazar")
             self.desp_archivos.poblar("Archivos cargados", estado.archivos)
         else:
-            self.badge.setText("PENDIENTE")
-            self.badge.setProperty("tono", "pendiente")
+            _pintar_badge(self.badge, "PENDIENTE", "pendiente")
             self.meta.setText("Arrastra el archivo aquí o selecciónalo")
             self.btn_cargar.setText("Seleccionar archivo")
             self.desp_archivos.poblar("Archivos cargados", [])
@@ -253,8 +274,7 @@ class SlotRow(QWidget):
         # desaparecer el aviso rojo casi al instante.
         if self._error:
             titulo, detalle = self._error
-            self.badge.setText("ERROR")
-            self.badge.setProperty("tono", "error")
+            _pintar_badge(self.badge, "ERROR", "error")
             self.meta.setText(
                 "No se cargó ningún archivo nuevo."
                 if estado.existe
@@ -284,8 +304,8 @@ class SlotRow(QWidget):
 
     def _ocupar(self, mensaje: str) -> None:
         self._ocupado = True
-        self.badge.setText("PROCESANDO")
-        self.badge.setProperty("tono", "aviso")
+        self.ocupado_cambiado.emit(True)
+        _pintar_badge(self.badge, "PROCESANDO", "aviso")
         self._repintar_estilo(self.badge)
         self.meta.setText(mensaje)
         self.btn_cargar.setEnabled(False)
@@ -294,6 +314,7 @@ class SlotRow(QWidget):
 
     def _liberar(self) -> None:
         self._ocupado = False
+        self.ocupado_cambiado.emit(False)
         self.btn_cargar.setEnabled(True)
         self.refrescar()
 
@@ -348,6 +369,7 @@ class SlotRow(QWidget):
 
     def _al_fallar(self, mensaje: str) -> None:
         self._ocupado = False
+        self.ocupado_cambiado.emit(False)
         self.btn_cargar.setEnabled(True)
 
         faltantes = self._ultimas_faltantes
@@ -445,6 +467,7 @@ class FuenteCard(QFrame):
     cambiado = Signal()
     ver_datos = Signal(object)
     alto_cambiado = Signal()
+    ocupado_cambiado = Signal(bool)
 
     def __init__(self, fuente: Fuente, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -468,13 +491,14 @@ class FuenteCard(QFrame):
         for indice, slot in enumerate(fuente.slots):
             if indice:
                 separador = QFrame()
-                separador.setFrameShape(QFrame.HLine)
-                separador.setStyleSheet("color:#e2e7ff;")
+                separador.setObjectName("SeparadorSlot")
+                separador.setFixedHeight(1)
                 raiz.addWidget(separador)
             fila = SlotRow(slot, mostrar_label, self)
             fila.cambiado.connect(self.cambiado.emit)
             fila.ver_datos.connect(self.ver_datos.emit)
             fila.alto_cambiado.connect(self.alto_cambiado.emit)
+            fila.ocupado_cambiado.connect(self.ocupado_cambiado.emit)
             raiz.addWidget(fila)
             self.filas.append(fila)
 

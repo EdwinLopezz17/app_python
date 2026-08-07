@@ -35,6 +35,14 @@ SIDEBAR_WIDTH_COMPACTO = 216
 RADIO_SM = 4
 RADIO_LG = 8
 
+# Tamaños de texto en un solo sitio. Antes había `font-size` sueltos en
+# `setStyleSheet` inline dentro de los widgets, que no escalaban con el tema
+# ni con el DPI del monitor.
+TEXTO_XS = 11
+TEXTO_SM = 12
+TEXTO_MD = 13
+TEXTO_LG = 14
+
 FUENTE = "Inter"
 FUENTE_RESPALDO = "Segoe UI"
 
@@ -166,7 +174,17 @@ QFrame#KpiCard {{
     border-radius: {RADIO_LG}px;
 }}
 
-QLabel#CardMeta {{ color: {ON_SURFACE_VARIANT}; font-size: 12px; }}
+QLabel#CardMeta {{ color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_SM}px; }}
+
+/* Título de cada slot dentro de una card con varios archivos. Antes era un
+   setStyleSheet inline en fuente_card.py. */
+QLabel#SlotTitulo {{ font-size: {TEXTO_MD}px; font-weight: 600; }}
+
+/* Separador entre slots de una misma card. */
+QFrame#SeparadorSlot {{
+    border: none; border-top: 1px solid {SURFACE_CONTAINER_HIGH};
+    max-height: 1px;
+}}
 
 QLabel#Badge {{
     border-radius: {RADIO_SM}px; padding: 3px 9px;

@@ -3,8 +3,8 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QScrollArea,
-    QSizePolicy, QVBoxLayout, QWidget,
+    QHBoxLayout, QLabel, QLineEdit, QMessageBox, QProgressBar, QPushButton,
+    QScrollArea, QSizePolicy, QVBoxLayout, QWidget,
 )
 
 from app.catalog.fuentes import APLICACIONES, BASES_DE_DATOS, OTROS_REPORTES, Fuente
@@ -13,6 +13,7 @@ from app.storage import purge
 from app.storage.files import estado_slot
 from app.ui.datos_dialog import DatosDialog
 from app.ui.fuente_card import FuenteCard
+from app.ui import preferencias
 from app.ui.panel_estado import PanelEstado
 from app.ui.responsive import ANCHO_MIN_CARD, ContenedorFlow, GridResponsivo
 
@@ -43,8 +44,12 @@ class CargarView(QWidget):
         self.setObjectName("Canvas")
 
         # None = automático según el ancho. True/False = el usuario decidió.
-        self._panel_forzado: bool | None = None
+        self._panel_forzado: bool | None = preferencias.leer_panel()
         self._sobre_umbral = True
+
+        #: Cuántos slots están procesando ahora mismo. Varias cargas pueden
+        #: solaparse (arrastrar archivos a dos cards seguidas).
+        self._en_curso = 0
 
         self._filtro_estado = "todas"
         self._busqueda = ""
@@ -119,6 +124,10 @@ class CargarView(QWidget):
     def _limpiar_filtros(self) -> None:
         self.buscador.clear()
         self._busqueda = ""
+        #: Cuántos slots están procesando ahora mismo. Varias cargas pueden
+        #: solaparse (arrastrar archivos a dos cards seguidas).
+        self._en_curso = 0
+
         self._filtro_estado = "todas"
         self._aplicar_filtros()
 
@@ -196,6 +205,20 @@ class CargarView(QWidget):
         layout.addWidget(acciones)
         layout.addWidget(self._construir_filtros())
 
+        # Indeterminada: leer y validar un Excel no reporta avance parcial, así
+        # que un porcentaje sería inventado. Solo comunica «hay trabajo vivo».
+        self.progreso = QProgressBar()
+        self.progreso.setRange(0, 0)
+        self.progreso.setTextVisible(False)
+        self.progreso.setFixedHeight(4)
+        self.progreso.hide()
+        layout.addWidget(self.progreso)
+
+        self.lbl_en_curso = QLabel()
+        self.lbl_en_curso.setObjectName("CardMeta")
+        self.lbl_en_curso.hide()
+        layout.addWidget(self.lbl_en_curso)
+
         if self.hallazgo.descripcion:
             desc = QLabel(self.hallazgo.descripcion)
             desc.setObjectName("Breadcrumb")
@@ -240,6 +263,19 @@ class CargarView(QWidget):
             self.chips[clave] = chip
 
         return barra
+
+    def _al_cambiar_ocupacion(self, ocupado: bool) -> None:
+        """Lleva la cuenta de cargas simultáneas y muestra la barra global."""
+        self._en_curso = max(0, self._en_curso + (1 if ocupado else -1))
+
+        activo = self._en_curso > 0
+        self.progreso.setVisible(activo)
+        self.lbl_en_curso.setVisible(activo)
+        if activo:
+            plural = "archivos" if self._en_curso != 1 else "archivo"
+            self.lbl_en_curso.setText(
+                f"Procesando {self._en_curso} {plural}…"
+            )
 
     def _al_buscar(self) -> None:
         self._busqueda = self.buscador.text().strip().lower()
@@ -333,6 +369,7 @@ class CargarView(QWidget):
                 card = FuenteCard(fuente)
                 card.cambiado.connect(self.refrescar)
                 card.ver_datos.connect(self._abrir_datos)
+                card.ocupado_cambiado.connect(self._al_cambiar_ocupacion)
                 grid.agregar(card)
                 self.cards.append(card)
 
@@ -405,10 +442,12 @@ class CargarView(QWidget):
 
     def _alternar_panel(self) -> None:
         self._panel_forzado = not self.panel.isVisible()
+        preferencias.guardar_panel(self._panel_forzado)
         self._aplicar_panel(self._panel_forzado)
 
     def _ocultar_panel(self) -> None:
         self._panel_forzado = False
+        preferencias.guardar_panel(False)
         self._aplicar_panel(False)
 
     def _panel_automatico(self) -> None:
@@ -420,6 +459,7 @@ class CargarView(QWidget):
         if sobre != self._sobre_umbral:
             self._sobre_umbral = sobre
             self._panel_forzado = None
+            preferencias.guardar_panel(None)
 
         if self._panel_forzado is None:
             self._aplicar_panel(sobre)

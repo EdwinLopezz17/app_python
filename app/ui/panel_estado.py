@@ -26,7 +26,9 @@ class FilaEstado(QFrame):
         raiz.setContentsMargins(10, 7, 10, 7)
         raiz.setSpacing(8)
 
-        self.punto = QLabel("●")
+        # Glifo, no solo color: el punto verde y el gris son indistinguibles
+        # para quien no percibe el contraste rojo/verde.
+        self.punto = QLabel("○")
         self.punto.setObjectName("PuntoEstado")
         raiz.addWidget(self.punto)
 
@@ -51,12 +53,14 @@ class FilaEstado(QFrame):
     def refrescar(self) -> bool:
         estado = estado_slot(self.slot)
         if estado.existe:
+            self.punto.setText("✓")
             self.punto.setProperty("tono", "ok")
             self.meta.setText(
                 f"{estado.filas:,} filas · {estado.modificado_texto}".replace(",", " ")
             )
             self.setToolTip(str(estado.path))
         else:
+            self.punto.setText("○")
             self.punto.setProperty("tono", "falta")
             self.meta.setText("Sin archivo")
             self.setToolTip("Aún no se ha cargado este archivo")

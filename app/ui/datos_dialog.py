@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
 from app.catalog.fuentes import Slot
 from app.storage.files import leer_datos
 from app.tasks.runner import POOL, Tarea
+from app.ui import preferencias
 from app.ui.table_model import DataFrameModel
 
 
@@ -22,7 +23,8 @@ class DatosDialog(QDialog):
         self._vivo = True
         self._senales = None
         self.setWindowTitle(f"Datos cargados · {slot.display_label}")
-        self.resize(1100, 680)
+        tamano = preferencias.leer_tamano_dialogo()
+        self.resize(*tamano) if tamano else self.resize(1100, 680)
 
         raiz = QVBoxLayout(self)
         raiz.setContentsMargins(20, 18, 20, 18)
@@ -86,6 +88,15 @@ class DatosDialog(QDialog):
         tarea.senales.error.connect(self._al_fallar)
         POOL.start(tarea)
 
+    def _guardar_preferencias(self) -> None:
+        preferencias.guardar_tamano_dialogo(self.width(), self.height())
+        columnas = self.modelo.columnCount()
+        if columnas:
+            preferencias.guardar_columnas(
+                self.slot.key,
+                [self.tabla.columnWidth(col) for col in range(columnas)],
+            )
+
     def _desconectar(self) -> None:
         self._vivo = False
         if self._senales is None:
@@ -98,10 +109,13 @@ class DatosDialog(QDialog):
         self._senales = None
 
     def closeEvent(self, evento) -> None:
+        self._guardar_preferencias()
         self._desconectar()
         super().closeEvent(evento)
 
     def done(self, resultado: int) -> None:
+        if self._vivo:
+            self._guardar_preferencias()
         self._desconectar()
         super().done(resultado)
 
@@ -115,6 +129,14 @@ class DatosDialog(QDialog):
             return
         self.modelo.set_dataframe(df)
         self._actualizar_resumen()
+
+        # Si el usuario ya ajustó los anchos para esta fuente, se respetan.
+        guardados = preferencias.leer_columnas(self.slot.key)
+        if len(guardados) == self.modelo.columnCount():
+            for col, ancho in enumerate(guardados):
+                self.tabla.setColumnWidth(col, ancho)
+            return
+
         # `resizeColumnsToContents` recorre TODAS las celdas en el hilo GUI.
         # Con cientos de miles de filas la ventana se congela varios segundos.
         # `setResizeContentsPrecision` limita el muestreo a las primeras filas

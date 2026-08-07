@@ -4,11 +4,12 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QMainWindow, QStackedWidget, QVBoxLayout, QWidget,
 )
 
-from app.catalog.hallazgos import get as get_hallazgo
+from app.catalog.hallazgos import HALLAZGOS_BY_ID, get as get_hallazgo
 from app.ui.cargar_view import CargarView
 from app.ui.hallazgo_view import HallazgoView
 from app.ui.launcher_view import LauncherView
 from app.ui.resumen_view import ResumenView
+from app.ui import preferencias
 from app.ui.sidebar import (
     INICIO, Sidebar, ruta_cargar, ruta_hallazgo, ruta_resumen,
 )
@@ -22,6 +23,13 @@ class VentanaPrincipal(QMainWindow):
         # La app se usa mucho a media pantalla en monitores Full HD (~960 px).
         # Con el piso anterior (1180) nunca se llegaba a los anchos angostos.
         self.setMinimumSize(900, 600)
+
+        # La geometría guardada manda sobre el `resize` por defecto. Si la
+        # pantalla cambió (portátil que se desacopla del monitor) Qt la
+        # descarta sola y se queda con el tamaño de arriba.
+        guardada = preferencias.leer_geometria()
+        if guardada is not None:
+            self.restoreGeometry(guardada)
 
         self._cargar_views: dict[str, CargarView] = {}
         self._hallazgo_views: dict[str, HallazgoView] = {}
@@ -58,7 +66,7 @@ class VentanaPrincipal(QMainWindow):
         raiz.addWidget(contenido, 1)
 
         self.setCentralWidget(central)
-        self.abrir_inicio()
+        self._restaurar_vista()
 
 
     #: Debajo de este ancho de ventana el sidebar se estrecha para dejarle
@@ -69,10 +77,37 @@ class VentanaPrincipal(QMainWindow):
         super().resizeEvent(evento)
         self.sidebar.compactar(self.width() < self.UMBRAL_SIDEBAR)
 
+    def _restaurar_vista(self) -> None:
+        """Reabre la vista en la que se cerró la app la última vez.
+
+        La ruta se guarda como "cargar:<id>" / "hallazgo:<id>" / "resumen:<id>".
+        Si el hallazgo ya no existe en el catálogo (renombrado, retirado) se
+        cae a la pantalla de inicio en silencio.
+        """
+        ruta = preferencias.leer_ultima_vista()
+        vista, _, hallazgo_id = ruta.partition(":")
+
+        if hallazgo_id and hallazgo_id in HALLAZGOS_BY_ID:
+            accion = {
+                "cargar": self.abrir_cargar,
+                "hallazgo": self.abrir_hallazgo,
+                "resumen": self.abrir_resumen,
+            }.get(vista)
+            if accion is not None:
+                accion(hallazgo_id)
+                return
+
+        self.abrir_inicio()
+
+    def closeEvent(self, evento) -> None:
+        preferencias.guardar_geometria(self.saveGeometry())
+        super().closeEvent(evento)
+
     def abrir_inicio(self) -> None:
         self.launcher.refrescar()
         self.stack.setCurrentWidget(self.launcher)
         self.sidebar.marcar(INICIO)
+        preferencias.guardar_ultima_vista(INICIO)
 
     def abrir_cargar(self, hallazgo_id: str) -> None:
         vista = self._cargar_views.get(hallazgo_id)
@@ -88,6 +123,7 @@ class VentanaPrincipal(QMainWindow):
 
         self.stack.setCurrentWidget(vista)
         self.sidebar.marcar(ruta_cargar(hallazgo_id))
+        preferencias.guardar_ultima_vista(ruta_cargar(hallazgo_id))
 
     def abrir_hallazgo(self, hallazgo_id: str) -> None:
         vista = self._hallazgo_views.get(hallazgo_id)
@@ -102,6 +138,7 @@ class VentanaPrincipal(QMainWindow):
 
         self.stack.setCurrentWidget(vista)
         self.sidebar.marcar(ruta_hallazgo(hallazgo_id))
+        preferencias.guardar_ultima_vista(ruta_hallazgo(hallazgo_id))
 
     def abrir_resumen(self, hallazgo_id: str) -> None:
         vista = self._resumen_views.get(hallazgo_id)
@@ -113,6 +150,7 @@ class VentanaPrincipal(QMainWindow):
 
         self.stack.setCurrentWidget(vista)
         self.sidebar.marcar(ruta_resumen(hallazgo_id))
+        preferencias.guardar_ultima_vista(ruta_resumen(hallazgo_id))
 
     def _al_cambiar_carga(self, hallazgo_id: str, cargadas: int, total: int) -> None:
         self.launcher.refrescar()
