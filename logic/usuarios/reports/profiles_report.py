@@ -554,10 +554,11 @@ def _rows_botmaker(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADServ
 
 def get_profiles_report()-> list[ProfileRows]:
     mr_srv = MatrizRolesService()
-    ad_srv = ADService()
     dni_user_srv = DNIUserService()
     gdh_srv = GDHUserService()
     entra_srv = EntraUserService()
+    ad_srv = ADService()
+    ad_srv.sync_last_activity_entra(entra_srv)
     rol_ticket_srv = RolTicketService()
     
     reporte_total = []

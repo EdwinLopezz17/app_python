@@ -59,14 +59,15 @@ class GDHUserInfo:
             return "Planilla"
         
     def get_rol(self):
-        if self.isCesado:
-            return "*Cesado en SAP*"
-        if self.esProveedor:
-            return "Rol AD Externo"
+        if self.isActive:
+            if self.esProveedor:
+                return "Rol AD Externo"
+            else:
+                if self.calculate_role_type() == "FFVV":
+                    return f"R{self.cod_funcion}{self.cod_servicio}"
+                return f"R{self.cod_funcion}{self.cod_uni_orga}"
         else:
-            if self.calculate_role_type() == "FFVV":
-                return f"R{self.cod_funcion}{self.cod_servicio}"
-            return f"R{self.cod_funcion}{self.cod_uni_orga}"
+            return "*Cesado en SAP*"
 
 class GDHUserService():
     def __init__(self, lazy: bool = False):
