@@ -177,6 +177,40 @@ QLabel#Badge[tono="ok"]        {{ background: {SECONDARY_SOFT}; color: {SECONDAR
 QLabel#Badge[tono="aviso"]     {{ background: {TERTIARY_SOFT}; color: {TERTIARY}; }}
 QLabel#Badge[tono="error"]     {{ background: {ERROR_SOFT}; color: {ERROR}; }}
 
+/* Chips de filtro: fantasma cuando están apagados, sólidos suaves cuando el
+   filtro está activo. No usan el primario para no competir con el botón de
+   acción principal de la pantalla. */
+QPushButton[variante="chip"] {{
+    background: transparent; color: {ON_SURFACE_VARIANT};
+    border: 1px solid {OUTLINE_VARIANT}; border-radius: 14px;
+    padding: 5px 13px; font-size: 12px; font-weight: 600;
+}}
+QPushButton[variante="chip"]:hover {{
+    border-color: {PRIMARY}; color: {PRIMARY};
+}}
+QPushButton[variante="chip"][activo="si"] {{
+    background: {PRIMARY}; color: {ON_PRIMARY}; border-color: {PRIMARY};
+}}
+QPushButton[variante="chip"][activo="si"]:hover {{ background: {PRIMARY_HOVER}; }}
+QPushButton[variante="chip"]:disabled {{
+    background: transparent; color: {OUTLINE_VARIANT};
+    border-color: {OUTLINE_VARIANT};
+}}
+QPushButton[variante="chip"][tono="error"] {{
+    color: {ERROR}; border-color: {ERROR_SOFT};
+}}
+QPushButton[variante="chip"][tono="error"][activo="si"] {{
+    background: {ERROR}; color: {ON_PRIMARY}; border-color: {ERROR};
+}}
+QPushButton[variante="chip"][tono="error"]:disabled {{
+    color: {OUTLINE_VARIANT}; border-color: {OUTLINE_VARIANT};
+}}
+
+QLabel#SinResultados {{
+    color: {ON_SURFACE_VARIANT}; font-size: 13px;
+    padding: 28px 0;
+}}
+
 QLabel#Seccion {{
     color: {ON_SURFACE_VARIANT}; font-size: 12px; font-weight: 600;
     letter-spacing: 1px;

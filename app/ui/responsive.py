@@ -278,7 +278,7 @@ class GridResponsivo(QWidget):
         if self._recolocando:
             return
         ancho = self.width()
-        if ancho <= 0 or not self._widgets:
+        if ancho <= 0:
             return
 
         self._recolocando = True
@@ -295,6 +295,12 @@ class GridResponsivo(QWidget):
             self._recolocando = False
 
     def _una_pasada(self, ancho: int) -> int:
+        # Las cards filtradas no ocupan hueco: se saltan del reparto en vez de
+        # dejar un espacio en blanco donde estaban.
+        visibles = [w for w in self._widgets if not w.isHidden()]
+        if not visibles:
+            return 0
+
         columnas = self._columnas_para(ancho)
         self._columnas = columnas
         anchos = self._anchos(ancho, columnas)
@@ -307,8 +313,8 @@ class GridResponsivo(QWidget):
 
         y = 0
         indice = 0
-        while indice < len(self._widgets):
-            fila = self._widgets[indice:indice + columnas]
+        while indice < len(visibles):
+            fila = visibles[indice:indice + columnas]
 
             alturas = [
                 alto_de(widget, anchos[col]) for col, widget in enumerate(fila)

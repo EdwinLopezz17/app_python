@@ -449,6 +449,7 @@ class FuenteCard(QFrame):
     def __init__(self, fuente: Fuente, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.fuente = fuente
+        self._estado = ""
         self.setObjectName("Card")
         politica = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
         politica.setHeightForWidth(True)
@@ -485,6 +486,18 @@ class FuenteCard(QFrame):
     def heightForWidth(self, ancho: int) -> int:
         return alto_vbox(self.layout(), ancho)
 
+    def estado_actual(self) -> str:
+        """'cargado', 'error' o '' (pendiente / parcial)."""
+        return self._estado
+
+    def texto_busqueda(self) -> str:
+        """Todo el texto por el que se puede encontrar esta card."""
+        partes = [self.fuente.label, self.fuente.id]
+        for slot in self.fuente.slots:
+            partes.append(slot.display_label)
+            partes.append(slot.key)
+        return " ".join(partes).lower()
+
     def refrescar(self) -> None:
         for fila in self.filas:
             fila.refrescar()
@@ -496,6 +509,7 @@ class FuenteCard(QFrame):
             estado = ""
         # El borde rojo de QFrame#Card[estado="error"] ya existía en theme.py
         # pero nunca se activaba.
+        self._estado = estado
         self.setProperty("estado", estado)
         self.style().unpolish(self)
         self.style().polish(self)

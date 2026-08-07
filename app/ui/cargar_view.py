@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
-    QHBoxLayout, QLabel, QMessageBox, QPushButton, QScrollArea, QSizePolicy,
-    QVBoxLayout, QWidget,
+    QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton, QScrollArea,
+    QSizePolicy, QVBoxLayout, QWidget,
 )
 
 from app.catalog.fuentes import APLICACIONES, BASES_DE_DATOS, OTROS_REPORTES, Fuente
@@ -21,6 +22,15 @@ ORDEN_GRUPOS = [OTROS_REPORTES, BASES_DE_DATOS, APLICACIONES]
 #: cards recuperen una segunda columna. El usuario puede forzarlo igual.
 UMBRAL_PANEL = 980
 
+#: Filtros por estado. La clave es lo que devuelve `FuenteCard.estado_actual()`
+#: ("" = pendiente o parcialmente cargada).
+FILTROS = [
+    ("todas", "Todas"),
+    ("", "Pendientes"),
+    ("error", "Con error"),
+    ("cargado", "Cargadas"),
+]
+
 
 class CargarView(QWidget):
     progreso_cambiado = Signal(str, int, int)
@@ -34,6 +44,13 @@ class CargarView(QWidget):
 
         # None = automático según el ancho. True/False = el usuario decidió.
         self._panel_forzado: bool | None = None
+        self._sobre_umbral = True
+
+        self._filtro_estado = "todas"
+        self._busqueda = ""
+        #: (título de sección, grid) para poder ocultar la sección completa
+        #: cuando el filtro deja su grid sin cards visibles.
+        self._secciones: list[tuple[QLabel, GridResponsivo]] = []
 
         raiz = QVBoxLayout(self)
         raiz.setContentsMargins(0, 0, 0, 0)
@@ -59,6 +76,15 @@ class CargarView(QWidget):
         self.cards: list[FuenteCard] = []
         self._grids: list[GridResponsivo] = []
         self._construir_grupos()
+
+        self.sin_resultados = QLabel(
+            "Ninguna fuente coincide con el filtro."
+        )
+        self.sin_resultados.setObjectName("SinResultados")
+        self.sin_resultados.setAlignment(Qt.AlignCenter)
+        self.sin_resultados.hide()
+        self._cuerpo.addWidget(self.sin_resultados)
+
         self._cuerpo.addStretch(1)
 
         scroll.setWidget(contenido)
@@ -76,7 +102,25 @@ class CargarView(QWidget):
 
         raiz.addWidget(fila_principal, 1)
 
+        self._registrar_atajos()
         self.refrescar()
+
+    def _registrar_atajos(self) -> None:
+        buscar = QShortcut(QKeySequence.Find, self)
+        buscar.activated.connect(self._enfocar_buscador)
+
+        limpiar = QShortcut(QKeySequence(Qt.Key_Escape), self)
+        limpiar.activated.connect(self._limpiar_filtros)
+
+    def _enfocar_buscador(self) -> None:
+        self.buscador.setFocus()
+        self.buscador.selectAll()
+
+    def _limpiar_filtros(self) -> None:
+        self.buscador.clear()
+        self._busqueda = ""
+        self._filtro_estado = "todas"
+        self._aplicar_filtros()
 
     # ------------------------------------------------------------------
     # Cabecera
@@ -150,6 +194,7 @@ class CargarView(QWidget):
         acciones.agregar(self.btn_generar)
 
         layout.addWidget(acciones)
+        layout.addWidget(self._construir_filtros())
 
         if self.hallazgo.descripcion:
             desc = QLabel(self.hallazgo.descripcion)
@@ -158,6 +203,111 @@ class CargarView(QWidget):
             layout.addWidget(desc)
 
         return barra
+
+    def _construir_filtros(self) -> QWidget:
+        """Buscador + chips de estado.
+
+        Con 28 fuentes en Aplicaciones, encontrar la que falló implicaba hacer
+        scroll a mano por toda la grilla.
+        """
+        barra = ContenedorFlow(espacio_h=8, espacio_v=8)
+
+        self.buscador = QLineEdit()
+        self.buscador.setPlaceholderText("Buscar fuente…")
+        self.buscador.setClearButtonEnabled(True)
+        self.buscador.setFixedWidth(230)
+        self.buscador.setToolTip(
+            "Filtra por nombre de fuente o de archivo. Atajo: Ctrl+F"
+        )
+        # Debounce: reordenar la grilla en cada tecla se nota con 28 cards.
+        self._debounce = QTimer(self)
+        self._debounce.setSingleShot(True)
+        self._debounce.setInterval(180)
+        self._debounce.timeout.connect(self._al_buscar)
+        self.buscador.textChanged.connect(lambda _: self._debounce.start())
+        barra.agregar(self.buscador)
+
+        self.chips: dict[str, QPushButton] = {}
+        for clave, etiqueta in FILTROS:
+            chip = QPushButton(etiqueta)
+            chip.setProperty("variante", "chip")
+            chip.setProperty("activo", "si" if clave == "todas" else "")
+            if clave == "error":
+                chip.setProperty("tono", "error")
+            chip.setCursor(Qt.PointingHandCursor)
+            chip.clicked.connect(lambda _=False, c=clave: self._filtrar_por(c))
+            barra.agregar(chip)
+            self.chips[clave] = chip
+
+        return barra
+
+    def _al_buscar(self) -> None:
+        self._busqueda = self.buscador.text().strip().lower()
+        self._aplicar_filtros()
+
+    def _filtrar_por(self, clave: str) -> None:
+        # Volver a pulsar el chip activo lo apaga y vuelve a «Todas».
+        if self._filtro_estado == clave and clave != "todas":
+            clave = "todas"
+        self._filtro_estado = clave
+        self._aplicar_filtros()
+
+    def _coincide(self, card) -> bool:
+        if self._busqueda and self._busqueda not in card.texto_busqueda():
+            return False
+        if self._filtro_estado == "todas":
+            return True
+        return card.estado_actual() == self._filtro_estado
+
+    def _aplicar_filtros(self) -> None:
+        """Muestra u oculta cards, secciones y el aviso de «sin resultados»."""
+        visibles_total = 0
+
+        for titulo, grid in self._secciones:
+            cards = grid.widgets()
+            visibles = 0
+            for card in cards:
+                mostrar = self._coincide(card)
+                card.setVisible(mostrar)
+                visibles += int(mostrar)
+
+            titulo.setVisible(visibles > 0)
+            grid.setVisible(visibles > 0)
+            if visibles:
+                grupo = titulo.property("grupo")
+                titulo.setText(
+                    f"{grupo.upper()}  ·  {visibles}"
+                    if visibles == len(cards)
+                    else f"{grupo.upper()}  ·  {visibles} de {len(cards)}"
+                )
+                grid.recolocar()
+            visibles_total += visibles
+
+        self.sin_resultados.setVisible(visibles_total == 0)
+        self._actualizar_chips()
+
+    def _actualizar_chips(self) -> None:
+        """Refresca el contador de cada chip y marca el activo."""
+        conteo = {clave: 0 for clave, _ in FILTROS}
+        total = 0
+        for _, grid in self._secciones:
+            for card in grid.widgets():
+                total += 1
+                estado = card.estado_actual()
+                if estado in conteo:
+                    conteo[estado] += 1
+        conteo["todas"] = total
+
+        for clave, etiqueta in FILTROS:
+            chip = self.chips[clave]
+            cantidad = conteo[clave]
+            chip.setText(f"{etiqueta} ({cantidad})")
+            # Un filtro sin resultados posibles se deshabilita en vez de
+            # llevar al usuario a una pantalla vacía.
+            chip.setEnabled(cantidad > 0 or clave == "todas")
+            chip.setProperty("activo", "si" if clave == self._filtro_estado else "")
+            chip.style().unpolish(chip)
+            chip.style().polish(chip)
 
     # ------------------------------------------------------------------
     # Cuerpo
@@ -175,6 +325,7 @@ class CargarView(QWidget):
 
             titulo = QLabel(f"{grupo.upper()}  ·  {len(fuentes)}")
             titulo.setObjectName("Seccion")
+            titulo.setProperty("grupo", grupo)
             self._cuerpo.addWidget(titulo)
 
             grid = GridResponsivo(ancho_min=ANCHO_MIN_CARD, espacio=16, max_columnas=3)
@@ -186,6 +337,7 @@ class CargarView(QWidget):
                 self.cards.append(card)
 
             self._grids.append(grid)
+            self._secciones.append((titulo, grid))
             self._cuerpo.addWidget(grid)
 
     # ------------------------------------------------------------------
@@ -232,6 +384,11 @@ class CargarView(QWidget):
                 "poder generar."
             )
 
+        # El estado de las cards pudo cambiar (una carga terminó, un archivo
+        # se borró), así que el filtro por estado se reevalúa.
+        if self._secciones:
+            self._aplicar_filtros()
+
         self.progreso_cambiado.emit(self.hallazgo.id, cargados, total)
 
     # ------------------------------------------------------------------
@@ -255,8 +412,17 @@ class CargarView(QWidget):
         self._aplicar_panel(False)
 
     def _panel_automatico(self) -> None:
+        sobre = self.width() >= UMBRAL_PANEL
+
+        # Al cruzar el umbral se devuelve el control al modo automático. Antes
+        # bastaba con ocultar el panel una vez en pantalla angosta para que no
+        # volviera nunca, aunque el usuario maximizara la ventana.
+        if sobre != self._sobre_umbral:
+            self._sobre_umbral = sobre
+            self._panel_forzado = None
+
         if self._panel_forzado is None:
-            self._aplicar_panel(self.width() >= UMBRAL_PANEL)
+            self._aplicar_panel(sobre)
 
     def resizeEvent(self, evento) -> None:
         super().resizeEvent(evento)
