@@ -166,7 +166,9 @@ class EtiquetaAjustable(QLabel):
         if not self.isVisibleTo(self.parentWidget() or self):
             return
         alto = self.heightForWidth(self._ancho_util())
-        if alto and alto != self.minimumHeight():
+        # heightForWidth devuelve -1 cuando el label aún no tiene texto ni
+        # geometría; setMinimumHeight(-1) es un error de Qt.
+        if alto > 0 and alto != self.minimumHeight():
             self.setMinimumHeight(alto)
             self.updateGeometry()
 

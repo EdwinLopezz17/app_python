@@ -29,6 +29,17 @@ ERROR_SOFT = "#ffdad6"
 SIDEBAR_BG = "#283044"
 SIDEBAR_FG = "#eef0ff"
 SIDEBAR_MUTED = "#98a2bd"
+#: Texto de menú sobre el navy. El #98a2bd anterior daba ~3.4:1 contra
+#: #283044, por debajo del 4.5:1 de WCAG AA para texto normal.
+SIDEBAR_MUTED_FUERTE = "#c8d0e4"
+#: Superficies elevadas sobre el navy (hover, controles). Opacas en vez de
+#: rgba: Qt no compone alfa igual sobre todos los fondos y quedaba sucio.
+SIDEBAR_ELEVADO = "#333d55"
+SIDEBAR_ELEVADO_HOVER = "#3f4a66"
+SIDEBAR_BORDE = "#454f6b"
+#: Azul claro para el subrayado del menú activo. El PRIMARY (#006386) es
+#: demasiado oscuro contra el navy y no se ve.
+SIDEBAR_ACENTO = "#78d1ff"
 SIDEBAR_WIDTH = 260
 SIDEBAR_WIDTH_COMPACTO = 216
 
@@ -233,65 +244,81 @@ QLabel#SinResultados {{
     padding: 28px 0;
 }}
 
-/* ── Barra superior de navegación (equivalente al TopBar.tsx) ───────────── */
-QWidget#TopBar {{ background: {SIDEBAR_BG}; }}
-QWidget#TopBar QLabel {{ color: {SIDEBAR_FG}; background: transparent; }}
-QFrame#TopBarSep {{ background: rgba(255,255,255,0.12); border: none; }}
-QScrollArea#TopBarScroll {{ background: {SIDEBAR_BG}; border: none; }}
-QScrollArea#TopBarScroll > QWidget > QWidget {{ background: {SIDEBAR_BG}; }}
+/* ── Barra superior de navegación (equivalente al TopBar.tsx) ───────────────
+   OJO: el objectName es "BarraNav", NO "TopBar". Las cuatro vistas usan ya
+   "TopBar" para su cabecera clara de control panel; reutilizar ese nombre
+   pintaba de navy la franja del título y ambas se fundían en un solo bloque
+   oscuro. */
+QWidget#BarraNav {{
+    background: {SIDEBAR_BG};
+    border-bottom: 1px solid {SIDEBAR_BORDE};
+}}
+QWidget#BarraNav QLabel {{ color: {SIDEBAR_FG}; }}
+QFrame#TopBarSep {{ background: {SIDEBAR_BORDE}; border: none; }}
+QScrollArea#TopBarScroll {{ background: transparent; border: none; }}
+QScrollArea#TopBarScroll > QWidget > QWidget {{ background: transparent; }}
 QScrollArea#TopBarScroll QScrollBar:horizontal {{
     height: 4px; background: transparent; margin: 0;
 }}
 QScrollArea#TopBarScroll QScrollBar::handle:horizontal {{
-    background: rgba(255,255,255,0.2); border-radius: 2px; min-width: 30px;
+    background: rgba(255,255,255,0.25); border-radius: 2px; min-width: 30px;
 }}
 QScrollArea#TopBarScroll QScrollBar::add-line:horizontal,
 QScrollArea#TopBarScroll QScrollBar::sub-line:horizontal {{ width: 0; }}
 
-QToolButton#CertSwitcher {{
-    background: transparent; border: none; border-radius: {RADIO_MD}px;
+/* Switcher: fondo propio y borde tenue para que se lea como un control y no
+   como texto suelto sobre el navy. */
+QFrame#CertSwitcher {{
+    background: {SIDEBAR_ELEVADO}; border: 1px solid {SIDEBAR_BORDE};
+    border-radius: {RADIO_MD}px;
 }}
-QToolButton#CertSwitcher:hover {{ background: rgba(255,255,255,0.08); }}
-QToolButton#CertSwitcher::menu-indicator {{
-    subcontrol-position: right center; right: 7px; width: 10px;
-}}
+QFrame#CertSwitcher:hover {{ background: {SIDEBAR_ELEVADO_HOVER}; }}
 QLabel#CertMarca {{
-    background: {PRIMARY}; color: {ON_PRIMARY};
+    background: {PRIMARY_HOVER}; color: {ON_PRIMARY};
     border-radius: {RADIO_MD}px; font-size: {TEXTO_SM}px; font-weight: 700;
 }}
 QLabel#CertEyebrow {{
-    color: rgba(238,240,255,0.55); font-size: 9px; font-weight: 700;
+    color: {SIDEBAR_MUTED_FUERTE}; font-size: 9px; font-weight: 700;
     letter-spacing: 1.1px;
 }}
 QLabel#CertNombre {{
     color: {SIDEBAR_FG}; font-size: {TEXTO_MD}px; font-weight: 600;
 }}
+QLabel#CertChevron {{ color: {SIDEBAR_MUTED_FUERTE}; font-size: {TEXTO_LG}px; }}
 
+/* Menús: el texto al 75% de opacidad no llegaba a contrastar con el navy.
+   Se sube a color pleno atenuado y el activo lleva además una línea inferior
+   en el primario, que se distingue aunque el fondo apenas cambie. */
 QToolButton#TopBarMenu {{
-    background: transparent; border: none; border-radius: {RADIO_MD}px;
-    color: rgba(238,240,255,0.75); padding: 7px 24px 7px 11px;
+    background: transparent; border: none;
+    border-bottom: 2px solid transparent; border-radius: 0;
+    color: {SIDEBAR_MUTED_FUERTE}; padding: 8px 24px 6px 11px;
     font-size: {TEXTO_MD}px; font-weight: 500; text-align: left;
 }}
 QToolButton#TopBarMenu:hover {{
-    background: rgba(255,255,255,0.08); color: {SIDEBAR_FG};
+    background: {SIDEBAR_ELEVADO}; color: {SIDEBAR_FG};
 }}
 QToolButton#TopBarMenu[activo="si"] {{
-    background: rgba(255,255,255,0.12); color: {SIDEBAR_FG};
+    background: {SIDEBAR_ELEVADO_HOVER}; color: #ffffff;
+    border-bottom-color: {SIDEBAR_ACENTO};
 }}
 QToolButton#TopBarMenu::menu-indicator {{
     subcontrol-position: right center; right: 8px; width: 10px;
 }}
 
+/* Deshabilitado pero legible: el gris por defecto de Qt sobre navy es
+   invisible. */
 QPushButton#BuscarGlobal {{
-    background: rgba(255,255,255,0.04); color: rgba(238,240,255,0.7);
-    border: 1px solid rgba(255,255,255,0.1); border-radius: {RADIO_MD}px;
-    padding: 7px 13px; font-size: {TEXTO_MD}px; text-align: left;
+    background: {SIDEBAR_ELEVADO}; color: {SIDEBAR_FG};
+    border: 1px solid {SIDEBAR_BORDE}; border-radius: {RADIO_MD}px;
+    padding: 0 14px; font-size: {TEXTO_MD}px; text-align: left;
 }}
 QPushButton#BuscarGlobal:hover {{
-    background: rgba(255,255,255,0.09); color: {SIDEBAR_FG};
+    background: {SIDEBAR_ELEVADO_HOVER}; border-color: {SIDEBAR_MUTED};
 }}
 QPushButton#BuscarGlobal:disabled {{
-    color: rgba(238,240,255,0.4); border-color: rgba(255,255,255,0.07);
+    background: {SIDEBAR_ELEVADO}; color: {SIDEBAR_MUTED_FUERTE};
+    border-color: {SIDEBAR_BORDE};
 }}
 
 QLabel#PieDatos {{

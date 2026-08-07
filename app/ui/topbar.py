@@ -48,6 +48,19 @@ def ruta_resumen(hallazgo_id: str) -> str:
     return f"resumen:{hallazgo_id}"
 
 
+class _Pulsable(QFrame):
+    """Contenedor que despliega un QMenu al pulsarlo, alineado a su borde."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.menu: QMenu | None = None
+
+    def mousePressEvent(self, evento) -> None:
+        if self.menu is not None and evento.button() == Qt.LeftButton:
+            self.menu.exec(self.mapToGlobal(self.rect().bottomLeft()))
+        super().mousePressEvent(evento)
+
+
 class TopBar(QWidget):
     ir_inicio = Signal()
     ir_hallazgo = Signal(str)
@@ -57,7 +70,11 @@ class TopBar(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setObjectName("TopBar")
+        self.setObjectName("BarraNav")
+        # Un QWidget plano no pinta el `background` del QSS salvo que se le
+        # active WA_StyledBackground; sin esto la barra salía del color del
+        # canvas y los botones flotaban sobre fondo claro.
+        self.setAttribute(Qt.WA_StyledBackground, True)
         self.setFixedHeight(theme.TOPBAR_ALTO)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
@@ -78,7 +95,8 @@ class TopBar(QWidget):
         # Usuarios son varios botones y en una ventana de 900 px no caben.
         # Antes que truncarlos o apilarlos, se desplazan.
         self._zona_menus = QWidget()
-        self._zona_menus.setObjectName("TopBar")
+        self._zona_menus.setObjectName("BarraNav")
+        self._zona_menus.setAttribute(Qt.WA_StyledBackground, True)
         self._menus_layout = QHBoxLayout(self._zona_menus)
         self._menus_layout.setContentsMargins(0, 0, 0, 0)
         self._menus_layout.setSpacing(2)
@@ -109,18 +127,19 @@ class TopBar(QWidget):
         return linea
 
     def _construir_switcher(self) -> QWidget:
-        """Icono + «CERTIFICACIÓN / <nombre>» + chevron, como la referencia."""
-        self.btn_switcher = QToolButton()
+        """Icono + «CERTIFICACIÓN / <nombre>» + chevron, como la referencia.
+
+        Es un QFrame y no un QToolButton: el QToolButton calcula su ancho a
+        partir de su propio texto e ignora el del layout hijo, así que el
+        contenido quedaba colapsado a la primera letra. El menú se abre desde
+        `mousePressEvent`.
+        """
+        self.btn_switcher = _Pulsable()
         self.btn_switcher.setObjectName("CertSwitcher")
         self.btn_switcher.setCursor(Qt.PointingHandCursor)
-        self.btn_switcher.setPopupMode(QToolButton.InstantPopup)
-        self.btn_switcher.setToolButtonStyle(Qt.ToolButtonTextOnly)
 
-        contenido = QWidget(self.btn_switcher)
-        contenido.setAttribute(Qt.WA_TransparentForMouseEvents)
-        contenido.setObjectName("TopBar")
-        fila = QHBoxLayout(contenido)
-        fila.setContentsMargins(8, 0, 22, 0)
+        fila = QHBoxLayout(self.btn_switcher)
+        fila.setContentsMargins(7, 5, 10, 5)
         fila.setSpacing(9)
 
         self.marca = QLabel("CA")
@@ -142,10 +161,12 @@ class TopBar(QWidget):
         textos.addWidget(self.lbl_cert)
 
         fila.addLayout(textos)
-        contenido.adjustSize()
-        self.btn_switcher.setFixedSize(
-            contenido.sizeHint().width(), theme.TOPBAR_ALTO - 12
-        )
+
+        chevron = QLabel("⌄")
+        chevron.setObjectName("CertChevron")
+        fila.addWidget(chevron)
+
+        self.btn_switcher.setFixedHeight(theme.TOPBAR_ALTO - 14)
 
         menu = QMenu(self.btn_switcher)
         for cert in self._certs:
@@ -157,17 +178,20 @@ class TopBar(QWidget):
         menu.addSeparator()
         todas = menu.addAction("Todas las certificaciones")
         todas.triggered.connect(self.ir_inicio.emit)
-        self.btn_switcher.setMenu(menu)
+        self.btn_switcher.menu = menu
 
         return self.btn_switcher
 
     def _construir_busqueda(self) -> QWidget:
-        self.btn_buscar = QPushButton("Buscar…    Ctrl K")
+        self.btn_buscar = QPushButton("Buscar…      Ctrl K")
         self.btn_buscar.setObjectName("BuscarGlobal")
         self.btn_buscar.setCursor(Qt.PointingHandCursor)
         self.btn_buscar.setToolTip(
             "Paleta de navegación (disponible en la próxima entrega)"
         )
+        self.btn_buscar.setFixedHeight(theme.TOPBAR_ALTO - 22)
+        # Deshabilitado pero legible: un disabled con el gris por defecto de Qt
+        # sobre el navy queda invisible. El QSS le da su propio color atenuado.
         self.btn_buscar.setEnabled(False)
         self.btn_buscar.clicked.connect(self.abrir_busqueda.emit)
         return self.btn_buscar
