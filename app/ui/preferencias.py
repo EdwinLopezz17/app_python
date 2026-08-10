@@ -1,13 +1,3 @@
-"""Preferencias de interfaz que sobreviven al cierre de la app.
-
-Usa `QSettings`, que en Windows escribe en el registro bajo
-`HKCU\\Software\\Pacífico Seguros\\Certificación de Accesos`. No requiere
-permisos de administrador ni una ruta de disco: es la vía estándar de Qt y
-funciona igual desde el ejecutable empaquetado con PyInstaller.
-
-Aquí solo van preferencias de presentación. Nada de datos de negocio ni de
-rutas de archivos cargados: eso vive en `DATA_PATH` y no debe mezclarse.
-"""
 
 from __future__ import annotations
 
@@ -15,14 +5,7 @@ from PySide6.QtCore import QByteArray, QSettings
 
 
 def _settings() -> QSettings:
-    # El nombre de organización y de aplicación los fija `main.py` sobre el
-    # QApplication, así que este constructor los toma solo.
     return QSettings()
-
-
-# ---------------------------------------------------------------------------
-# Geometría de la ventana
-# ---------------------------------------------------------------------------
 
 
 def guardar_geometria(datos: QByteArray) -> None:
@@ -34,13 +17,7 @@ def leer_geometria() -> QByteArray | None:
     return valor if isinstance(valor, QByteArray) and not valor.isEmpty() else None
 
 
-# ---------------------------------------------------------------------------
-# Panel lateral de estado de archivos
-# ---------------------------------------------------------------------------
-
-
 def guardar_panel(visible: bool | None) -> None:
-    """`None` = modo automático según el ancho (no hay decisión del usuario)."""
     ajustes = _settings()
     if visible is None:
         ajustes.remove("cargar/panel_visible")
@@ -52,15 +29,9 @@ def leer_panel() -> bool | None:
     valor = _settings().value("cargar/panel_visible")
     if valor is None:
         return None
-    # QSettings devuelve "true"/"false" como texto en algunas plataformas.
     if isinstance(valor, str):
         return valor.lower() == "true"
     return bool(valor)
-
-
-# ---------------------------------------------------------------------------
-# Anchos de columna del diálogo de datos, por fuente
-# ---------------------------------------------------------------------------
 
 
 def guardar_columnas(clave: str, anchos: list[int]) -> None:
@@ -76,7 +47,6 @@ def leer_columnas(clave: str) -> list[int]:
     try:
         return [int(parte) for parte in str(valor).split(",") if parte]
     except ValueError:
-        # Preferencia corrupta: se ignora y se recalculan los anchos.
         return []
 
 
@@ -96,11 +66,6 @@ def leer_tamano_dialogo() -> tuple[int, int] | None:
         return int(ancho), int(alto)
     except (TypeError, ValueError):
         return None
-
-
-# ---------------------------------------------------------------------------
-# Última vista abierta
-# ---------------------------------------------------------------------------
 
 
 def guardar_ultima_vista(ruta: str) -> None:

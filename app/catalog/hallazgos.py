@@ -15,10 +15,6 @@ class Hallazgo:
     modelo: str | None = None
     descripcion: str = ""
     usa_fecha_corte: bool = False
-    #: Fuentes sin las cuales el reporte no puede ejecutarse. Si queda vacío,
-    #: se asume que TODAS las fuentes del hallazgo son obligatorias (que es el
-    #: comportamiento histórico). Las que no estén aquí son opcionales: el
-    #: hallazgo se genera igual y simplemente no aporta filas esa fuente.
     requeridas: list[str] = field(default_factory=list)
 
     @property
@@ -68,8 +64,6 @@ HALLAZGOS: list[Hallazgo] = [
             "addactis", "monokera", "siniestros-web", "datalake", "crm",
             "qualys", "ssa",
         ],
-        # Las aplicaciones son opcionales: se puede certificar con las que ya
-        # estén cargadas. Lo obligatorio es el núcleo de identidad/RRHH.
         requeridas=["dni-vs-usuarios", "gdh", "ad", "entra-id", "tickets-ceses"],
     ),
     Hallazgo(

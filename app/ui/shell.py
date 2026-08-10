@@ -22,13 +22,8 @@ class VentanaPrincipal(QMainWindow):
         super().__init__()
         self.setWindowTitle("Certificación de Accesos · Pacífico Seguros")
         self.resize(1440, 900)
-        # La app se usa mucho a media pantalla en monitores Full HD (~960 px).
-        # Con el piso anterior (1180) nunca se llegaba a los anchos angostos.
         self.setMinimumSize(900, 600)
 
-        # La geometría guardada manda sobre el `resize` por defecto. Si la
-        # pantalla cambió (portátil que se desacopla del monitor) Qt la
-        # descarta sola y se queda con el tamaño de arriba.
         guardada = preferencias.leer_geometria()
         if guardada is not None:
             self.restoreGeometry(guardada)
@@ -37,9 +32,6 @@ class VentanaPrincipal(QMainWindow):
         self._hallazgo_views: dict[str, HallazgoView] = {}
         self._resumen_views: dict[str, ResumenView] = {}
 
-        # Tres franjas apiladas, como el AppShell de la referencia: barra de
-        # navegación, contenido (cada vista trae su propia cabecera de migas y
-        # título) y un pie discreto con la ruta de datos.
         central = QWidget()
         central.setObjectName("Canvas")
         raiz = QVBoxLayout(central)
@@ -78,7 +70,6 @@ class VentanaPrincipal(QMainWindow):
         self.paleta.abrir()
 
     def _ir_a(self, entrada) -> None:
-        """Navega a una entrada de la paleta."""
         if entrada.vista == "cargar":
             self.abrir_cargar(entrada.hallazgo_id, foco=entrada.fuente_id)
         elif entrada.vista == "hallazgo":
@@ -87,14 +78,7 @@ class VentanaPrincipal(QMainWindow):
             self.abrir_resumen(entrada.hallazgo_id)
 
 
-
     def _restaurar_vista(self) -> None:
-        """Reabre la vista en la que se cerró la app la última vez.
-
-        La ruta se guarda como "cargar:<id>" / "hallazgo:<id>" / "resumen:<id>".
-        Si el hallazgo ya no existe en el catálogo (renombrado, retirado) se
-        cae a la pantalla de inicio en silencio.
-        """
         ruta = preferencias.leer_ultima_vista()
         vista, _, hallazgo_id = ruta.partition(":")
 

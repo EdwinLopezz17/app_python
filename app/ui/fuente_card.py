@@ -20,9 +20,6 @@ from app.ui.responsive import (
 
 FILTRO_ARCHIVOS = "Reportes (*.csv *.xls *.xlsx);;Todos los archivos (*)"
 
-#: Glifo por tono. El color por sí solo no es accesible: con deuteranopia o
-#: protanopia el verde de CARGADO y el rojo de ERROR se confunden. El símbolo
-#: hace el estado legible sin depender del color.
 GLIFOS = {
     "ok": "✓",
     "error": "!",
@@ -45,14 +42,11 @@ def _badge(texto: str, tono: str) -> QLabel:
 
 
 def _pintar_badge(etiqueta: QLabel, texto: str, tono: str) -> None:
-    """Cambia texto y tono a la vez para que el glifo nunca se desincronice."""
     etiqueta.setText(_texto_badge(texto, tono))
     etiqueta.setProperty("tono", tono)
 
 
 class Desplegable(QWidget):
-    #: Se emite cuando el alto del widget puede haber cambiado (abrir/cerrar,
-    #: repoblar). La grilla la escucha para recolocar las cards.
     alto_cambiado = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -126,7 +120,6 @@ class SlotRow(QWidget):
     ver_datos = Signal(object)
     alerta_error = Signal(bool)
     alto_cambiado = Signal()
-    #: True al empezar a procesar un archivo, False al terminar o fallar.
     ocupado_cambiado = Signal(bool)
 
     def __init__(self, slot: Slot, mostrar_label: bool, parent: QWidget | None = None) -> None:
@@ -138,8 +131,6 @@ class SlotRow(QWidget):
         self.slot = slot
         self._ocupado = False
         self._ultimas_faltantes: list[str] = []
-        #: Error de la última carga. Sobrevive a `refrescar()` para que el badge
-        #: rojo no se borre solo cuando la vista repinta todas las cards.
         self._error: tuple[str, str] | None = None
         self._faltantes_visibles: list[str] = []
         self.setAcceptDrops(True)
@@ -194,8 +185,6 @@ class SlotRow(QWidget):
 
         self._pintar_columnas([])
 
-        # Flow en vez de fila fija: con la card angosta (1 o 2 columnas) los
-        # botones bajan de línea en lugar de forzar el ancho de toda la grilla.
         acciones = ContenedorFlow(espacio_h=6, espacio_v=6)
 
         self.btn_cargar = QPushButton("Seleccionar archivo")
@@ -264,14 +253,8 @@ class SlotRow(QWidget):
         self.btn_ver.setEnabled(estado.existe)
         self.btn_borrar.setEnabled(estado.existe)
 
-        # «Seleccionar archivo» -> «Reemplazar» cambia el ancho del botón y
-        # puede hacer que el flow suba o baje de línea. Hay que remedir.
         self._acciones.ajustar_diferido()
 
-        # El error de la última carga manda sobre lo que dice el disco. Sin
-        # esto, el `cambiado.emit()` de `_al_fallar` provoca un `refrescar()`
-        # de toda la vista que devolvía el badge a PENDIENTE/CARGADO y hacía
-        # desaparecer el aviso rojo casi al instante.
         if self._error:
             titulo, detalle = self._error
             _pintar_badge(self.badge, "ERROR", "error")
@@ -385,8 +368,6 @@ class SlotRow(QWidget):
             detalle = mensaje
 
         self._error = (titulo, detalle)
-        # `refrescar()` ahora conserva el error y pinta badge + alerta +
-        # desplegable rojo en un solo lugar.
         self.refrescar()
         self.cambiado.emit()
 
@@ -511,11 +492,9 @@ class FuenteCard(QFrame):
         return alto_vbox(self.layout(), ancho)
 
     def estado_actual(self) -> str:
-        """'cargado', 'error' o '' (pendiente / parcial)."""
         return self._estado
 
     def texto_busqueda(self) -> str:
-        """Todo el texto por el que se puede encontrar esta card."""
         partes = [self.fuente.label, self.fuente.id]
         for slot in self.fuente.slots:
             partes.append(slot.display_label)
@@ -531,8 +510,6 @@ class FuenteCard(QFrame):
             estado = "cargado"
         else:
             estado = ""
-        # El borde rojo de QFrame#Card[estado="error"] ya existía en theme.py
-        # pero nunca se activaba.
         self._estado = estado
         self.setProperty("estado", estado)
         self.style().unpolish(self)

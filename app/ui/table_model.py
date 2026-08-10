@@ -30,7 +30,6 @@ class DataFrameModel(QAbstractTableModel):
         campo = str(self._df.columns[index.column()])
 
         if role == Qt.DisplayRole:
-            # X / SI / Activo: el formato manda sobre cualquier otra regla.
             formateado = formatos.formatear(self._modelo, campo, valor)
             if formateado is not None:
                 return formateado
@@ -62,11 +61,6 @@ class DataFrameModel(QAbstractTableModel):
         return cols.grupo(self._modelo, str(self._df.columns[section]))
 
     def _ordenar(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Aplica el orden declarado en `hallazgo_columns.py`.
-
-        Lo que `logic/` devuelve viene en el orden del dataclass. El orden
-        visible lo manda la lista de `ColumnDef`, igual que en el Next.js.
-        """
         if df is None or df.empty and not len(df.columns):
             return df
         if not self._modelo:

@@ -1,50 +1,3 @@
-"""Definición de las columnas de cada tabla de hallazgos.
-
-Única fuente de verdad para CUATRO cosas a la vez:
-
-    orden  ·  etiqueta visible  ·  color de cabecera  ·  ancho de columna
-
-Es el equivalente de `src/config/columns.ts` del Next.js:
-
-    export const adColumns: ColumnDef[] = [
-      { key: 'Dominio', header: 'Dominio', group: 'C1', widthPx: 110 },
-      ...
-    ]
-
-Aquí se escribe igual, en Python:
-
-    AD_ROWS: list[ColumnDef] = [
-        Col("dominio", "Dominio", "C1", 110),
-        ...
-    ]
-
---------------------------------------------------------------------------
-CÓMO CAMBIAR EL ORDEN DE LAS COLUMNAS
---------------------------------------------------------------------------
-Mueve la línea `Col(...)` de sitio dentro de la lista. Eso es todo.
-
-El orden se aplica en los dos lados a la vez:
-
-    * la tabla de la pantalla de Hallazgos  (`DataFrameModel.set_dataframe`
-      reordena el DataFrame según esta lista)
-    * el Excel exportado                    (`app/exports/excel.py` usa la
-      misma lista para ordenar y para pintar las cabeceras)
-
-No hay que tocar nada más. Si `logic/` devuelve un campo que no está en la
-lista, se muestra igual, al final, con el color por defecto: nunca se pierde
-información por olvidarse de registrar una columna.
-
---------------------------------------------------------------------------
-LOS CUATRO CAMPOS DE `Col`
---------------------------------------------------------------------------
-    key     nombre técnico del campo, tal como lo devuelve `logic/`.
-            Tiene que coincidir con el atributo del dataclass de
-            `models/reports/`. `app/doctor.py` avisa si se desalinean.
-    header  texto que se ve en la cabecera de la tabla y del Excel.
-    group   grupo de color (C1..C11), definido en `app/catalog/colors.py`.
-    width   ancho en píxeles en la tabla. En el Excel se convierte a
-            caracteres dividiendo entre `PX_POR_CARACTER`.
-"""
 
 from __future__ import annotations
 
@@ -52,11 +5,8 @@ from dataclasses import dataclass
 
 from app.catalog.colors import GRUPO_POR_DEFECTO, GRUPOS, GrupoColor
 
-#: Ancho por defecto cuando `logic/` manda un campo no registrado.
 ANCHO_POR_DEFECTO = 150
 
-#: Un carácter de Excel mide ~7 px con Inter 10. Sirve para traducir `width`
-#: (píxeles de la tabla) al ancho de columna que espera xlsxwriter.
 PX_POR_CARACTER = 7
 
 
@@ -76,14 +26,9 @@ class ColumnDef:
         return round(self.width / PX_POR_CARACTER, 1)
 
 
-#: Alias corto para que las listas de abajo se lean como el `ColumnDef[]` del
-#: Next.js y no como una pared de texto.
 Col = ColumnDef
 
 
-#: Columnas que la app agrega para que el auditor las llene a mano al
-#: exportar. No existen en `models/reports/`, así que `doctor.py` las excluye
-#: de la verificación.
 COLUMNAS_ANOTACION = ("responsable", "comentario")
 
 
@@ -342,7 +287,6 @@ def por_campo(modelo: str | None) -> dict[str, ColumnDef]:
 
 
 def etiquetas(modelo: str | None) -> dict[str, str]:
-    """`{campo: cabecera}` en el orden declarado."""
     return {c.key: c.header for c in columnas(modelo)}
 
 
@@ -355,7 +299,6 @@ def cabeceras(modelo: str | None) -> list[str]:
 
 
 def definicion(modelo: str | None, campo: str) -> ColumnDef:
-    """Definición del campo, o una por defecto si no está registrado."""
     return por_campo(modelo).get(campo) or ColumnDef(campo, campo)
 
 
@@ -368,18 +311,11 @@ def ancho(modelo: str | None, campo: str) -> int:
 
 
 def ordenar(modelo: str | None, presentes: list[str]) -> list[str]:
-    """Campos de `presentes` en el orden de la lista.
-
-    Los que no están registrados se van al final, en el orden en que
-    llegaron: así un campo nuevo de `logic/` se ve igual aunque nadie lo
-    haya declarado todavía.
-    """
     declarados = [c.key for c in columnas(modelo) if c.key in presentes]
     return declarados + [c for c in presentes if c not in set(declarados)]
 
 
 def check_modelos() -> dict[str, dict[str, list[str]]]:
-    """Campos de `models/reports/` sin registrar y viceversa."""
     from dataclasses import fields
 
     from models.reports.ad_rows import ADRows

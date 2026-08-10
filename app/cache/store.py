@@ -16,8 +16,6 @@ from app.cache import fingerprint
 from app.catalog.hallazgos import Hallazgo
 from app.generation import sanitize
 
-#: v2 = caché en CSV (antes Parquet). El cambio de versión invalida la
-#: caché anterior, que se regenera sola en la primera ejecución.
 VERSION_CACHE = 2
 
 
@@ -36,8 +34,6 @@ class Metadatos:
     generado_en: str
     version: int = VERSION_CACHE
     fuentes: list[str] = field(default_factory=list)
-    #: {columna: dtype} para poder reconstruir booleanos y fechas al releer
-    #: el CSV, que por definición no guarda tipos.
     dtypes: dict[str, str] = field(default_factory=dict)
 
     @property
@@ -105,7 +101,6 @@ def _volcar_csv(datos: pd.DataFrame, destino: Path) -> None:
 
 
 def _escribir_csv(df: pd.DataFrame, destino: Path) -> pd.DataFrame:
-    """Devuelve el DataFrame realmente escrito (para leer sus dtypes)."""
     try:
         datos = sanitize.normalizar(df)
         _volcar_csv(datos, destino)
@@ -122,7 +117,6 @@ def _mapa_dtypes(df: pd.DataFrame) -> dict[str, str]:
 
 
 def _restaurar_dtypes(df: pd.DataFrame, dtypes: dict[str, str]) -> pd.DataFrame:
-    """El CSV vuelve como texto; se recuperan booleanos, fechas y números."""
     if df is None or df.empty or not dtypes:
         return df
 
@@ -140,8 +134,6 @@ def _restaurar_dtypes(df: pd.DataFrame, dtypes: dict[str, str]) -> pd.DataFrame:
             elif tipo.startswith(("int", "uint", "float")):
                 df[col] = pd.to_numeric(df[col], errors="coerce")
         except Exception:
-            # Un tipo que no se puede reconstruir se queda como texto: es
-            # preferible mostrarlo tal cual a romper la vista del hallazgo.
             continue
     return df
 
@@ -199,6 +191,5 @@ def cargar(hallazgo: Hallazgo, columnas: list[str] | None = None) -> ResultadoCa
 def invalidar(hallazgo: Hallazgo) -> None:
     ruta_datos(hallazgo).unlink(missing_ok=True)
     ruta_meta(hallazgo).unlink(missing_ok=True)
-    # Restos de la caché Parquet anterior.
     for ext in config.EXTENSIONES_LEGADAS:
         (_carpeta(hallazgo) / f"{hallazgo.id}{ext}").unlink(missing_ok=True)

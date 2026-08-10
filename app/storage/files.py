@@ -65,7 +65,6 @@ def estado_slot(slot: Slot) -> EstadoSlot:
 
 
 def _leer_csv(path: Path, columnas: list[str] | int | None = None) -> pd.DataFrame:
-    """Lectura estándar del formato que escribe la app: `;`, UTF-8, todo texto."""
     return pd.read_csv(
         path,
         sep=config.CSV_SEP,
@@ -79,7 +78,6 @@ def _leer_csv(path: Path, columnas: list[str] | int | None = None) -> pd.DataFra
 
 
 def _dimensiones(path: Path) -> tuple[int, int]:
-    """Filas y columnas sin cargar el archivo completo en memoria."""
     try:
         cabecera = pd.read_csv(
             path, sep=config.CSV_SEP, encoding=config.CSV_ENCODING,
@@ -161,7 +159,6 @@ def _residuos_de(path: Path) -> list[Path]:
     if not carpeta.exists():
         return []
     candidatos = [carpeta / f"{path.name}{config.EXTENSION_DATOS}"]
-    # Restos de la etapa Parquet: usuarios_x.parquet y usuarios_x.csv.parquet
     for ext in config.EXTENSIONES_LEGADAS:
         candidatos.append(path.with_suffix(ext))
         candidatos.append(carpeta / f"{path.name}{ext}")

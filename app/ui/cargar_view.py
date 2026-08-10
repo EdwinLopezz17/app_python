@@ -19,12 +19,8 @@ from app.ui.responsive import ANCHO_MIN_CARD, ContenedorFlow, GridResponsivo
 
 ORDEN_GRUPOS = [OTROS_REPORTES, BASES_DE_DATOS, APLICACIONES]
 
-#: Debajo de este ancho útil, el panel de estado se esconde solo para que las
-#: cards recuperen una segunda columna. El usuario puede forzarlo igual.
 UMBRAL_PANEL = 980
 
-#: Filtros por estado. La clave es lo que devuelve `FuenteCard.estado_actual()`
-#: ("" = pendiente o parcialmente cargada).
 FILTROS = [
     ("todas", "Todas"),
     ("", "Pendientes"),
@@ -43,18 +39,13 @@ class CargarView(QWidget):
         self.hallazgo = hallazgo
         self.setObjectName("Canvas")
 
-        # None = automático según el ancho. True/False = el usuario decidió.
         self._panel_forzado: bool | None = preferencias.leer_panel()
         self._sobre_umbral = True
 
-        #: Cuántos slots están procesando ahora mismo. Varias cargas pueden
-        #: solaparse (arrastrar archivos a dos cards seguidas).
         self._en_curso = 0
 
         self._filtro_estado = "todas"
         self._busqueda = ""
-        #: (título de sección, grid) para poder ocultar la sección completa
-        #: cuando el filtro deja su grid sin cards visibles.
         self._secciones: list[tuple[QLabel, GridResponsivo]] = []
 
         raiz = QVBoxLayout(self)
@@ -94,8 +85,6 @@ class CargarView(QWidget):
 
         scroll.setWidget(contenido)
         self._scroll = scroll
-        # Equivalente de `min-w-0 flex-1`: la columna de cards puede encogerse,
-        # así nunca empuja al panel por encima de ella.
         scroll.setMinimumWidth(0)
         scroll.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
         columnas.addWidget(scroll, 1)
@@ -122,13 +111,6 @@ class CargarView(QWidget):
         self.buscador.selectAll()
 
     def enfocar_fuente(self, fuente_id: str) -> None:
-        """Deja la vista mostrando solo esa fuente y hace scroll hasta ella.
-
-        Llegar desde la paleta a una grilla de 28 cards sin más ayuda deja al
-        usuario buscando a ojo lo que acaba de pedir por nombre. Se reutiliza
-        el filtro del buscador: queda escrito y visible, así se entiende por
-        qué solo se ve una card y se puede limpiar con Esc.
-        """
         card = next(
             (c for g in self._grids for c in g.widgets() if c.fuente.id == fuente_id),
             None,
@@ -140,8 +122,6 @@ class CargarView(QWidget):
         self.buscador.setText(card.fuente.label)
         self._busqueda = card.fuente.label.strip().lower()
         self._aplicar_filtros()
-        # Diferido: la card necesita su geometría nueva tras filtrar para que
-        # ensureWidgetVisible calcule bien el scroll.
         QTimer.singleShot(
             0, lambda: self._scroll.ensureWidgetVisible(card, 0, 24)
         )
@@ -149,16 +129,11 @@ class CargarView(QWidget):
     def _limpiar_filtros(self) -> None:
         self.buscador.clear()
         self._busqueda = ""
-        #: Cuántos slots están procesando ahora mismo. Varias cargas pueden
-        #: solaparse (arrastrar archivos a dos cards seguidas).
         self._en_curso = 0
 
         self._filtro_estado = "todas"
         self._aplicar_filtros()
 
-    # ------------------------------------------------------------------
-    # Cabecera
-    # ------------------------------------------------------------------
 
     def _construir_cabecera(self) -> QWidget:
         barra = QWidget()
@@ -195,8 +170,6 @@ class CargarView(QWidget):
         titulo_fila.addStretch(1)
         layout.addLayout(titulo_fila)
 
-        # Los botones bajan de línea solos cuando la ventana está a media
-        # pantalla, en vez de recortarse.
         acciones = ContenedorFlow(espacio_h=8, espacio_v=8)
 
         btn_limpiar = QPushButton("Eliminar todo")
@@ -230,8 +203,6 @@ class CargarView(QWidget):
         layout.addWidget(acciones)
         layout.addWidget(self._construir_filtros())
 
-        # Indeterminada: leer y validar un Excel no reporta avance parcial, así
-        # que un porcentaje sería inventado. Solo comunica «hay trabajo vivo».
         self.progreso = QProgressBar()
         self.progreso.setRange(0, 0)
         self.progreso.setTextVisible(False)
@@ -253,11 +224,6 @@ class CargarView(QWidget):
         return barra
 
     def _construir_filtros(self) -> QWidget:
-        """Buscador + chips de estado.
-
-        Con 28 fuentes en Aplicaciones, encontrar la que falló implicaba hacer
-        scroll a mano por toda la grilla.
-        """
         barra = ContenedorFlow(espacio_h=8, espacio_v=8)
 
         self.buscador = QLineEdit()
@@ -267,7 +233,6 @@ class CargarView(QWidget):
         self.buscador.setToolTip(
             "Filtra por nombre de fuente o de archivo. Atajo: Ctrl+F"
         )
-        # Debounce: reordenar la grilla en cada tecla se nota con 28 cards.
         self._debounce = QTimer(self)
         self._debounce.setSingleShot(True)
         self._debounce.setInterval(180)
@@ -290,7 +255,6 @@ class CargarView(QWidget):
         return barra
 
     def _al_cambiar_ocupacion(self, ocupado: bool) -> None:
-        """Lleva la cuenta de cargas simultáneas y muestra la barra global."""
         self._en_curso = max(0, self._en_curso + (1 if ocupado else -1))
 
         activo = self._en_curso > 0
@@ -307,7 +271,6 @@ class CargarView(QWidget):
         self._aplicar_filtros()
 
     def _filtrar_por(self, clave: str) -> None:
-        # Volver a pulsar el chip activo lo apaga y vuelve a «Todas».
         if self._filtro_estado == clave and clave != "todas":
             clave = "todas"
         self._filtro_estado = clave
@@ -321,7 +284,6 @@ class CargarView(QWidget):
         return card.estado_actual() == self._filtro_estado
 
     def _aplicar_filtros(self) -> None:
-        """Muestra u oculta cards, secciones y el aviso de «sin resultados»."""
         visibles_total = 0
 
         for titulo, grid in self._secciones:
@@ -348,7 +310,6 @@ class CargarView(QWidget):
         self._actualizar_chips()
 
     def _actualizar_chips(self) -> None:
-        """Refresca el contador de cada chip y marca el activo."""
         conteo = {clave: 0 for clave, _ in FILTROS}
         total = 0
         for _, grid in self._secciones:
@@ -363,16 +324,11 @@ class CargarView(QWidget):
             chip = self.chips[clave]
             cantidad = conteo[clave]
             chip.setText(f"{etiqueta} ({cantidad})")
-            # Un filtro sin resultados posibles se deshabilita en vez de
-            # llevar al usuario a una pantalla vacía.
             chip.setEnabled(cantidad > 0 or clave == "todas")
             chip.setProperty("activo", "si" if clave == self._filtro_estado else "")
             chip.style().unpolish(chip)
             chip.style().polish(chip)
 
-    # ------------------------------------------------------------------
-    # Cuerpo
-    # ------------------------------------------------------------------
 
     def _construir_grupos(self) -> None:
         por_grupo: dict[str, list[Fuente]] = {}
@@ -402,9 +358,6 @@ class CargarView(QWidget):
             self._secciones.append((titulo, grid))
             self._cuerpo.addWidget(grid)
 
-    # ------------------------------------------------------------------
-    # Estado
-    # ------------------------------------------------------------------
 
     def refrescar(self) -> None:
         for card in self.cards:
@@ -415,7 +368,6 @@ class CargarView(QWidget):
         slots = [s for f in self.hallazgo.fuentes for s in f.slots]
         cargados = sum(1 for s in slots if estado_slot(s).existe)
         total = len(slots)
-        # «Listo para generar» depende solo de las fuentes obligatorias.
         obligatorios = self.hallazgo.slots_requeridos
         faltan = sum(1 for s in obligatorios if not estado_slot(s).existe)
         completo = faltan == 0 and len(obligatorios) > 0
@@ -425,8 +377,6 @@ class CargarView(QWidget):
         self.lbl_progreso.style().unpolish(self.lbl_progreso)
         self.lbl_progreso.style().polish(self.lbl_progreso)
 
-        # El propio botón dice por qué no se puede, en vez de quedar gris y
-        # mudo con la explicación escondida en un tooltip.
         self.btn_generar.setEnabled(completo)
         if completo:
             self.btn_generar.setText("Generar Hallazgos  →")
@@ -446,16 +396,11 @@ class CargarView(QWidget):
                 "poder generar."
             )
 
-        # El estado de las cards pudo cambiar (una carga terminó, un archivo
-        # se borró), así que el filtro por estado se reevalúa.
         if self._secciones:
             self._aplicar_filtros()
 
         self.progreso_cambiado.emit(self.hallazgo.id, cargados, total)
 
-    # ------------------------------------------------------------------
-    # Panel lateral
-    # ------------------------------------------------------------------
 
     def _aplicar_panel(self, visible: bool) -> None:
         self.panel.setVisible(visible)
@@ -478,9 +423,6 @@ class CargarView(QWidget):
     def _panel_automatico(self) -> None:
         sobre = self.width() >= UMBRAL_PANEL
 
-        # Al cruzar el umbral se devuelve el control al modo automático. Antes
-        # bastaba con ocultar el panel una vez en pantalla angosta para que no
-        # volviera nunca, aunque el usuario maximizara la ventana.
         if sobre != self._sobre_umbral:
             self._sobre_umbral = sobre
             self._panel_forzado = None
@@ -497,9 +439,6 @@ class CargarView(QWidget):
         super().showEvent(evento)
         self._panel_automatico()
 
-    # ------------------------------------------------------------------
-    # Acciones
-    # ------------------------------------------------------------------
 
     def _ir_a_slot(self, file_name: str) -> None:
         for card in self.cards:

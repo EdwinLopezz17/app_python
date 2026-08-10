@@ -17,8 +17,6 @@ OUTLINE_VARIANT = "#bdc8d0"
 
 PRIMARY = "#006386"
 PRIMARY_HOVER = "#007da8"
-#: Tinte suave del primario, para selección en listas. Faltaba: existían
-#: SECONDARY_SOFT, TERTIARY_SOFT y ERROR_SOFT, pero no el del primario.
 PRIMARY_SOFT = "#dceffa"
 ON_PRIMARY = "#ffffff"
 
@@ -32,30 +30,20 @@ ERROR_SOFT = "#ffdad6"
 SIDEBAR_BG = "#283044"
 SIDEBAR_FG = "#eef0ff"
 SIDEBAR_MUTED = "#98a2bd"
-#: Texto de menú sobre el navy. El #98a2bd anterior daba ~3.4:1 contra
-#: #283044, por debajo del 4.5:1 de WCAG AA para texto normal.
 SIDEBAR_MUTED_FUERTE = "#c8d0e4"
-#: Superficies elevadas sobre el navy (hover, controles). Opacas en vez de
-#: rgba: Qt no compone alfa igual sobre todos los fondos y quedaba sucio.
 SIDEBAR_ELEVADO = "#333d55"
 SIDEBAR_ELEVADO_HOVER = "#3f4a66"
 SIDEBAR_BORDE = "#454f6b"
-#: Azul claro para el subrayado del menú activo. El PRIMARY (#006386) es
-#: demasiado oscuro contra el navy y no se ve.
 SIDEBAR_ACENTO = "#78d1ff"
 SIDEBAR_WIDTH = 260
 SIDEBAR_WIDTH_COMPACTO = 216
 
-#: Alto de la barra superior de navegación (h-14 en la referencia Next.js).
 TOPBAR_ALTO = 56
 
 RADIO_SM = 4
 RADIO_MD = 6
 RADIO_LG = 8
 
-# Tamaños de texto en un solo sitio. Antes había `font-size` sueltos en
-# `setStyleSheet` inline dentro de los widgets, que no escalaban con el tema
-# ni con el DPI del monitor.
 TEXTO_XS = 11
 TEXTO_SM = 12
 TEXTO_MD = 13

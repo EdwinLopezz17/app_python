@@ -13,7 +13,6 @@ from app.generation import reports
 from app.storage.files import estado_slot
 from app.ui.responsive import ContenedorFlow, GridResponsivo
 
-#: Ancho mínimo de una card de certificación.
 ANCHO_MIN_CERT = 380
 
 

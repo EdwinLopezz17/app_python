@@ -21,23 +21,13 @@ from app.ui.responsive import ContenedorFlow, EtiquetaAjustable
 from app.ui.table_header import CabeceraColoreada
 from app.ui.table_model import DataFrameModel
 
-#: Banderas que llevan tarjeta de conteo arriba de la tabla.
-#:
-#: Ojo con el nombre: `passwordneverexpires` y `cannotchangepassword` vienen
-#: de `models/reports/ad_rows.py` SIN el prefijo `is_`, así que no entran por
-#: ninguna regla automática y hay que declararlas a mano. Se muestran solo si
-#: el campo existe en el DataFrame, o sea que aparecen en AD y se ignoran en
-#: el resto de hallazgos.
 BANDERAS_KPI = [
     "is_cesado_activo", "is_login_post_cese", "is_no_identificado",
     "is_sin_uso_90d", "is_deshabilitado_180d", "is_no_cesado_oportunamente",
     "passwordneverexpires", "cannotchangepassword",
-    # Validaciones de Perfiles: el hallazgo es el "Incorrecto" (False).
-    # El sentido no se declara aquí, sale de formatos.FORMATOS_INVERTIDOS.
     "val_rol_app", "val_rol_app_perfil", "val_rol_perfil",
 ]
 
-#: Debajo de este ancho la fecha de corte y el buscador pasan a una fila propia.
 UMBRAL_COMPACTO = 1000
 
 
@@ -79,7 +69,6 @@ class HallazgoView(QWidget):
         self.barra.hide()
         layout.addWidget(self.barra)
 
-        # Tarjetas de conteo: bajan de línea solas en ventanas angostas.
         self.kpis = ContenedorFlow(espacio_h=12, espacio_v=12)
         self.kpis.hide()
         layout.addWidget(self.kpis)
@@ -103,9 +92,6 @@ class HallazgoView(QWidget):
         raiz.addWidget(cuerpo, 1)
         self.refrescar()
 
-    # ------------------------------------------------------------------
-    # Cabecera
-    # ------------------------------------------------------------------
 
     def _cabecera(self) -> QWidget:
         barra = QWidget()
@@ -222,25 +208,17 @@ class HallazgoView(QWidget):
 
         self.vacio_boton = QPushButton("Generar Hallazgos")
         self.vacio_boton.setCursor(Qt.PointingHandCursor)
-        # Mismo destino que el botón de la barra superior: sin esta conexión el
-        # botón del estado vacío quedaba decorativo.
         self.vacio_boton.clicked.connect(self._generar)
         layout.addWidget(self.vacio_boton, 0, Qt.AlignHCenter)
 
         return marco
 
-    # ------------------------------------------------------------------
-    # Estado
-    # ------------------------------------------------------------------
 
     def refrescar(self) -> None:
         if self._generando:
             return
 
         slots = [s for f in self.hallazgo.fuentes for s in f.slots]
-        # Solo las fuentes obligatorias bloquean la generación. Las opcionales
-        # (p. ej. cada aplicación en «Aplicaciones» o «Perfiles») pueden faltar:
-        # el reporte se ejecuta con las que estén cargadas.
         faltantes = [s for s in self.hallazgo.slots_requeridos
                      if not estado_slot(s).existe]
         opcionales = self.hallazgo.slots_opcionales
@@ -304,7 +282,6 @@ class HallazgoView(QWidget):
                 f"Faltan {len(faltantes)} archivos obligatorios. Los datos "
                 "mostrados corresponden a la última generación.", "aviso")
         elif opc_faltantes:
-            # Caso normal en Aplicaciones y Perfiles: no hace falta subirlas todas.
             cargadas = len(opcionales) - len(opc_faltantes)
             self._badge(
                 "VIGENTE" if estado is EstadoCache.VIGENTE and meta else "PARCIAL",
@@ -382,9 +359,6 @@ class HallazgoView(QWidget):
         self.aviso.style().polish(self.aviso)
         self.aviso.show()
 
-    # ------------------------------------------------------------------
-    # Generación
-    # ------------------------------------------------------------------
 
     def _tic(self) -> None:
         self._segundos += 1
@@ -449,8 +423,6 @@ class HallazgoView(QWidget):
         self.modelo.set_dataframe(df, self.hallazgo.modelo)
         self.buscador.clear()
         self._construir_kpis(df)
-        # El ancho lo manda `hallazgo_columns.py`, no el contenido: así la
-        # tabla se ve igual con 10 filas que con 90 000.
         for col in range(self.modelo.columnCount()):
             campo = str(self.modelo.dataframe.columns[col])
             self.tabla.setColumnWidth(col, cols.ancho(self.hallazgo.modelo, campo))
@@ -466,9 +438,6 @@ class HallazgoView(QWidget):
         tarjetas = [("Total de filas", len(df))]
         for campo in BANDERAS_KPI:
             if campo in df.columns:
-                # Conteo tolerante: acepta bool nativo y también el texto ya
-                # formateado ("X", "SI", "Incorrecto") de una caché antigua.
-                # En los campos de validación el hallazgo es el False.
                 conteo = formatos.contar_hallazgos(self.hallazgo.modelo, campo, df[campo])
                 etiqueta = etiquetas.get(campo, campo)
                 if formatos.invertido(self.hallazgo.modelo, campo):
@@ -495,9 +464,6 @@ class HallazgoView(QWidget):
 
         self.kpis.setVisible(bool(tarjetas))
 
-    # ------------------------------------------------------------------
-    # Filtro y exportación
-    # ------------------------------------------------------------------
 
     def _filtrar(self, texto: str) -> None:
         self.modelo.aplicar_filtro(texto)

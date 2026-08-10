@@ -89,7 +89,6 @@ class _Formatos:
 
 
 def _texto(valor, modelo: str | None = None, campo: str = "") -> str:
-    # Mismo diccionario que la tabla y que el Excel de hallazgos.
     if modelo and campo:
         formateado = formatos.formatear(modelo, campo, valor)
         if formateado is not None:

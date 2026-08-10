@@ -26,8 +26,6 @@ class FilaEstado(QFrame):
         raiz.setContentsMargins(10, 7, 10, 7)
         raiz.setSpacing(8)
 
-        # Glifo, no solo color: el punto verde y el gris son indistinguibles
-        # para quien no percibe el contraste rojo/verde.
         self.punto = QLabel("○")
         self.punto.setObjectName("PuntoEstado")
         raiz.addWidget(self.punto)
@@ -82,9 +80,6 @@ class PanelEstado(QWidget):
         super().__init__(parent)
         self.hallazgo = hallazgo
         self.setObjectName("PanelEstado")
-        # Ancho flexible dentro de un rango: el panel empuja las cards a la
-        # izquierda (nunca se superpone) y puede ceder algo de espacio cuando
-        # la ventana está a media pantalla.
         self.setMinimumWidth(ANCHO_MIN)
         self.setMaximumWidth(ANCHO_MAX)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)

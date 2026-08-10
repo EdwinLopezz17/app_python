@@ -8,10 +8,8 @@ import pandas as pd
 
 from app import config
 
-#: Firma de un archivo Parquet real.
 _MAGIC_PARQUET = b"PAR1"
 
-#: Codificaciones de rescate si el archivo no es UTF-8 limpio.
 _ENCODINGS_FALLBACK = ("utf-8-sig", "cp1252", "latin-1")
 
 
@@ -47,16 +45,6 @@ def _leer_csv(path: Path, columns=None, **kwargs) -> pd.DataFrame:
 
 @contextmanager
 def puente_csv():
-    """Permite que `logic/` siga llamando `pd.read_parquet` sobre archivos CSV.
-
-    Los datos manuales ahora se guardan en `.csv` (mismo path que espera
-    `logic/`: `DATA_PATH / FileName.value`). Varios servicios todavía usan
-    `pd.read_parquet(self.path_file)`, así que se intercepta la llamada y se
-    redirige a `read_csv` cuando el archivo no es Parquet de verdad.
-
-    Es temporal: cuando todos los servicios de `logic/` lean CSV, este puente
-    y su uso en `app/generation/reports.py` se pueden borrar.
-    """
     read_parquet_original = pd.read_parquet
 
     def read_parquet_parcheado(ruta, *args, **kwargs):
@@ -68,8 +56,6 @@ def puente_csv():
         if path.exists() and not _es_parquet(path):
             return _leer_csv(path, columns=kwargs.get("columns"))
 
-        # El archivo no existe con ese nombre: puede haber quedado el CSV
-        # equivalente de la carga manual.
         if not path.exists():
             gemelo = path.with_suffix(config.EXTENSION_DATOS)
             if gemelo.exists():
@@ -85,7 +71,6 @@ def puente_csv():
 
 
 def logic_lee_csv() -> bool:
-    """True si `logic/` ya lee CSV en todos sus servicios base."""
     import inspect
 
     modulos = [
@@ -109,7 +94,6 @@ def logic_lee_csv() -> bool:
 
 
 def servicios_con_parquet() -> list[str]:
-    """Servicios de `logic/` que todavía dependen del puente."""
     import inspect
 
     pendientes: list[str] = []

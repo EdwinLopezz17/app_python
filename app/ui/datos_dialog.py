@@ -17,9 +17,6 @@ class DatosDialog(QDialog):
     def __init__(self, slot: Slot, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.slot = slot
-        #: La lectura corre en el pool. Si el diálogo se cierra antes de que
-        #: termine, la señal seguía llegando a widgets ya destruidos y tumbaba
-        #: la app con RuntimeError. Este flag corta los callbacks.
         self._vivo = True
         self._senales = None
         self.setWindowTitle(f"Datos cargados · {slot.display_label}")
@@ -81,8 +78,6 @@ class DatosDialog(QDialog):
 
     def _cargar(self) -> None:
         tarea = Tarea(leer_datos, self.slot)
-        # Se guarda la referencia al QObject de señales: sin ella el recolector
-        # puede llevárselo mientras la tarea sigue viva.
         self._senales = tarea.senales
         tarea.senales.ok.connect(self._al_cargar)
         tarea.senales.error.connect(self._al_fallar)
@@ -130,17 +125,12 @@ class DatosDialog(QDialog):
         self.modelo.set_dataframe(df)
         self._actualizar_resumen()
 
-        # Si el usuario ya ajustó los anchos para esta fuente, se respetan.
         guardados = preferencias.leer_columnas(self.slot.key)
         if len(guardados) == self.modelo.columnCount():
             for col, ancho in enumerate(guardados):
                 self.tabla.setColumnWidth(col, ancho)
             return
 
-        # `resizeColumnsToContents` recorre TODAS las celdas en el hilo GUI.
-        # Con cientos de miles de filas la ventana se congela varios segundos.
-        # `setResizeContentsPrecision` limita el muestreo a las primeras filas
-        # visibles, que es suficiente para un ancho razonable.
         self._encabezado.setResizeContentsPrecision(200)
         self.tabla.resizeColumnsToContents()
         for col in range(self.modelo.columnCount()):

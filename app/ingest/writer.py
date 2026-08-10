@@ -32,7 +32,6 @@ class ResultadoCarga:
 
 
 def a_texto(df: pd.DataFrame) -> pd.DataFrame:
-    """Todo a string, sin NaN. `logic/` normaliza cabeceras pero no tipos."""
     salida = pd.DataFrame(index=df.index)
     for nombre in df.columns:
         salida[str(nombre)] = df[nombre].map(texto_celda)
@@ -40,12 +39,6 @@ def a_texto(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def escribir_csv(df: pd.DataFrame, destino: Path) -> None:
-    """Escritura atómica en CSV `;` UTF-8 sin BOM.
-
-    Sin BOM a propósito: los servicios de `logic/` hacen
-    `pd.read_csv(..., encoding="utf-8")` y luego `c.strip().upper()`, que no
-    elimina el BOM; escribirlo corrompería el nombre de la primera columna.
-    """
     destino.parent.mkdir(parents=True, exist_ok=True)
 
     texto = a_texto(df)

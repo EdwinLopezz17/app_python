@@ -9,7 +9,6 @@ import pandas as pd
 from app.catalog import formatos, hallazgo_columns as cols
 
 GRIS_BORDE = "#BDC8D0"
-#: Límites del ancho de columna en caracteres de Excel.
 ANCHO_MIN, ANCHO_MAX = 10, 45
 
 
@@ -33,15 +32,11 @@ def exportar(
         if extra not in df.columns:
             df[extra] = ""
 
-    # X / SI / Activo. Se hace ANTES del rename para poder consultar el
-    # formato por el nombre técnico del campo, no por la etiqueta visible.
     for campo in list(df.columns):
         fmt = formatos.formato(modelo, str(campo))
         if fmt is not None:
             df[campo] = df[campo].map(lambda v, f=fmt: formatos.texto(v, f))
 
-    # Mismo orden y mismas etiquetas que la tabla de la app: los dos lados
-    # leen `app/catalog/hallazgo_columns.py`.
     if modelo:
         columnas = cols.ordenar(modelo, [str(c) for c in df.columns])
         salida = df[columnas].rename(columns=cols.etiquetas(modelo))
@@ -79,8 +74,6 @@ def exportar(
         for idx, nombre in enumerate(salida.columns):
             campo = campos_origen[idx]
             hoja_xl.write(0, idx, str(nombre), formato_cabecera(campo))
-            # El ancho declarado en `hallazgo_columns.py` manda; el contenido
-            # solo puede ensancharlo, nunca angostarlo por debajo del mínimo.
             ancho = cols.definicion(modelo, campo).ancho_excel
             if len(salida):
                 muestra = salida.iloc[: min(200, len(salida)), idx].astype(str)

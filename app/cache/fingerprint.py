@@ -10,9 +10,7 @@ from app.storage.files import EstadoSlot, estado_slot
 @dataclass
 class Huella:
     valor: str
-    #: Solo fuentes OBLIGATORIAS que faltan: son las que bloquean la generación.
     faltantes: list[str]
-    #: Fuentes opcionales que faltan. No bloquean nada; se informan en la UI.
     opcionales_faltantes: list[str] = field(default_factory=list)
 
     @property
@@ -31,9 +29,6 @@ def calcular(hallazgo: Hallazgo) -> Huella:
 
     obligatorias = {s.key for s in hallazgo.slots_requeridos}
 
-    # La huella sigue incluyendo TODAS las fuentes: si mañana se carga una
-    # aplicación opcional que hoy falta, la caché queda desactualizada y se
-    # ofrece regenerar. Lo que cambia es solo qué se considera bloqueante.
     for estado in sorted(estados_de(hallazgo), key=lambda e: e.slot.key):
         if not estado.existe:
             if estado.slot.key in obligatorias:

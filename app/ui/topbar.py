@@ -1,20 +1,3 @@
-"""Barra superior de navegación, equivalente al `TopBar.tsx` del Next.js.
-
-Reemplaza al sidebar lateral. La app de referencia no tiene sidebar: su
-`AppShell` son tres franjas apiladas — barra oscura de navegación, cabecera de
-control panel (migas + título + acciones, que cada vista ya construye), y el
-contenido con scroll.
-
-La barra tiene tres zonas:
-
-    [ switcher de certificación ] │ [ menús de hallazgos ]        [ buscar ]
-
-Cada menú es un hallazgo, y su desplegable lleva las hojas de ese hallazgo
-(Hallazgos / Cargar Información / Generar Resumen). El botón muestra la hoja
-activa a su derecha —«Aplicaciones / Cargar Información»— igual que el
-`subPath` del `MenuButton` de la referencia, para desambiguar hojas que se
-llaman igual en distintos hallazgos.
-"""
 
 from __future__ import annotations
 
@@ -49,7 +32,6 @@ def ruta_resumen(hallazgo_id: str) -> str:
 
 
 class _Pulsable(QFrame):
-    """Contenedor que despliega un QMenu al pulsarlo, alineado a su borde."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -71,9 +53,6 @@ class TopBar(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("BarraNav")
-        # Un QWidget plano no pinta el `background` del QSS salvo que se le
-        # active WA_StyledBackground; sin esto la barra salía del color del
-        # canvas y los botones flotaban sobre fondo claro.
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setFixedHeight(theme.TOPBAR_ALTO)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
@@ -81,9 +60,7 @@ class TopBar(QWidget):
         self._certs = certificaciones()
         self._activa: Certificacion = self._certs[0]
         self._ruta = INICIO
-        #: hallazgo_id -> submenú, por si hace falta marcarlo desde fuera.
         self._submenus: dict[str, QMenu] = {}
-        #: Compatibilidad con el código que consultaba los botones por menú.
         self._menus: dict[str, QToolButton] = {}
 
         raiz = QHBoxLayout(self)
@@ -93,9 +70,6 @@ class TopBar(QWidget):
         raiz.addWidget(self._construir_switcher())
         raiz.addWidget(self._separador_vertical())
 
-        # Los menús viven en un scroll horizontal: con la certificación de
-        # Usuarios son varios botones y en una ventana de 900 px no caben.
-        # Antes que truncarlos o apilarlos, se desplazan.
         self._zona_menus = QWidget()
         self._zona_menus.setObjectName("BarraNav")
         self._zona_menus.setAttribute(Qt.WA_StyledBackground, True)
@@ -117,9 +91,6 @@ class TopBar(QWidget):
         self._reconstruir_menus()
         self.marcar(INICIO)
 
-    # ------------------------------------------------------------------
-    # Construcción
-    # ------------------------------------------------------------------
 
     def _separador_vertical(self) -> QFrame:
         linea = QFrame()
@@ -129,13 +100,6 @@ class TopBar(QWidget):
         return linea
 
     def _construir_switcher(self) -> QWidget:
-        """Icono + «CERTIFICACIÓN / <nombre>» + chevron, como la referencia.
-
-        Es un QFrame y no un QToolButton: el QToolButton calcula su ancho a
-        partir de su propio texto e ignora el del layout hijo, así que el
-        contenido quedaba colapsado a la primera letra. El menú se abre desde
-        `mousePressEvent`.
-        """
         self.btn_switcher = _Pulsable()
         self.btn_switcher.setObjectName("CertSwitcher")
         self.btn_switcher.setCursor(Qt.PointingHandCursor)
@@ -197,31 +161,10 @@ class TopBar(QWidget):
         return self.btn_buscar
 
     def _reconstruir_menus(self) -> None:
-        """Un único botón «Certificar» con los hallazgos de la certificación.
-
-            Certificar ▾
-              └ BD Vida       ▸  Cargar Información · Ver Hallazgos · Generar Resumen
-              └ BD Generales  ▸  Cargar Información · Ver Hallazgos · Generar Resumen
-
-        «Certificar» y no «Hallazgos» porque esa palabra ya nombra a una de las
-        hojas de dentro, y tenerla en los dos niveles hacía ambigua la
-        navegación: se leía «Hallazgos › Aplicaciones › Hallazgos». El verbo
-        además comunica que ahí está el trabajo, no un listado pasivo. Por eso
-        la hoja se llama «Ver Hallazgos».
-
-        Cada submenú repite el flujo completo en su orden real: primero se
-        cargan los archivos, luego se revisan los hallazgos, al final se genera
-        el resumen. Los hallazgos sin resumen disponible no muestran esa
-        tercera opción.
-        """
         while self._menus_layout.count():
             item = self._menus_layout.takeAt(0)
             widget = item.widget()
             if widget is not None:
-                # `deleteLater` solo programa el borrado: hasta que el bucle de
-                # eventos lo procesa, el widget sigue pintándose y quedaban
-                # botones fantasma de la certificación anterior encima de los
-                # nuevos. Desvincularlo del padre lo saca del render ya.
                 widget.hide()
                 widget.setParent(None)
                 widget.deleteLater()
@@ -263,9 +206,6 @@ class TopBar(QWidget):
         self.btn_certificar.setObjectName("BotonCertificar")
         self.btn_certificar.setCursor(Qt.PointingHandCursor)
         self.btn_certificar.setPopupMode(QToolButton.InstantPopup)
-        # ToolButtonTextBesideIcon + un icono de texto no da control fino, así
-        # que el chevron va en el propio texto: es la única forma de garantizar
-        # que se ve siempre, en cualquier estilo de Qt y en cualquier DPI.
         self.btn_certificar.setText("Certificar   ⌄")
         self.btn_certificar.setToolTip(
             "Hallazgos de esta certificación y sus acciones"
@@ -274,16 +214,12 @@ class TopBar(QWidget):
         self._menus_layout.addWidget(self.btn_certificar)
         self._menus_layout.addStretch(1)
 
-    # ------------------------------------------------------------------
-    # Estado
-    # ------------------------------------------------------------------
 
     def _elegir_cert(self, cert_id: str) -> None:
         cert = next(c for c in self._certs if c.id == cert_id)
         self.ir_hallazgo.emit(cert.landing)
 
     def marcar(self, ruta: str) -> None:
-        """Sincroniza la barra con la vista abierta."""
         self._ruta = ruta
         vista, _, hallazgo_id = ruta.partition(":")
 
@@ -302,8 +238,6 @@ class TopBar(QWidget):
             "resumen": "Generar Resumen",
         }
 
-        # Con un solo botón, el camino activo es lo único que dice dónde se
-        # está: «Certificar / BD Vida / Cargar Información».
         if hallazgo_id and vista in hojas:
             etiqueta = get_hallazgo(hallazgo_id).label
             self.btn_certificar.setText(
@@ -328,12 +262,6 @@ class TopBar(QWidget):
 
 
 class PieDatos(QLabel):
-    """Ruta de datos, que antes vivía en el pie del sidebar.
-
-    Se conserva porque es la única pista visible de dónde escribe la app, y al
-    quitar el sidebar se habría perdido. Va en la esquina inferior de la
-    ventana, discreta.
-    """
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)

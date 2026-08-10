@@ -1,10 +1,3 @@
-"""Layouts que se reacomodan solos según el ancho disponible.
-
-Equivalente en Qt de lo que en el Next.js hacía Tailwind con
-`grid-cols-1 sm:grid-cols-2 xl:grid-cols-3` y con `flex-wrap` en la barra de
-acciones. La app se usa a media pantalla en monitores Full HD (~960 px), así
-que nada puede depender de que la ventana esté maximizada.
-"""
 
 from __future__ import annotations
 
@@ -15,29 +8,10 @@ from PySide6.QtWidgets import (
     QLabel, QLayout, QSizePolicy, QVBoxLayout, QWidget,
 )
 
-#: Ancho mínimo legible de una card de fuente.
 ANCHO_MIN_CARD = 300
 
 
-# ---------------------------------------------------------------------------
-# Medición determinista de alturas
-# ---------------------------------------------------------------------------
-#
-# Qt calcula la altura mínima de un contenedor sumando los `minimumSizeHint`
-# de sus hijos. Para contenido que depende del ancho (QLabel con wordWrap,
-# FlowLayout que baja de línea) ese valor está SUBESTIMADO: un QLabel envuelto
-# reporta como mínimo una sola línea. Cuando el grid se queda sin espacio
-# (2 o 1 columna) usa esos mínimos para dimensionar las filas y las cards
-# quedan más bajas que su contenido, que entonces se dibuja por fuera y por
-# detrás de la card siguiente.
-#
-# `alto_de()` / `alto_vbox()` no negocian: calculan el alto REAL para un ancho
-# dado, recursivamente. Es la base de `heightForWidth()` en las cards y del
-# posicionamiento manual de `GridResponsivo`.
-
-
 def alto_de(widget: QWidget, ancho: int) -> int:
-    """Alto que ocupa `widget` si se le da `ancho` px. 0 si está oculto."""
     if widget.isHidden():
         return 0
 
@@ -50,8 +24,6 @@ def alto_de(widget: QWidget, ancho: int) -> int:
 
     base = max(widget.sizeHint().height(), widget.minimumHeight())
 
-    # Contenedor sin heightForWidth propio (p. ej. el QFrame de la alerta):
-    # se mide su columna interna, que sí puede tener labels envueltos.
     layout = widget.layout()
     if isinstance(layout, QVBoxLayout):
         base = max(base, alto_vbox(layout, ancho))
@@ -60,7 +32,6 @@ def alto_de(widget: QWidget, ancho: int) -> int:
 
 
 def alto_vbox(layout: QVBoxLayout, ancho: int) -> int:
-    """Alto real de una columna vertical para un ancho exterior dado."""
     margenes = layout.contentsMargins()
     interior = max(ancho - margenes.left() - margenes.right(), 1)
     espacio = max(layout.spacing(), 0)
@@ -75,7 +46,6 @@ def alto_vbox(layout: QVBoxLayout, ancho: int) -> int:
         if hijo is not None:
             alto = alto_de(hijo, interior)
         elif item.layout() is not None:
-            # Filas horizontales (cabeceras): su alto no depende del ancho.
             alto = item.layout().sizeHint().height()
         else:
             alto = item.sizeHint().height()
@@ -92,17 +62,6 @@ def alto_vbox(layout: QVBoxLayout, ancho: int) -> int:
 
 
 class _AutoAlto(QObject):
-    """Fija `minimumHeight` al alto que realmente pide el layout del widget.
-
-    Qt negocia la altura con `sizeHint()`/`minimumSizeHint()`, que son
-    *sugerencias*: un `QGridLayout` sin espacio suficiente las ignora y recorta
-    al hijo. Con contenido que depende del ancho (QLabel con `wordWrap`,
-    `FlowLayout` que baja de línea) esa negociación se queda con valores viejos
-    y la card acaba más baja de lo que necesita: el contenido se ve cortado.
-
-    `minimumHeight` sí es un límite duro. Se recalcula en cada `LayoutRequest`,
-    que es el evento que Qt manda cuando un hijo cambia de tamaño ideal.
-    """
 
     def eventFilter(self, obj: QWidget, evento) -> bool:
         if evento.type() == QEvent.LayoutRequest:
@@ -122,16 +81,6 @@ class _AutoAlto(QObject):
 
 
 class EtiquetaAjustable(QLabel):
-    """`QLabel` con `wordWrap` que sí reserva el alto que necesita.
-
-    Un `QLabel` envuelto tiene `heightForWidth`, pero para que el layout padre
-    lo consulte hace falta que TODOS los ancestros lleven el flag
-    `heightForWidth` en su `sizePolicy`. En una card con varios niveles de
-    `QVBoxLayout` esa cadena se rompe y el texto largo se corta a una línea.
-
-    Aquí se resuelve por abajo: la propia etiqueta fija su `minimumHeight`
-    (que sí es un límite duro) cada vez que cambia de ancho o de texto.
-    """
 
     def __init__(self, texto: str = "", parent: QWidget | None = None) -> None:
         super().__init__(texto, parent)
@@ -141,14 +90,6 @@ class EtiquetaAjustable(QLabel):
         self.setSizePolicy(politica)
 
     def _ancho_util(self) -> int:
-        """Ancho con el que medir el texto envuelto.
-
-        `self.width()` todavía es el ancho viejo (o 0) justo después de un
-        `setVisible(True)`, antes de que Qt corra el pase de layout. Medir con
-        él daba una altura calculada para otro ancho y el texto se desbordaba
-        fuera de la card. El `contentsRect()` del padre ya es correcto en ese
-        momento, así que se usa como referencia.
-        """
         propio = self.width()
         padre = self.parentWidget()
         if padre is not None:
@@ -166,8 +107,6 @@ class EtiquetaAjustable(QLabel):
         if not self.isVisibleTo(self.parentWidget() or self):
             return
         alto = self.heightForWidth(self._ancho_util())
-        # heightForWidth devuelve -1 cuando el label aún no tiene texto ni
-        # geometría; setMinimumHeight(-1) es un error de Qt.
         if alto > 0 and alto != self.minimumHeight():
             self.setMinimumHeight(alto)
             self.updateGeometry()
@@ -184,7 +123,6 @@ class EtiquetaAjustable(QLabel):
         if not visible:
             self.setMinimumHeight(0)
         else:
-            # Diferido: en este punto el widget aún no tiene el ancho final.
             self._ajustar()
             self.ajustar_diferido()
 
@@ -198,7 +136,6 @@ class EtiquetaAjustable(QLabel):
 
 
 def auto_alto(widget: QWidget) -> None:
-    """Engancha `_AutoAlto` al widget (idempotente)."""
     if getattr(widget, "_auto_alto", None) is not None:
         return
     filtro = _AutoAlto(widget)
@@ -208,17 +145,6 @@ def auto_alto(widget: QWidget) -> None:
 
 
 class GridResponsivo(QWidget):
-    """Grid de cards con posicionamiento manual y altura determinista.
-
-    No usa `QGridLayout`. La versión anterior sí, y el problema era que Qt
-    dimensiona las filas con `minimumSizeHint()` cuando falta espacio: con 2 o
-    1 columna las cards recibían menos alto del que su contenido necesita y
-    este se dibujaba fuera del `QFrame#Card`, por detrás de la card de abajo.
-
-    Aquí cada card recibe exactamente `alto_de(card, ancho_columna)` y la
-    grilla fija su propia altura al total. No hay nada que negociar, así que
-    no hay estado intermedio en el que las cosas se solapen.
-    """
 
     def __init__(
         self,
@@ -237,16 +163,12 @@ class GridResponsivo(QWidget):
         self._recolocando = False
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
-    # -- API ------------------------------------------------------------
 
     def agregar(self, widget: QWidget) -> None:
         widget.setParent(self)
         widget.show()
         self._widgets.append(widget)
 
-        # Las cards avisan cuando cambian de alto (abrir un desplegable,
-        # aparecer una alerta). Sin esta señal la grilla no se enteraría,
-        # porque ya no depende de la negociación de layouts de Qt.
         senal = getattr(widget, "alto_cambiado", None)
         if senal is not None:
             senal.connect(self.recolocar)
@@ -259,7 +181,6 @@ class GridResponsivo(QWidget):
     def columnas_actuales(self) -> int:
         return self._columnas
 
-    # -- Cálculo --------------------------------------------------------
 
     def _columnas_para(self, ancho: int) -> int:
         if ancho <= 0:
@@ -268,7 +189,6 @@ class GridResponsivo(QWidget):
         return max(1, min(self._max_columnas, int(cabe)))
 
     def _anchos(self, ancho: int, columnas: int) -> list[int]:
-        """Ancho de cada columna; la última absorbe el resto de la división."""
         base = (ancho - self._espacio * (columnas - 1)) // columnas
         anchos = [base] * columnas
         usado = base * columnas + self._espacio * (columnas - 1)
@@ -276,7 +196,6 @@ class GridResponsivo(QWidget):
         return anchos
 
     def recolocar(self) -> None:
-        """Reposiciona todas las cards. Idempotente y reentrante-seguro."""
         if self._recolocando:
             return
         ancho = self.width()
@@ -285,9 +204,6 @@ class GridResponsivo(QWidget):
 
         self._recolocando = True
         try:
-            # Dos pasadas: al asignarle su ancho definitivo a una card, sus
-            # labels envueltos remiden y el alto puede cambiar. La segunda
-            # pasada ya trabaja con las medidas buenas.
             for _ in range(2):
                 total = self._una_pasada(ancho)
             if self.height() != total or self.minimumHeight() != total:
@@ -297,8 +213,6 @@ class GridResponsivo(QWidget):
             self._recolocando = False
 
     def _una_pasada(self, ancho: int) -> int:
-        # Las cards filtradas no ocupan hueco: se saltan del reparto en vez de
-        # dejar un espacio en blanco donde estaban.
         visibles = [w for w in self._widgets if not w.isHidden()]
         if not visibles:
             return 0
@@ -323,8 +237,6 @@ class GridResponsivo(QWidget):
             ]
 
             for col, widget in enumerate(fila):
-                # AlignTop: una card corta no se estira para igualar a la más
-                # alta de su fila; queda arriba y deja el hueco abajo.
                 widget.setGeometry(equis[col], y, anchos[col], alturas[col])
 
             y += max(alturas) + self._espacio
@@ -332,7 +244,6 @@ class GridResponsivo(QWidget):
 
         return max(y - self._espacio, 0)
 
-    # -- Eventos --------------------------------------------------------
 
     def resizeEvent(self, evento) -> None:
         super().resizeEvent(evento)
@@ -343,18 +254,12 @@ class GridResponsivo(QWidget):
         self.recolocar()
 
     def event(self, evento):
-        # Un hijo cambió de tamaño ideal (texto nuevo, widget mostrado).
         if evento.type() == QEvent.LayoutRequest:
             self.recolocar()
         return super().event(evento)
 
 
 class FlowLayout(QLayout):
-    """Layout horizontal que baja de línea cuando no hay espacio.
-
-    Se usa en las barras de acciones: con la ventana a media pantalla los
-    botones se apilan en dos filas en vez de recortarse o desbordarse.
-    """
 
     def __init__(
         self,
@@ -369,7 +274,7 @@ class FlowLayout(QLayout):
         self._espacio_v = espacio_v
         self.setContentsMargins(margenes or QMargins(0, 0, 0, 0))
 
-    def __del__(self) -> None:  # pragma: no cover - limpieza de Qt
+    def __del__(self) -> None:
         while self._items:
             self._items.pop()
 
@@ -406,14 +311,6 @@ class FlowLayout(QLayout):
         return self.minimumSize()
 
     def minimumSize(self) -> QSize:
-        """Alto real del flow, no el del ítem más alto.
-
-        La versión anterior devolvía `expandedTo(item.minimumSize())`, es decir
-        la altura de UN solo botón aunque el flow hubiera bajado a dos o tres
-        líneas. El `QVBoxLayout` de la card consultaba ese valor y reservaba
-        una sola fila: los botones de la segunda línea se pintaban fuera del
-        `QFrame#Card` y quedaban por detrás de la card de abajo.
-        """
         ancho_min = 0
         for item in self._items:
             ancho_min = max(ancho_min, item.minimumSize().width())
@@ -422,9 +319,6 @@ class FlowLayout(QLayout):
         extra_h = margenes.left() + margenes.right()
         extra_v = margenes.top() + margenes.bottom()
 
-        # El ancho útil real manda; si el layout todavía no tiene geometría
-        # (primer pase) se cae al ancho mínimo de un ítem, que es el peor caso
-        # (todo apilado) y por tanto nunca se queda corto.
         padre = self.parentWidget()
         ancho_padre = padre.width() if padre is not None else 0
         ancho = max(self.geometry().width(), ancho_padre, ancho_min + extra_h, 1)
@@ -461,7 +355,6 @@ class FlowLayout(QLayout):
 
 
 class ContenedorFlow(QWidget):
-    """`QWidget` con `FlowLayout` que reporta bien su alto (heightForWidth)."""
 
     def __init__(
         self,
@@ -506,9 +399,4 @@ class ContenedorFlow(QWidget):
             self.updateGeometry()
 
     def ajustar_diferido(self) -> None:
-        """Reajusta en el siguiente ciclo de eventos.
-
-        Útil cuando algo cambia el contenido antes de que Qt haya asignado
-        geometría: medir en ese instante usa el ancho viejo.
-        """
         QTimer.singleShot(0, self._ajustar)
