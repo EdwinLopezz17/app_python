@@ -189,12 +189,10 @@ class TopBar(QWidget):
         self.btn_buscar.setObjectName("BuscarGlobal")
         self.btn_buscar.setCursor(Qt.PointingHandCursor)
         self.btn_buscar.setToolTip(
-            "Paleta de navegación (disponible en la próxima entrega)"
+            "Buscar hallazgo, pantalla o fuente en todas las certificaciones"
+            "   (Ctrl+K)"
         )
         self.btn_buscar.setFixedHeight(theme.TOPBAR_ALTO - 22)
-        # Deshabilitado pero legible: un disabled con el gris por defecto de Qt
-        # sobre el navy queda invisible. El QSS le da su propio color atenuado.
-        self.btn_buscar.setEnabled(False)
         self.btn_buscar.clicked.connect(self.abrir_busqueda.emit)
         return self.btn_buscar
 

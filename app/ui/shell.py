@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QMainWindow, QStackedWidget, QVBoxLayout, QWidget,
 )
@@ -10,6 +11,7 @@ from app.ui.hallazgo_view import HallazgoView
 from app.ui.launcher_view import LauncherView
 from app.ui.resumen_view import ResumenView
 from app.ui import preferencias
+from app.ui.paleta import PaletaComandos
 from app.ui.topbar import (
     INICIO, PieDatos, TopBar, ruta_cargar, ruta_hallazgo, ruta_resumen,
 )
@@ -49,6 +51,7 @@ class VentanaPrincipal(QMainWindow):
         self.topbar.ir_hallazgo.connect(self.abrir_hallazgo)
         self.topbar.ir_cargar.connect(self.abrir_cargar)
         self.topbar.ir_resumen.connect(self.abrir_resumen)
+        self.topbar.abrir_busqueda.connect(self.abrir_paleta)
         raiz.addWidget(self.topbar)
 
         self.stack = QStackedWidget()
@@ -63,7 +66,25 @@ class VentanaPrincipal(QMainWindow):
         raiz.addWidget(PieDatos())
 
         self.setCentralWidget(central)
+
+        self.paleta = PaletaComandos(self)
+        self.paleta.navegar.connect(self._ir_a)
+        atajo = QShortcut(QKeySequence("Ctrl+K"), self)
+        atajo.activated.connect(self.abrir_paleta)
+
         self._restaurar_vista()
+
+    def abrir_paleta(self) -> None:
+        self.paleta.abrir()
+
+    def _ir_a(self, entrada) -> None:
+        """Navega a una entrada de la paleta."""
+        if entrada.vista == "cargar":
+            self.abrir_cargar(entrada.hallazgo_id, foco=entrada.fuente_id)
+        elif entrada.vista == "hallazgo":
+            self.abrir_hallazgo(entrada.hallazgo_id)
+        elif entrada.vista == "resumen":
+            self.abrir_resumen(entrada.hallazgo_id)
 
 
 
@@ -99,7 +120,7 @@ class VentanaPrincipal(QMainWindow):
         self.topbar.marcar(INICIO)
         preferencias.guardar_ultima_vista(INICIO)
 
-    def abrir_cargar(self, hallazgo_id: str) -> None:
+    def abrir_cargar(self, hallazgo_id: str, foco: str | None = None) -> None:
         vista = self._cargar_views.get(hallazgo_id)
         if vista is None:
             vista = CargarView(get_hallazgo(hallazgo_id))
@@ -114,6 +135,9 @@ class VentanaPrincipal(QMainWindow):
         self.stack.setCurrentWidget(vista)
         self.topbar.marcar(ruta_cargar(hallazgo_id))
         preferencias.guardar_ultima_vista(ruta_cargar(hallazgo_id))
+
+        if foco:
+            vista.enfocar_fuente(foco)
 
     def abrir_hallazgo(self, hallazgo_id: str) -> None:
         vista = self._hallazgo_views.get(hallazgo_id)

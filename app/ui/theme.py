@@ -17,6 +17,9 @@ OUTLINE_VARIANT = "#bdc8d0"
 
 PRIMARY = "#006386"
 PRIMARY_HOVER = "#007da8"
+#: Tinte suave del primario, para selección en listas. Faltaba: existían
+#: SECONDARY_SOFT, TERTIARY_SOFT y ERROR_SOFT, pero no el del primario.
+PRIMARY_SOFT = "#dceffa"
 ON_PRIMARY = "#ffffff"
 
 SECONDARY = "#006d38"
@@ -367,6 +370,59 @@ QMenu::separator {{
     height: 1px; background: {OUTLINE_VARIANT}; margin: 5px 8px;
 }}
 QMenu[objectName=""] QLabel {{ color: {ON_SURFACE_VARIANT}; }}
+
+/* ── Paleta de comandos (Ctrl+K) ─────────────────────────────────────────── */
+QFrame#PaletaMarco {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border: 1px solid {OUTLINE_VARIANT}; border-radius: {RADIO_LG}px;
+}}
+QWidget#PaletaEntrada {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border-bottom: 1px solid {OUTLINE_VARIANT};
+    border-top-left-radius: {RADIO_LG}px; border-top-right-radius: {RADIO_LG}px;
+}}
+QLineEdit#PaletaInput {{
+    background: transparent; border: none; padding: 11px 0;
+    font-size: 16px; color: {ON_SURFACE};
+}}
+QLabel#PaletaLupa {{ color: {ON_SURFACE_VARIANT}; font-size: 17px; }}
+QLabel#PaletaTecla {{
+    color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_XS}px; font-weight: 600;
+    border: 1px solid {OUTLINE_VARIANT}; border-radius: {RADIO_SM}px;
+    padding: 2px 6px;
+}}
+
+QListWidget#PaletaLista {{
+    background: {SURFACE_CONTAINER_LOWEST}; border: none; padding: 4px;
+    outline: none;
+}}
+QListWidget#PaletaLista::item {{ border-radius: {RADIO_MD}px; }}
+/* El resultado activo se marca con fondo tintado, no solo con el azul de
+   selección del sistema, que en Windows tapa el texto. */
+QListWidget#PaletaLista::item:selected {{ background: {PRIMARY_SOFT}; }}
+QListWidget#PaletaLista::item:hover {{ background: {SURFACE_CONTAINER_LOW}; }}
+
+QLabel#PaletaRuta {{
+    color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_XS}px; font-weight: 600;
+    letter-spacing: 0.4px;
+}}
+QLabel#PaletaHoja {{
+    color: {ON_SURFACE}; font-size: {TEXTO_LG}px; font-weight: 600;
+}}
+QLabel#PaletaVacio {{
+    color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_MD}px; padding: 26px 12px;
+}}
+
+QWidget#PaletaPie {{
+    background: {SURFACE_CONTAINER_LOW};
+    border-top: 1px solid {OUTLINE_VARIANT};
+    border-bottom-left-radius: {RADIO_LG}px;
+    border-bottom-right-radius: {RADIO_LG}px;
+}}
+QLabel#PaletaPieTexto {{
+    color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_XS}px; font-weight: 600;
+    letter-spacing: 0.5px;
+}}
 
 QLabel#PieDatos {{
     color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_XS}px;

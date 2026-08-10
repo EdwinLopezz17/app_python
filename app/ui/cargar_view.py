@@ -121,6 +121,31 @@ class CargarView(QWidget):
         self.buscador.setFocus()
         self.buscador.selectAll()
 
+    def enfocar_fuente(self, fuente_id: str) -> None:
+        """Deja la vista mostrando solo esa fuente y hace scroll hasta ella.
+
+        Llegar desde la paleta a una grilla de 28 cards sin más ayuda deja al
+        usuario buscando a ojo lo que acaba de pedir por nombre. Se reutiliza
+        el filtro del buscador: queda escrito y visible, así se entiende por
+        qué solo se ve una card y se puede limpiar con Esc.
+        """
+        card = next(
+            (c for g in self._grids for c in g.widgets() if c.fuente.id == fuente_id),
+            None,
+        )
+        if card is None:
+            return
+
+        self._filtro_estado = "todas"
+        self.buscador.setText(card.fuente.label)
+        self._busqueda = card.fuente.label.strip().lower()
+        self._aplicar_filtros()
+        # Diferido: la card necesita su geometría nueva tras filtrar para que
+        # ensureWidgetVisible calcule bien el scroll.
+        QTimer.singleShot(
+            0, lambda: self._scroll.ensureWidgetVisible(card, 0, 24)
+        )
+
     def _limpiar_filtros(self) -> None:
         self.buscador.clear()
         self._busqueda = ""
