@@ -8,10 +8,10 @@ rápida de saltar a «BD Vida» estando en Usuarios sin pasar por el switcher.
 from __future__ import annotations
 
 from PySide6.QtCore import QEvent, Qt, QTimer, Signal
-from PySide6.QtGui import QKeyEvent
+from PySide6.QtGui import QColor, QKeyEvent, QPainter
 from PySide6.QtWidgets import (
     QDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget,
-    QListWidgetItem, QVBoxLayout, QWidget,
+    QListWidgetItem, QSizePolicy, QVBoxLayout, QWidget,
 )
 
 from app.ui import theme
@@ -19,6 +19,40 @@ from app.ui.search_index import Entrada, buscar
 
 #: Alto de cada resultado. Dos líneas (ruta + hoja) más aire.
 ALTO_FILA = 46
+
+
+class _Fondo(QWidget):
+    """Velo oscuro sobre la ventana mientras la paleta está abierta.
+
+    Qt no atenúa lo que hay detrás de un diálogo, así que se pinta un widget
+    hijo de la ventana principal, a pantalla completa y por encima de todo.
+    Además de centrar la atención, captura los clics: pulsar fuera cierra la
+    paleta, como en la referencia web.
+    """
+
+    cerrar = Signal()
+
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.setAttribute(Qt.WA_NoSystemBackground)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.hide()
+
+    def paintEvent(self, evento) -> None:
+        pintor = QPainter(self)
+        # Alfa 130/255: oscurece lo suficiente para que la paleta domine, sin
+        # borrar del todo el contexto de dónde estabas.
+        pintor.fillRect(self.rect(), QColor(19, 27, 46, 130))
+
+    def mousePressEvent(self, evento) -> None:
+        self.cerrar.emit()
+
+    def mostrar(self) -> None:
+        padre = self.parentWidget()
+        if padre is not None:
+            self.setGeometry(padre.rect())
+        self.show()
+        self.raise_()
 
 
 class _Fila(QWidget):
@@ -48,8 +82,15 @@ class PaletaComandos(QDialog):
         super().__init__(parent)
         self.setObjectName("Paleta")
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
-        self.setModal(True)
+        # No modal a propósito: el velo ya bloquea el resto de la ventana y así
+        # puede recibir los clics para cerrar. Con un diálogo modal, Qt se come
+        # esos clics y no llegan nunca al velo.
+        self.setModal(False)
         self._resultados: list[Entrada] = []
+
+        self.fondo = _Fondo(parent) if parent is not None else None
+        if self.fondo is not None:
+            self.fondo.cerrar.connect(self.reject)
 
         marco = QFrame()
         marco.setObjectName("PaletaMarco")
@@ -61,9 +102,15 @@ class PaletaComandos(QDialog):
         columna.setContentsMargins(0, 0, 0, 0)
         columna.setSpacing(0)
 
-        columna.addWidget(self._construir_entrada())
-        columna.addWidget(self._construir_lista(), 1)
-        columna.addWidget(self._construir_pie())
+        # Sin stretch en ninguno: cabecera y pie con alto fijo, la lista con el
+        # alto que se le asigne. Antes la lista llevaba stretch=1 y, al vaciar
+        # el texto, el alto sobrante del diálogo se repartía estirando la
+        # cabecera y el pie (el recuadro «ESC» crecía hasta ser un rectángulo).
+        self._caja_entrada = self._construir_entrada()
+        self._caja_pie = self._construir_pie()
+        columna.addWidget(self._caja_entrada)
+        columna.addWidget(self._construir_lista())
+        columna.addWidget(self._caja_pie)
 
         self.setFixedWidth(620)
         self._refrescar()
@@ -74,6 +121,7 @@ class PaletaComandos(QDialog):
         caja = QWidget()
         caja.setObjectName("PaletaEntrada")
         caja.setAttribute(Qt.WA_StyledBackground, True)
+        caja.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         fila = QHBoxLayout(caja)
         fila.setContentsMargins(14, 4, 12, 4)
         fila.setSpacing(10)
@@ -104,7 +152,7 @@ class PaletaComandos(QDialog):
         self.lista.setObjectName("PaletaLista")
         self.lista.setFrameShape(QFrame.NoFrame)
         self.lista.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.lista.setUniformItemSizes(True)
+        self.lista.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.lista.itemActivated.connect(lambda _: self._ir())
         self.lista.itemClicked.connect(lambda _: self._ir())
         return self.lista
@@ -113,6 +161,7 @@ class PaletaComandos(QDialog):
         caja = QWidget()
         caja.setObjectName("PaletaPie")
         caja.setAttribute(Qt.WA_StyledBackground, True)
+        caja.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         fila = QHBoxLayout(caja)
         fila.setContentsMargins(14, 6, 14, 6)
 
@@ -141,9 +190,19 @@ class PaletaComandos(QDialog):
                 marco.top() + max(int(marco.height() * 0.12), 40),
             )
 
+        if self.fondo is not None:
+            self.fondo.mostrar()
+
         self.show()
+        self.raise_()
+        self.activateWindow()
         # Tras el paint: si no, el foco se lo queda el diálogo y no el input.
         QTimer.singleShot(0, self.entrada.setFocus)
+
+    def hideEvent(self, evento) -> None:
+        if self.fondo is not None:
+            self.fondo.hide()
+        super().hideEvent(evento)
 
     def _refrescar(self) -> None:
         consulta = self.entrada.text().strip()
@@ -172,10 +231,34 @@ class PaletaComandos(QDialog):
                 else f"Sin resultados para «{consulta}»."
             )
 
-        # Alto según resultados, con tope: la lista no debe crecer sin freno.
-        filas = min(max(len(self._resultados), 1), 8)
-        self.lista.setFixedHeight(filas * ALTO_FILA + 8)
-        self.adjustSize()
+        self._ajustar_alto()
+
+    def _ajustar_alto(self) -> None:
+        """Alto exacto de lista y diálogo, sin dejar hueco que repartir."""
+        if self._resultados:
+            # Tope de 8 filas: la lista no debe crecer sin freno.
+            filas = min(len(self._resultados), 8)
+            alto_lista = filas * ALTO_FILA + 8
+        else:
+            # El mensaje de estado vacío es más alto que una fila normal; si se
+            # le da el alto de una fila, el texto se recorta.
+            item = self.lista.item(0)
+            alto_lista = (item.sizeHint().height() if item else ALTO_FILA) + 8
+
+        self.lista.setFixedHeight(alto_lista)
+
+        # El alto del diálogo se calcula sumando, no preguntando al layout:
+        # QLayout.sizeHint() está cacheado y, aun invalidándolo, devolvía el
+        # valor del refresco ANTERIOR (12 resultados con la lista ya vacía, y
+        # al revés). Sumar los tres bloques es exacto y no depende del caché.
+        alto = (
+            self._caja_entrada.sizeHint().height()
+            + alto_lista
+            + self._caja_pie.sizeHint().height()
+        )
+        # setFixedHeight y no adjustSize: adjustSize conserva el alto previo si
+        # es mayor, que era justo el origen del estiramiento.
+        self.setFixedHeight(alto)
 
     def _mensaje(self, texto: str | None) -> None:
         if texto is None:
