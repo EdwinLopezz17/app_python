@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent
 from PySide6.QtWidgets import (
     QFileDialog, QFrame, QHBoxLayout, QLabel, QMessageBox, QPushButton,
@@ -209,7 +209,6 @@ class SlotRow(QWidget):
         self.btn_borrar.clicked.connect(self._eliminar)
         acciones.agregar(self.btn_borrar)
 
-        self._acciones = acciones
         self._acciones = acciones
         raiz.addWidget(acciones)
 

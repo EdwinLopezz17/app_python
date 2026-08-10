@@ -14,6 +14,7 @@ from app.catalog.fuentes import Slot
 from app.ingest.merge import consolidar
 from app.ingest.readers import leer_cabeceras, texto_celda
 from app.ingest.validate import ResultadoValidacion, formato_permitido, validar_columnas
+from app.storage import files
 
 
 class ErrorDeCarga(Exception):
@@ -102,6 +103,16 @@ def cargar(slot: Slot, paths: list[str | Path]) -> ResultadoCarga:
 
     destino = config.destino(slot.key, slot.subfolder)
     escribir_csv(consolidado.df, destino)
+
+    nombres = (
+        list(dict.fromkeys(Path(p).name for p in paths)) if slot.origin_file else []
+    )
+    files.registrar_medida(
+        destino,
+        filas=consolidado.total_filas,
+        columnas=len(consolidado.df.columns),
+        archivos=nombres,
+    )
 
     return ResultadoCarga(
         slot=slot,

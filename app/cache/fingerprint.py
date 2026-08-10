@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass, field
 
+from app import config
 from app.catalog.hallazgos import Hallazgo
 from app.storage.files import EstadoSlot, estado_slot
 
@@ -29,16 +30,25 @@ def calcular(hallazgo: Hallazgo) -> Huella:
 
     obligatorias = {s.key for s in hallazgo.slots_requeridos}
 
-    for estado in sorted(estados_de(hallazgo), key=lambda e: e.slot.key):
-        if not estado.existe:
-            if estado.slot.key in obligatorias:
-                faltantes.append(estado.slot.key)
-            else:
-                opcionales_faltantes.append(estado.slot.key)
-            h.update(f"{estado.slot.key}|AUSENTE".encode())
+    vistos: set[str] = set()
+    slots = [s for f in hallazgo.fuentes for s in f.slots]
+    for slot in sorted(slots, key=lambda s: s.key):
+        if slot.key in vistos:
             continue
-        stat = estado.path.stat()
-        h.update(f"{estado.slot.key}|{stat.st_size}|{int(stat.st_mtime)}".encode())
+        vistos.add(slot.key)
+
+        path = config.destino(slot.key, slot.subfolder)
+        try:
+            stat = path.stat()
+        except OSError:
+            if slot.key in obligatorias:
+                faltantes.append(slot.key)
+            else:
+                opcionales_faltantes.append(slot.key)
+            h.update(f"{slot.key}|AUSENTE".encode())
+            continue
+
+        h.update(f"{slot.key}|{stat.st_size}|{int(stat.st_mtime)}".encode())
 
     return Huella(
         valor=h.hexdigest(),

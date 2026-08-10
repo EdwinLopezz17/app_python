@@ -129,8 +129,6 @@ class CargarView(QWidget):
     def _limpiar_filtros(self) -> None:
         self.buscador.clear()
         self._busqueda = ""
-        self._en_curso = 0
-
         self._filtro_estado = "todas"
         self._aplicar_filtros()
 

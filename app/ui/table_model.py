@@ -15,6 +15,7 @@ class DataFrameModel(QAbstractTableModel):
         self._etiquetas = cols.etiquetas(modelo) if modelo else {}
         self._original = self._ordenar(self._original)
         self._df = self._original
+        self._indice: pd.Series | None = None
 
     def rowCount(self, parent=QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self._df)
@@ -74,7 +75,23 @@ class DataFrameModel(QAbstractTableModel):
             self._etiquetas = cols.etiquetas(modelo)
         self._original = self._ordenar(df)
         self._df = self._original
+        self._indice = None
         self.endResetModel()
+
+    def _construir_indice(self) -> pd.Series:
+        if self._indice is not None:
+            return self._indice
+        if self._original.empty or not len(self._original.columns):
+            self._indice = pd.Series([], dtype=str)
+            return self._indice
+        partes = [
+            self._original[c].astype(str) for c in self._original.columns
+        ]
+        combinado = partes[0]
+        for parte in partes[1:]:
+            combinado = combinado.str.cat(parte, sep="\x1f")
+        self._indice = combinado.str.lower()
+        return self._indice
 
     def aplicar_filtro(self, texto: str) -> None:
         texto = (texto or "").strip()
@@ -82,15 +99,11 @@ class DataFrameModel(QAbstractTableModel):
         if not texto:
             self._df = self._original
         else:
-            partes = [
-                self._original[c].astype(str).str.contains(texto, case=False, na=False, regex=False)
-                for c in self._original.columns
-            ]
-            if partes:
-                mascara = partes[0]
-                for p in partes[1:]:
-                    mascara |= p
-                self._df = self._original[mascara]
+            indice = self._construir_indice()
+            if len(indice):
+                self._df = self._original[indice.str.contains(
+                    texto.lower(), regex=False, na=False
+                )]
             else:
                 self._df = self._original
         self.endResetModel()

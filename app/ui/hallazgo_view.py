@@ -161,7 +161,11 @@ class HallazgoView(QWidget):
         self.buscador.setClearButtonEnabled(True)
         self.buscador.setMinimumWidth(200)
         self.buscador.setMaximumWidth(280)
-        self.buscador.textChanged.connect(self._filtrar)
+        self._debounce = QTimer(self)
+        self._debounce.setSingleShot(True)
+        self._debounce.setInterval(200)
+        self._debounce.timeout.connect(self._filtrar)
+        self.buscador.textChanged.connect(lambda _: self._debounce.start())
         acciones.agregar(self.buscador)
 
         self.btn_cargar = QPushButton("Cargar Información")
@@ -465,7 +469,8 @@ class HallazgoView(QWidget):
         self.kpis.setVisible(bool(tarjetas))
 
 
-    def _filtrar(self, texto: str) -> None:
+    def _filtrar(self) -> None:
+        texto = self.buscador.text()
         self.modelo.aplicar_filtro(texto)
         total = self.modelo.total_original
         visibles = len(self.modelo.dataframe)
