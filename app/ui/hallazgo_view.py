@@ -13,7 +13,7 @@ from app.cache.store import EstadoCache
 from app.catalog import formatos, hallazgo_columns as cols, resumenes
 from app.catalog.hallazgos import Hallazgo
 from app.exports import excel
-from app.generation import reports
+from app.generation import reports, sesion
 from app.storage.files import estado_slot
 from app.tasks.runner import POOL, Tarea
 from app.ui import theme
@@ -238,6 +238,12 @@ class HallazgoView(QWidget):
             hay_datos = self.modelo.total_original > 0
 
         puede_generar = conectado and not faltantes
+
+        # Precalienta los servicios compartidos en segundo plano apenas se
+        # puede generar, para que el primer clic no pague la carga completa.
+        if puede_generar and not self._generando and sesion.solicitar_precalentamiento():
+            POOL.start(Tarea(sesion.precalentar))
+
         self.btn_generar.setEnabled(puede_generar)
         self.vacio_boton.setEnabled(puede_generar)
 
