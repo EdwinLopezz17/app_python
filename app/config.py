@@ -54,3 +54,6 @@ def nombre_base(file_name: str) -> str:
 def destino(file_name: str, subfolder: str | None = None) -> Path:
     carpeta = data_path() / subfolder if subfolder else data_path()
     return carpeta / f"{nombre_base(file_name)}{EXTENSION_DATOS}"
+
+
+

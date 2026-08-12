@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QDragEnterEvent, QDropEvent
+from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QFileDialog, QFrame, QHBoxLayout, QHeaderView, QLabel, QMessageBox,
     QProgressBar, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout,
@@ -19,6 +19,15 @@ from app.ui.responsive import ContenedorFlow
 
 FILTRO_ARCHIVOS = "Excel de detalle (*.xlsx *.xlsm *.xls);;Todos los archivos (*)"
 EXTENSIONES = {".xlsx", ".xlsm", ".xls"}
+
+
+def _tamano_texto(bytes_: int) -> str:
+    valor = float(bytes_)
+    for unidad in ("B", "KB", "MB", "GB"):
+        if valor < 1024 or unidad == "GB":
+            return f"{valor:.1f} {unidad}" if unidad != "B" else f"{int(valor)} B"
+        valor /= 1024
+    return f"{valor:.1f} GB"
 
 
 class ZonaSoltar(QFrame):
@@ -399,16 +408,59 @@ class ResumenView(QWidget):
 
         tarea = Tarea(export.exportar, self.config, self._filas, destino)
         tarea.senales.ok.connect(self._al_descargar)
-        tarea.senales.error.connect(
-            lambda m: QMessageBox.critical(self, "Descargar Resumen", f"No se pudo generar: {m}")
-        )
-        tarea.senales.terminada.connect(lambda: (
-            self.btn_descargar.setEnabled(True),
-            self.btn_descargar.setText("Descargar Resumen"),
-        ))
+        tarea.senales.error.connect(self._al_fallar_descarga)
+        # Restauramos el botón en las tres señales: aunque 'terminada' basta,
+        # así el botón nunca queda colgado en "Generando…" si una de ellas se
+        # pierde. _restaurar_descarga es idempotente.
+        tarea.senales.ok.connect(lambda _=None: self._restaurar_descarga())
+        tarea.senales.error.connect(lambda _=None: self._restaurar_descarga())
+        tarea.senales.terminada.connect(self._restaurar_descarga)
         POOL.start(tarea)
 
-    def _al_descargar(self, ruta) -> None:
-        QMessageBox.information(
-            self, "Resumen generado", f"Archivo guardado en:\n{ruta}"
+    def _restaurar_descarga(self) -> None:
+        if self.btn_descargar.isEnabled():
+            return
+        self.btn_descargar.setEnabled(True)
+        self.btn_descargar.setText("Descargar Resumen")
+
+    def _al_fallar_descarga(self, mensaje: str) -> None:
+        self._restaurar_descarga()
+        QMessageBox.critical(
+            self, "Descargar Resumen", f"No se pudo generar: {mensaje}"
         )
+
+    def _al_descargar(self, ruta) -> None:
+        self._restaurar_descarga()
+
+        ruta = Path(ruta)
+        # Validamos que el archivo exista de verdad en el disco y no esté
+        # vacío: xlsxwriter puede cerrar el libro sin escribir nada si el
+        # antivirus corporativo o OneDrive interceptan la escritura.
+        try:
+            tamano = ruta.stat().st_size
+        except OSError:
+            tamano = 0
+
+        if tamano <= 0:
+            QMessageBox.warning(
+                self, "Resumen generado",
+                "La generación terminó, pero el archivo no quedó guardado en "
+                f"el disco:\n{ruta}\n\nRevisa que la carpeta no esté "
+                "sincronizando (OneDrive) y que tengas permisos de escritura.",
+            )
+            return
+
+        dialogo = QMessageBox(self)
+        dialogo.setIcon(QMessageBox.Information)
+        dialogo.setWindowTitle("Resumen generado")
+        dialogo.setText("El archivo se guardó correctamente.")
+        dialogo.setInformativeText(
+            f"{ruta}\n\n{_tamano_texto(tamano)} · "
+            f"{len(self._filas):,} filas procesadas".replace(",", " ")
+        )
+        btn_carpeta = dialogo.addButton("Abrir carpeta", QMessageBox.ActionRole)
+        dialogo.addButton("Cerrar", QMessageBox.AcceptRole)
+        dialogo.exec()
+
+        if dialogo.clickedButton() is btn_carpeta:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(ruta.parent)))

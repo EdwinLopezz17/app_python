@@ -15,7 +15,7 @@ from app.ingest.writer import ErrorDeCarga, cargar
 from app.storage.files import EstadoSlot, eliminar_slot, estado_slot
 from app.tasks.runner import POOL, Tarea
 from app.ui.responsive import (
-    ContenedorFlow, EtiquetaAjustable, alto_vbox, auto_alto,
+    ChipsFlow, ContenedorFlow, EtiquetaAjustable, alto_vbox, auto_alto,
 )
 
 FILTRO_ARCHIVOS = "Reportes (*.csv *.xls *.xlsx);;Todos los archivos (*)"
@@ -38,6 +38,9 @@ def _badge(texto: str, tono: str) -> QLabel:
     etiqueta.setObjectName("Badge")
     etiqueta.setProperty("tono", tono)
     etiqueta.setAlignment(Qt.AlignCenter)
+    # Fixed en vertical: si al layout le sobra alto (p. ej. al desplegar las
+    # columnas requeridas) el badge no debe absorberlo estirándose.
+    etiqueta.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
     return etiqueta
 
 
@@ -67,9 +70,8 @@ class Desplegable(QWidget):
         self.boton.toggled.connect(self._alternar)
         raiz.addWidget(self.boton)
 
-        self.lista = EtiquetaAjustable()
+        self.lista = ChipsFlow()
         self.lista.setObjectName("ListaColumnas")
-        self.lista.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.lista.hide()
         raiz.addWidget(self.lista)
 
@@ -99,12 +101,11 @@ class Desplegable(QWidget):
     def poblar(self, titulo: str, items: list[str], tono: str = "",
                abierto: bool = False) -> None:
         self._titulo = f"{titulo} ({len(items)})"
-        self.lista.setText("\n".join(f"·  {i}" for i in items))
+        self.lista.poblar(items, tono=tono)
 
-        for widget in (self.lista, self.boton):
-            widget.setProperty("tono", tono)
-            widget.style().unpolish(widget)
-            widget.style().polish(widget)
+        self.boton.setProperty("tono", tono)
+        self.boton.style().unpolish(self.boton)
+        self.boton.style().polish(self.boton)
 
         self.boton.blockSignals(True)
         self.boton.setChecked(abierto)
@@ -145,10 +146,11 @@ class SlotRow(QWidget):
         if mostrar_label:
             titulo = QLabel(slot.display_label)
             titulo.setObjectName("SlotTitulo")
-            cabecera.addWidget(titulo)
+            titulo.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+            cabecera.addWidget(titulo, 0, Qt.AlignTop)
 
         self.badge = _badge("PENDIENTE", "pendiente")
-        cabecera.addWidget(self.badge)
+        cabecera.addWidget(self.badge, 0, Qt.AlignTop)
         cabecera.addStretch(1)
         raiz.addLayout(cabecera)
 
@@ -211,6 +213,10 @@ class SlotRow(QWidget):
 
         self._acciones = acciones
         raiz.addWidget(acciones)
+
+        # Colchón final: cualquier alto sobrante que el contenedor asigne se
+        # queda aquí abajo en vez de repartirse entre badge, meta y botones.
+        raiz.addStretch(1)
 
         auto_alto(self)
         self.refrescar()

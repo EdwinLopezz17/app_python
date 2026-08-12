@@ -5,10 +5,12 @@ from PySide6.QtCore import (
     QEvent, QMargins, QObject, QPoint, QRect, QSize, Qt, QTimer,
 )
 from PySide6.QtWidgets import (
-    QLabel, QLayout, QSizePolicy, QVBoxLayout, QWidget,
+    QFrame, QLabel, QLayout, QSizePolicy, QVBoxLayout, QWidget,
 )
 
-ANCHO_MIN_CARD = 300
+ANCHO_MIN_CARD = 290
+ANCHO_MAX_CARD = 440
+MAX_COLUMNAS_CARD = 5
 
 
 def alto_de(widget: QWidget, ancho: int) -> int:
@@ -20,7 +22,13 @@ def alto_de(widget: QWidget, ancho: int) -> int:
     if widget.hasHeightForWidth():
         alto = widget.heightForWidth(ancho)
         if alto > 0:
-            return max(alto, widget.minimumHeight())
+            # Se devuelve el alto para ESTE ancho tal cual. No se mezcla con
+            # minimumHeight(): ese valor quedó fijado en una medición previa,
+            # normalmente con la card más angosta (más líneas de chips), y al
+            # combinarlos el contenedor pedía más alto del necesario. El
+            # sobrante lo absorbían los QLabel del layout —por eso el badge de
+            # estado se estiraba en un bloque alto al desplegar las columnas.
+            return alto
 
     base = max(widget.sizeHint().height(), widget.minimumHeight())
 
@@ -74,7 +82,17 @@ class _AutoAlto(QObject):
         if layout is None:
             return
         layout.invalidate()
-        alto = layout.minimumSize().height()
+
+        # Se mide contra el ancho real del widget cuando ya lo tiene.
+        # layout.minimumSize() ignora el ancho y devuelve el peor caso
+        # (todos los chips en una columna), lo que dejaba un mínimo enorme
+        # y un hueco vacío al fondo de la card al desplegar las columnas.
+        ancho = widget.width()
+        if ancho > 1 and widget.hasHeightForWidth():
+            alto = widget.heightForWidth(ancho)
+        else:
+            alto = layout.minimumSize().height()
+
         if alto and alto != widget.minimumHeight():
             widget.setMinimumHeight(alto)
             widget.updateGeometry()
@@ -144,6 +162,116 @@ def auto_alto(widget: QWidget) -> None:
     _AutoAlto._aplicar(widget)
 
 
+class ChipsFlow(QFrame):
+    """Caja con chips que fluyen en horizontal y saltan de línea solos."""
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        espacio_h: int = 6,
+        espacio_v: int = 6,
+        margenes: QMargins | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.flow = FlowLayout(
+            self,
+            margenes=margenes or QMargins(9, 9, 9, 9),
+            espacio_h=espacio_h,
+            espacio_v=espacio_v,
+        )
+        politica = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        politica.setHeightForWidth(True)
+        self.setSizePolicy(politica)
+        self._chips: list[QLabel] = []
+
+    def limpiar(self) -> None:
+        for chip in self._chips:
+            self.flow.removeWidget(chip)
+            chip.setParent(None)
+            chip.deleteLater()
+        self._chips = []
+
+    def poblar(self, items: list[str], tono: str = "") -> None:
+        self.limpiar()
+        for texto in items:
+            chip = QLabel(texto)
+            chip.setObjectName("ChipColumna")
+            chip.setProperty("tono", tono)
+            chip.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            self.flow.addWidget(chip)
+            self._chips.append(chip)
+        self.setProperty("tono", tono)
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self._ajustar()
+
+    def hasHeightForWidth(self) -> bool:
+        return True
+
+    def heightForWidth(self, ancho: int) -> int:
+        return self.flow.heightForWidth(max(int(ancho), 1))
+
+    def sizeHint(self) -> QSize:
+        return QSize(
+            self.flow.minimumSize().width(),
+            self.heightForWidth(self._ancho_util()),
+        )
+
+    def minimumSizeHint(self) -> QSize:
+        # Se mide SIEMPRE contra el ancho real disponible, nunca contra
+        # self.minimumHeight(): ese valor puede venir de una medición previa
+        # con la card más angosta y, al inflar el mínimo del SlotRow, el
+        # layout repartía el sobrante estirando el badge de estado.
+        if not self._chips:
+            return QSize(self.flow.minimumSize().width(), 0)
+        return QSize(
+            self.flow.minimumSize().width(),
+            self.heightForWidth(self._ancho_util()),
+        )
+
+    def _ancho_util(self) -> int:
+        propio = self.width()
+        padre = self.parentWidget()
+        if padre is not None:
+            layout = padre.layout()
+            margen = 0
+            if layout is not None:
+                m = layout.contentsMargins()
+                margen = m.left() + m.right()
+            del_padre = padre.contentsRect().width() - margen
+            if del_padre > 0 and (propio <= 1 or abs(del_padre - propio) > 2):
+                return del_padre
+        return max(propio, 1)
+
+    def _ajustar(self) -> None:
+        if not self._chips:
+            self.setMinimumHeight(0)
+            return
+        alto = self.heightForWidth(self._ancho_util())
+        if alto and alto != self.minimumHeight():
+            self.setMinimumHeight(alto)
+            self.updateGeometry()
+
+    def ajustar_diferido(self) -> None:
+        QTimer.singleShot(0, self._ajustar)
+
+    def setVisible(self, visible: bool) -> None:
+        super().setVisible(visible)
+        if not visible:
+            self.setMinimumHeight(0)
+        else:
+            self._ajustar()
+            self.ajustar_diferido()
+
+    def resizeEvent(self, evento) -> None:
+        super().resizeEvent(evento)
+        self._ajustar()
+
+    def showEvent(self, evento) -> None:
+        super().showEvent(evento)
+        self._ajustar()
+
+
 class GridResponsivo(QWidget):
 
     def __init__(
@@ -151,11 +279,13 @@ class GridResponsivo(QWidget):
         ancho_min: int = ANCHO_MIN_CARD,
         espacio: int = 16,
         max_columnas: int = 3,
+        ancho_max: int | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("Canvas")
         self._ancho_min = ancho_min
+        self._ancho_max = ancho_max
         self._espacio = espacio
         self._max_columnas = max_columnas
         self._columnas = 0
@@ -182,14 +312,22 @@ class GridResponsivo(QWidget):
         return self._columnas
 
 
-    def _columnas_para(self, ancho: int) -> int:
+    def _columnas_para(self, ancho: int, total: int = 0) -> int:
         if ancho <= 0:
             return 1
         cabe = (ancho + self._espacio) // (self._ancho_min + self._espacio)
-        return max(1, min(self._max_columnas, int(cabe)))
+        columnas = max(1, min(self._max_columnas, int(cabe)))
+        if total:
+            columnas = min(columnas, total)
+        return columnas
 
     def _anchos(self, ancho: int, columnas: int) -> list[int]:
         base = (ancho - self._espacio * (columnas - 1)) // columnas
+
+        if self._ancho_max and base > self._ancho_max:
+            base = self._ancho_max
+            return [base] * columnas
+
         anchos = [base] * columnas
         usado = base * columnas + self._espacio * (columnas - 1)
         anchos[-1] += ancho - usado
@@ -217,7 +355,7 @@ class GridResponsivo(QWidget):
         if not visibles:
             return 0
 
-        columnas = self._columnas_para(ancho)
+        columnas = self._columnas_para(ancho, len(visibles))
         self._columnas = columnas
         anchos = self._anchos(ancho, columnas)
 

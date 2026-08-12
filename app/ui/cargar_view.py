@@ -15,7 +15,10 @@ from app.ui.datos_dialog import DatosDialog
 from app.ui.fuente_card import FuenteCard
 from app.ui import preferencias
 from app.ui.panel_estado import PanelEstado
-from app.ui.responsive import ANCHO_MIN_CARD, ContenedorFlow, GridResponsivo
+from app.ui.responsive import (
+    ANCHO_MAX_CARD, ANCHO_MIN_CARD, MAX_COLUMNAS_CARD, ContenedorFlow,
+    GridResponsivo,
+)
 
 ORDEN_GRUPOS = [OTROS_REPORTES, BASES_DE_DATOS, APLICACIONES]
 
@@ -343,7 +346,12 @@ class CargarView(QWidget):
             titulo.setProperty("grupo", grupo)
             self._cuerpo.addWidget(titulo)
 
-            grid = GridResponsivo(ancho_min=ANCHO_MIN_CARD, espacio=16, max_columnas=3)
+            grid = GridResponsivo(
+                ancho_min=ANCHO_MIN_CARD,
+                espacio=16,
+                max_columnas=MAX_COLUMNAS_CARD,
+                ancho_max=ANCHO_MAX_CARD,
+            )
             for fuente in fuentes:
                 card = FuenteCard(fuente)
                 card.cambiado.connect(self.refrescar)

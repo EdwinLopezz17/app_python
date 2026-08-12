@@ -671,16 +671,29 @@ QPushButton#Desplegable {{
 }}
 QPushButton#Desplegable:hover {{ color: {PRIMARY}; }}
 QPushButton#Desplegable[tono="error"] {{ color: {ERROR}; }}
-QLabel#ListaColumnas {{
+/* Caja de columnas requeridas: chips en horizontal que saltan de línea
+   solos (ChipsFlow), en vez de una lista vertical larga. */
+QFrame#ListaColumnas {{
     background: {SURFACE_CONTAINER_LOW};
     border: 1px solid {OUTLINE_VARIANT};
     border-radius: {RADIO_SM}px;
-    padding: 8px 10px;
+}}
+QFrame#ListaColumnas[tono="error"] {{
+    background: {ERROR_SOFT};
+    border-color: {ERROR};
+}}
+QLabel#ChipColumna {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    border: 1px solid {OUTLINE_VARIANT};
+    border-radius: {RADIO_SM}px;
+    padding: 3px 8px;
     font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
     color: {ON_SURFACE_VARIANT};
 }}
-QLabel#ListaColumnas[tono="error"] {{
-    background: {ERROR_SOFT};
+QLabel#ChipColumna[tono="error"] {{
+    background: {SURFACE_CONTAINER_LOWEST};
     border-color: {ERROR};
     color: {ERROR};
 }}
