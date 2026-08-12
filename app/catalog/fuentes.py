@@ -71,7 +71,7 @@ _reg(Fuente("gdh", "GDH Activos y Cesados", OTROS_REPORTES, [
 #    Slot(FileName.AD_VIDA, C.AD, label="AD Vida"),
 #]))
 
-_reg(Fuente("ad-consolidado", "Active Directory Consolidado", OTROS_REPORTES,
+_reg(Fuente("ad", "Active Directory Consolidado", OTROS_REPORTES,
             _one(FileName.AD_CONSOLIDADO, C.AD_CONSOLIDADO)))
 
 _reg(Fuente("tickets-ceses", "Tickets Ceses", OTROS_REPORTES,
