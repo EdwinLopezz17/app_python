@@ -86,8 +86,30 @@ class Desplegable(QWidget):
         self.boton.setText(self._etiqueta(abierto))
         self._ajustar_alto()
 
+    def _ancho_util(self) -> int:
+        propio = self.width()
+        padre = self.parentWidget()
+        if padre is not None:
+            layout = padre.layout()
+            margen = 0
+            if layout is not None:
+                m = layout.contentsMargins()
+                margen = m.left() + m.right()
+            del_padre = padre.contentsRect().width() - margen
+            if del_padre > 0 and (propio <= 1 or abs(del_padre - propio) > 2):
+                return del_padre
+        return max(propio, 1)
+
     def _ajustar_alto(self) -> None:
         self.lista._ajustar()
+
+        # Mínimo explícito. Sin esto el QVBoxLayout del SlotRow podía
+        # comprimir el desplegable a 0px de alto y el botón
+        # "▸ Columnas requeridas (N)" desaparecía de la card.
+        alto = self.heightForWidth(self._ancho_util())
+        if alto > 0 and alto != self.minimumHeight():
+            self.setMinimumHeight(alto)
+
         self.updateGeometry()
         self.alto_cambiado.emit()
 
