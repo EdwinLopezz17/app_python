@@ -41,7 +41,7 @@ def gdh_report():
                     correo = user_pps.correo
 
             if not user_vida:
-                user_vida = ad_srv.get_by_username_and_origen(dni_info.username, "VIDA")
+                user_vida = ad_srv.get_by_username_and_origen(dni_info.username, "PVIDA")
                 if user_vida:
                     dni_info_encontrado = dni_info
                     correo = user_vida.correo
@@ -67,7 +67,7 @@ def gdh_report():
                 jefe_gdh = ad_user_pps.correo
             
             if not jefe_gdh:
-                ad_user_vida = ad_srv.get_by_dni_and_origen(gdh_user_aux.dni, "VIDA")
+                ad_user_vida = ad_srv.get_by_dni_and_origen(gdh_user_aux.dni, "PVIDA")
                 if ad_user_vida:
                     jefe_gdh = ad_user_vida.correo
 

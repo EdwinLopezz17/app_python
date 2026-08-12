@@ -41,7 +41,7 @@ def _rows_vida(fecha_ref: date, dni_user_srv:DNIUserService, ad_srv:ADService,
         dni_user_info = dni_user_srv.get_by_username(username)
 
         ad_user_pps = ad_srv.get_by_username_and_origen(username, "PPS")
-        ad_user_vida = ad_srv.get_by_username_and_origen(username, "VIDA")
+        ad_user_vida = ad_srv.get_by_username_and_origen(username, "PVIDA")
 
         dni = dni_user_info.dni if dni_user_info else None
 
@@ -149,7 +149,7 @@ def _rows_generales(fecha_ref: date, dni_user_srv: DNIUserService, ad_srv: ADSer
         dni_user_info = dni_user_srv.get_by_username(username)
 
         ad_user_pps = ad_srv.get_by_username_and_origen(username, "PPS")
-        ad_user_vida = ad_srv.get_by_username_and_origen(username, "VIDA")
+        ad_user_vida = ad_srv.get_by_username_and_origen(username, "PVIDA")
 
         dni = dni_user_info.dni if dni_user_info else None
 
