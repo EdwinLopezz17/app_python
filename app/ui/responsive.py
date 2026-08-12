@@ -191,12 +191,22 @@ class ChipsFlow(QFrame):
             chip.deleteLater()
         self._chips = []
 
-    def poblar(self, items: list[str], tono: str = "") -> None:
+    def poblar(
+        self,
+        items: list[str],
+        tono: str = "",
+        resaltados: set[str] | None = None,
+        tono_resaltado: str = "error",
+    ) -> None:
+        """Pinta los chips. Los de 'resaltados' llevan 'tono_resaltado'."""
         self.limpiar()
+        resaltados = resaltados or set()
         for texto in items:
             chip = QLabel(texto)
             chip.setObjectName("ChipColumna")
-            chip.setProperty("tono", tono)
+            chip.setProperty(
+                "tono", tono_resaltado if texto in resaltados else tono
+            )
             chip.setTextInteractionFlags(Qt.TextSelectableByMouse)
             self.flow.addWidget(chip)
             self._chips.append(chip)

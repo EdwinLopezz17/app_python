@@ -121,11 +121,14 @@ class Desplegable(QWidget):
         return f"{'▾' if abierto else '▸'}  {self._titulo}"
 
     def poblar(self, titulo: str, items: list[str], tono: str = "",
-               abierto: bool = False) -> None:
-        self._titulo = f"{titulo} ({len(items)})"
-        self.lista.poblar(items, tono=tono)
+               abierto: bool = False, resaltados: set[str] | None = None,
+               sufijo: str = "", tono_boton: str | None = None) -> None:
+        self._titulo = f"{titulo} ({len(items)}){sufijo}"
+        self.lista.poblar(items, tono=tono, resaltados=resaltados)
 
-        self.boton.setProperty("tono", tono)
+        self.boton.setProperty(
+            "tono", tono if tono_boton is None else tono_boton
+        )
         self.boton.style().unpolish(self.boton)
         self.boton.style().polish(self.boton)
 
@@ -285,12 +288,27 @@ class SlotRow(QWidget):
         if self._error:
             titulo, detalle = self._error
             _pintar_badge(self.badge, "ERROR", "error")
-            self.meta.setText(
-                "No se cargó ningún archivo nuevo."
-                if estado.existe
-                else "No se cargó ningún archivo."
-            )
-            self._mostrar_alerta(titulo, detalle)
+
+            if self._faltantes_visibles:
+                # El detalle ya se ve en los chips rojos de abajo: aquí solo
+                # el resumen en una línea, sin la caja de alerta.
+                self._ocultar_alerta()
+                faltan = len(self._faltantes_visibles)
+                plural = "cabeceras" if faltan != 1 else "cabecera"
+                self.meta.setText(
+                    f"No se cargó: faltan {faltan} {plural} de "
+                    f"{len(self.slot.columns)} en el archivo."
+                )
+            else:
+                # Errores que no son de cabeceras (archivo corrupto, permisos,
+                # formato) sí necesitan la caja: no hay chips que los expliquen.
+                self.meta.setText(
+                    "No se cargó ningún archivo nuevo."
+                    if estado.existe
+                    else "No se cargó ningún archivo."
+                )
+                self._mostrar_alerta(titulo, detalle)
+
             self._pintar_columnas(self._faltantes_visibles)
 
         self._repintar_estilo(self.badge)
@@ -359,12 +377,28 @@ class SlotRow(QWidget):
         self._ultimas_faltantes = list(getattr(exc, "faltantes", []) or [])
 
     def _pintar_columnas(self, faltantes: list[str]) -> None:
+        """Siempre la misma lista de columnas requeridas.
+
+        Cuando faltan cabeceras no se arma una segunda lista: se resaltan en
+        rojo dentro de la de siempre, para no repetir la misma información en
+        tres sitios (alerta + lista de faltantes + lista de requeridas).
+        """
+        columnas = list(self.slot.columns)
         if faltantes:
             self.desp_columnas.poblar(
-                "Columnas faltantes", faltantes, tono="error", abierto=True
+                "Columnas requeridas",
+                columnas,
+                # La caja queda neutra a propósito: si el fondo también fuera
+                # rojo, los chips que SÍ están no se distinguirían de los que
+                # faltan. El rojo se reserva para las cabeceras ausentes.
+                tono="",
+                abierto=True,
+                resaltados=set(faltantes),
+                sufijo=f"  ·  faltan {len(faltantes)}",
+                tono_boton="error",
             )
         else:
-            self.desp_columnas.poblar("Columnas requeridas", list(self.slot.columns))
+            self.desp_columnas.poblar("Columnas requeridas", columnas)
 
     def _al_cargar(self, resultado) -> None:
         self.limpiar_error()

@@ -692,8 +692,10 @@ QLabel#ChipColumna {{
     letter-spacing: 0.3px;
     color: {ON_SURFACE_VARIANT};
 }}
+/* Cabecera que falta en el archivo: relleno rojo suave para que salte a la
+   vista entre las que sí están, que quedan en blanco. */
 QLabel#ChipColumna[tono="error"] {{
-    background: {SURFACE_CONTAINER_LOWEST};
+    background: {ERROR_SOFT};
     border-color: {ERROR};
     color: {ERROR};
 }}
