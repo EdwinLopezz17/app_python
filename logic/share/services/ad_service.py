@@ -42,26 +42,24 @@ class ADService():
         
         self.folder_path = DATA_PATH
         
-        self.enum_pps = FileName.AD_PPS
-        self.enum_vida = FileName.AD_VIDA
+        self.file_enum: FileName = FileName.AD_CONSOLIDADO
+        self.path_file = os.path.join(self.folder_path, self.file_enum.value)
 
-        self.path_file_pps = os.path.join(self.folder_path, self.enum_pps.value)
-        self.path_file_vida = os.path.join(self.folder_path, self.enum_vida.value)
-        
-        self.path_files_list = [self.path_file_pps, self.path_file_vida]
         
         if not lazy:
             self.load_data()
 
-    def _procesar_archivo(self, file_path: str, origen_nombre: str) -> None:
-        if not file_path or not os.path.exists(file_path):
-            print(f"Error: No se encontró el archivo mapeado para AD {origen_nombre} en {file_path}")
+    def load_data(self) -> None:
+        self._cache = {}
+        self._cache_email = {}
+        self._cache_dni = {}
+
+        if not self.path_file or not os.path.exists(self.path_file):
+            print(f"Error: No se encontró el archivo configurado en: {self.path_file}")
             return
 
         try:
-            #df = pd.read_parquet(file_path, engine='pyarrow').fillna('')
-            df = pd.read_csv(file_path, sep=';', encoding='utf-8').fillna('')
-            
+            df = pd.read_csv(self.path_file, sep=';', encoding='utf-8').fillna('')
             df.columns = [c.strip().upper() for c in df.columns]
 
             for _, row in df.iterrows():
@@ -69,7 +67,9 @@ class ADService():
                 if not usuario or usuario == "NAN":
                     continue
 
-                cache_key = (usuario, origen_nombre)
+                origen = str(row.get('ORIGEN', '')).strip()
+
+                cache_key = (usuario, origen.upper())
                 if cache_key in self._cache: continue
 
                 correo_ad = str(row.get('EMAILADDRESS', '')).strip()
@@ -96,36 +96,25 @@ class ADService():
                     department = str(row.get('DEPARTMENT', '')).strip(),
                     company = str(row.get('COMPANY', '')).strip(),
                     jefe = str(row.get('STREETADDRESS', '')).strip(),
-                    origen = origen_nombre,
+                    origen = origen,
                 )
                 self._cache[cache_key] = user_info
 
                 if correo_ad:
-                    email_key = (correo_ad.strip().lower(), origen_nombre.upper())
+                    email_key = (correo_ad.strip().lower(), origen.upper())
                     self._cache_email[email_key] = user_info
                 
                 if dni_val:
-                    dni_key = (dni_val.upper(), origen_nombre.upper())
+                    dni_key = (dni_val.upper(), origen.upper())
                     self._cache_dni[dni_key] = user_info
-
-        except Exception as e:
-            print(f"Error procesando el archivo {file_path}: {e}")
-
-    def load_data(self) -> None:
-        self._cache = {}
-        self._cache_email = {}
-        self._cache_dni = {}
-
-        try:
-            self._procesar_archivo(self.path_file_pps, "PPS")
-            self._procesar_archivo(self.path_file_vida, "VIDA")
 
             total_pps = len([u for u in self._cache.values() if u.origen == "PPS"])
             total_vida = len([u for u in self._cache.values() if u.origen == "VIDA"])
-            
+
             print(f"Usuarios AD | PPS: {total_pps} ({self.enum_pps.name}), VIDA: {total_vida} ({self.enum_vida.name}), Total en cache: {len(self._cache)}")
+                    
         except Exception as e:
-            print(f"Error al cargar datos generales de AD: {e}")
+            print(f"Error procesando el archivo {self.path_file}: {e}")
 
     def delete_file(self) -> bool:
         todos_eliminados = True
