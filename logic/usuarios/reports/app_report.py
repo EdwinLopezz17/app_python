@@ -282,9 +282,9 @@ def _construir_fila_reporte(
     if ad_user_pps_info:
         dni_pps = ad_user_pps_info.dni
 
-    ad_user_vida = ad_user_srv.get_by_dni_and_origen(dni, "VIDA")
+    ad_user_vida = ad_user_srv.get_by_dni_and_origen(dni, "PVIDA")
     dni_vida = None
-    ad_user_vida_info = ad_user_srv.get_by_username_and_origen(usuario_dni, "VIDA")
+    ad_user_vida_info = ad_user_srv.get_by_username_and_origen(usuario_dni, "PVIDA")
     if ad_user_vida_info:
         dni_vida = ad_user_vida_info.dni
 

@@ -42,7 +42,7 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
         entra_user = entra_srv.get_by_upn(usuario)
 
     ad_user_pps = ad_user_srv.get_by_username_and_origen(usuario, "PPS")
-    ad_user_vida = ad_user_srv.get_by_username_and_origen(usuario, "VIDA")
+    ad_user_vida = ad_user_srv.get_by_username_and_origen(usuario, "PVIDA")
 
     if not ad_user_pps:
         ad_user_pps = ad_user_srv.get_by_email_and_origen(usuario, "PPs")
@@ -50,9 +50,9 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
             ad_user_pps = ad_user_srv.get_by_dni_and_origen(dni, "PPS")   
     
     if not ad_user_vida:
-        ad_user_vida = ad_user_srv.get_by_email_and_origen(usuario, "VIDA")
+        ad_user_vida = ad_user_srv.get_by_email_and_origen(usuario, "PVIDA")
         if not ad_user_vida:
-            ad_user_vida = ad_user_srv.get_by_dni_and_origen(dni, "VIDA")
+            ad_user_vida = ad_user_srv.get_by_dni_and_origen(dni, "PVIDA")
 
 
     rol_gdh = gdh_user.get_rol() if gdh_user else "*No esta en GDH*"
