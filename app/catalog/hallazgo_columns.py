@@ -346,3 +346,59 @@ def check_modelos() -> dict[str, dict[str, list[str]]]:
             ],
         }
     return reporte
+
+
+# ---------------------------------------------------------------------------
+# Alias de importación
+#
+# El Excel de detalle que se lee para armar el resumen puede venir del
+# frontend Next.js (nextjs-laboratorio, src/features/bd/bd-columns.ts), cuyas
+# cabeceras NO son idénticas a las de esta app: "Fecha Cese" vs "Fecha de
+# Cese", "Type Desc" vs "Descripción del Tipo", "Sin Uso 90d" vs "Sin Uso 90
+# Días"...
+#
+# Sin estos alias el importador no reconoce las columnas de flags, todos los
+# escenarios cuentan 0 y el resumen sale vacío. Las cadenas de abajo están
+# copiadas TAL CUAL de bd-columns.ts: si allá cambia una cabecera, hay que
+# reflejarlo aquí.
+# ---------------------------------------------------------------------------
+
+_ALIAS_BD_COMUN: dict[str, tuple[str, ...]] = {
+    "nombre_archivo": ("Nombre Archivo",),
+    "username": ("Usuario", "Userame"),
+    "fecha_creacion": ("Fecha Creación",),
+    "fecha_login": ("Fecha Login",),
+    "username_ad_pps": ("Username AD PPS",),
+    "username_ad_vida": ("Username AD VIDA",),
+    "fecha_alta": ("Fecha Alta",),
+    "fecha_cese": ("Fecha Cese",),
+    "ticket_cese": ("Ticket Cese",),
+    "fecha_cierre_ticket_cese": ("Fecha Cierre Ticket Cese",),
+    "is_cesado_activo": ("Cesado Activo",),
+    "is_login_post_cese": ("Login Post Cese",),
+    "is_no_identificado": ("No Identificado",),
+    "is_sin_uso_90d": ("Sin Uso 90d",),
+    "is_deshabilitado_180d": ("Deshabilitado 180d",),
+}
+
+ALIAS_IMPORTACION: dict[str, dict[str, tuple[str, ...]]] = {
+    "DBVidaRow": {
+        **_ALIAS_BD_COMUN,
+        "typee": ("Type",),
+        "type_desc": ("Type Desc",),
+        "db_name": ("DB Name",),
+        "server_role": ("Server Role",),
+        "database_rol": ("DB Role",),
+        "fecha_actualizacion": ("Fecha Actualización", "Fecha Actualizacion"),
+    },
+    "DBGeneralsRow": {
+        **_ALIAS_BD_COMUN,
+        "fecha_bloqueo": ("Fecha Bloqueo",),
+        "is_no_cesado_oportunamente": ("No Cesado Oportunamente",),
+    },
+}
+
+
+def alias(modelo: str | None) -> dict[str, tuple[str, ...]]:
+    """Cabeceras alternativas aceptadas al importar, por campo."""
+    return ALIAS_IMPORTACION.get(modelo or "", {})

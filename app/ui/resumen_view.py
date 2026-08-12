@@ -148,8 +148,19 @@ class ResumenView(QWidget):
         self.tabla.verticalHeader().setVisible(False)
         self.tabla.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tabla.setSelectionBehavior(QTableWidget.SelectRows)
-        self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
-        self.tabla.horizontalHeader().setStretchLastSection(True)
+        cabecera_tabla = self.tabla.horizontalHeader()
+        cabecera_tabla.setSectionResizeMode(QHeaderView.Interactive)
+        # Sin estirar la última columna: las columnas numéricas (N°, GDH, ACC)
+        # son de 2-3 dígitos y no tienen por qué llegar al borde de la ventana.
+        # El espacio que sobre se le da a la primera columna, que es la de
+        # texto largo (escenario de monitoreo / título del escenario).
+        cabecera_tabla.setStretchLastSection(False)
+        cabecera_tabla.setMinimumSectionSize(56)
+        # Si el usuario arrastra una columna, dejamos de recalcular anchos:
+        # su ajuste manda hasta que se cargue otro archivo.
+        self._anchos_manuales = False
+        self._ajustando = False
+        cabecera_tabla.sectionResized.connect(self._al_mover_columna)
         self.tabla.hide()
         layout.addWidget(self.tabla, 1)
 
@@ -290,7 +301,44 @@ class ResumenView(QWidget):
         else:
             self._preview_por_escenario()
         self.tabla.show()
-        self.tabla.resizeColumnsToContents()
+        self._anchos_manuales = False
+        self._ajustar_anchos(forzar=True)
+
+    ANCHO_MAX_COLUMNA = 420
+    RELLENO_COLUMNA = 24
+
+    def _al_mover_columna(self, *_: int) -> None:
+        if not self._ajustando:
+            self._anchos_manuales = True
+
+    def _ajustar_anchos(self, forzar: bool = False) -> None:
+        """Ancho por contenido, con el sobrante para la primera columna."""
+        tabla = self.tabla
+        if tabla.columnCount() == 0:
+            return
+        if self._anchos_manuales and not forzar:
+            return
+
+        self._ajustando = True
+        try:
+            tabla.resizeColumnsToContents()
+
+            for col in range(tabla.columnCount()):
+                ancho = tabla.columnWidth(col) + self.RELLENO_COLUMNA
+                tabla.setColumnWidth(col, min(ancho, self.ANCHO_MAX_COLUMNA))
+
+            disponible = tabla.viewport().width()
+            usado = sum(tabla.columnWidth(c) for c in range(tabla.columnCount()))
+            sobra = disponible - usado
+            if sobra > 0:
+                tabla.setColumnWidth(0, tabla.columnWidth(0) + sobra)
+        finally:
+            self._ajustando = False
+
+    def resizeEvent(self, evento) -> None:
+        super().resizeEvent(evento)
+        if self.tabla.isVisible() and self.tabla.columnCount():
+            self._ajustar_anchos()
 
     def _preview_por_escenario(self) -> None:
         resumen = engine.por_escenario(self._filas, self.config.escenarios)
