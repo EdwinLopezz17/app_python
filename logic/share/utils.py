@@ -48,7 +48,11 @@ def to_datetime(val, format=None) -> datetime | None:
     # Si la fecha no tiene horas, minutos ni segundos, se asume el fin del día (23:59:59)
     if dt.hour == 0 and dt.minute == 0 and dt.second == 0 and dt.microsecond == 0:
         if not _original_has_time(val):
-            return datetime.combine(dt.date(), time(23, 59, 59))
+            dt = datetime.combine(dt.date(), time(23, 59, 59))
+
+    if dt > datetime.now():
+        print(f"Cuidado: la fecha obtenida ({dt}) es mayor a la de hoy.")
+        print(f"Valor original: {val}, tipo: {type(val)}, formato: {format}")
 
     return dt
 
