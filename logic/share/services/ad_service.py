@@ -111,8 +111,8 @@ class ADService():
             total_pps = len([u for u in self._cache.values() if u.origen == "PPS"])
             total_vida = len([u for u in self._cache.values() if u.origen == "PVIDA"])
 
-            print(f"Usuarios AD | PPS: {total_pps} ({self.enum_pps.name}), PVIDA: {total_vida} ({self.enum_vida.name}), Total en cache: {len(self._cache)}")
-                    
+            print(f"AD Consolidado. Total usuarios: {len(self._cache)} (PPS: {total_pps}, PVIDA: {total_vida})")
+                   
         except Exception as e:
             print(f"Error procesando el archivo {self.path_file}: {e}")
 
