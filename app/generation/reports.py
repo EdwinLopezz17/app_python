@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import fields, is_dataclass
-from datetime import date
+from dataclasses import dataclass, fields, is_dataclass
+from datetime import date, datetime
 from typing import Callable
 
 import pandas as pd
-
-from app.generation.sesion import sesion_generacion
 
 
 def a_dataframe(filas: list) -> pd.DataFrame:
@@ -101,11 +99,44 @@ def disponible(hallazgo_id: str) -> bool:
     return hallazgo_id in GENERADORES
 
 
+# ---------------------------------------------------------------------------
+# Registro en memoria de la última generación de la sesión.
+#
+# No hay caché en disco: el resultado vive en la tabla de la vista mientras la
+# app esté abierta. Este registro solo guarda los metadatos (filas y hora)
+# para que la vista y el launcher puedan mostrar "generado hh:mm".
+# Al cerrar la app se pierde, y es el comportamiento esperado.
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class Generado:
+    filas: int
+    generado_en: datetime
+
+    @property
+    def generado_texto(self) -> str:
+        return self.generado_en.strftime("%d/%m/%Y %H:%M")
+
+
+_GENERADOS: dict[str, Generado] = {}
+
+
+def ultimo(hallazgo_id: str) -> Generado | None:
+    return _GENERADOS.get(hallazgo_id)
+
+
+def olvidar(hallazgo_id: str) -> None:
+    _GENERADOS.pop(hallazgo_id, None)
+
+
 def generar(hallazgo_id: str, fecha_ref: date) -> pd.DataFrame:
     generador = GENERADORES.get(hallazgo_id)
     if generador is None:
         raise NotImplementedError(
             f"La generación de «{hallazgo_id}» aún no está conectada."
         )
-    with sesion_generacion():
-        return generador(fecha_ref)
+    df = generador(fecha_ref)
+    _GENERADOS[hallazgo_id] = Generado(
+        filas=len(df), generado_en=datetime.now()
+    )
+    return df

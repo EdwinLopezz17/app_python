@@ -6,8 +6,6 @@ from PySide6.QtWidgets import (
     QSizePolicy, QVBoxLayout, QWidget,
 )
 
-from app.cache import store
-from app.cache.store import EstadoCache
 from app.catalog.hallazgos import Certificacion, Hallazgo, certificaciones
 from app.generation import reports
 from app.storage.files import estado_slot
@@ -70,12 +68,9 @@ class HallazgoFila(QFrame):
             self.btn_generar.setEnabled(False)
             self.btn_generar.setToolTip("Este hallazgo aún no está conectado a su reporte.")
         else:
-            estado = store.estado(self.hallazgo)
-            meta = store.leer_meta(self.hallazgo)
-            if estado is EstadoCache.VIGENTE and meta:
-                partes.append(f"generado {meta.generado_texto}")
-            elif estado is EstadoCache.DESACTUALIZADA:
-                partes.append("desactualizado")
+            info = reports.ultimo(self.hallazgo.id)
+            if info is not None:
+                partes.append(f"generado {info.generado_texto}")
             else:
                 partes.append("sin generar")
 
@@ -230,7 +225,7 @@ class LauncherView(QWidget):
             hs = hallazgo.slots_requeridos
             if hs and all(estado_slot(s).existe for s in hs):
                 listos += 1
-            if store.estado(hallazgo) is EstadoCache.VIGENTE:
+            if reports.ultimo(hallazgo.id) is not None:
                 generados += 1
 
         self._kpis["archivos"].setText(f"{cargados} / {len(slots)}")

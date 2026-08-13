@@ -188,8 +188,8 @@ class CargarView(QWidget):
         self.btn_panel.setProperty("variante", "ghost")
         self.btn_panel.setCursor(Qt.PointingHandCursor)
         self.btn_panel.setToolTip(
-            "Muestra u oculta el panel lateral que verifica, leyendo el disco, "
-            "qué archivos están realmente guardados."
+            "Muestra u oculta el panel lateral que verifica qué archivos "
+            "existen realmente en disco."
         )
         self.btn_panel.clicked.connect(self._alternar_panel)
         acciones.agregar(self.btn_panel)
@@ -464,10 +464,9 @@ class CargarView(QWidget):
 
         compartidas = purge.fuentes_compartidas(self.hallazgo)
         detalle = (
-            f"«Este hallazgo» elimina los archivos de {self.hallazgo.label} y su "
-            "resultado generado.\n\n"
-            f"«Toda la certificación» elimina los archivos de TODOS los hallazgos "
-            f"de {self.hallazgo.cert_label} y todos sus resultados generados.\n\n"
+            f"«Este hallazgo» elimina los archivos cargados de {self.hallazgo.label}.\n\n"
+            f"«Toda la certificación» elimina los archivos cargados de TODOS los "
+            f"hallazgos de {self.hallazgo.cert_label}.\n\n"
             "Esta acción no se puede deshacer."
         )
         if compartidas:

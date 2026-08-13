@@ -53,9 +53,11 @@ class FilaEstado(QFrame):
         if estado.existe:
             self.punto.setText("✓")
             self.punto.setProperty("tono", "ok")
-            self.meta.setText(
-                f"{estado.filas:,} filas · {estado.modificado_texto}".replace(",", " ")
-            )
+            if estado.filas:
+                texto = f"{estado.filas:,} filas · {estado.modificado_texto}"
+            else:
+                texto = f"En disco · {estado.modificado_texto}"
+            self.meta.setText(texto.replace(",", " "))
             self.setToolTip(str(estado.path))
         else:
             self.punto.setText("○")
@@ -117,8 +119,8 @@ class PanelEstado(QWidget):
         btn_verificar = QPushButton("Verificar en disco")
         btn_verificar.setProperty("variante", "ghost")
         btn_verificar.setToolTip(
-            "Vuelve a leer la carpeta de datos para confirmar qué archivos "
-            "están realmente guardados."
+            "Vuelve a revisar la carpeta de datos para confirmar qué archivos "
+            "existen realmente en disco. No lee el contenido de los archivos."
         )
         btn_verificar.clicked.connect(self.refrescar)
         cab.addWidget(btn_verificar)

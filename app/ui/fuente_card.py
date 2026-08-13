@@ -262,10 +262,13 @@ class SlotRow(QWidget):
         if estado.existe:
             _pintar_badge(self.badge, "CARGADO", "ok")
 
-            partes = [
-                f"{estado.filas:,} filas".replace(",", " "),
-                f"{estado.columnas} columnas",
-            ]
+            # La verificación solo confirma que el archivo existe en disco:
+            # no se vuelve a leer. Filas/columnas solo se muestran si se
+            # conocen desde la carga hecha en esta sesión.
+            partes = ["En disco"]
+            if estado.filas:
+                partes.append(f"{estado.filas:,} filas".replace(",", " "))
+                partes.append(f"{estado.columnas} columnas")
             if estado.total_archivos:
                 plural = "archivos" if estado.total_archivos != 1 else "archivo"
                 partes.append(f"{estado.total_archivos} {plural}")

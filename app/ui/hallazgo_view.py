@@ -8,12 +8,10 @@ from PySide6.QtWidgets import (
     QMessageBox, QProgressBar, QPushButton, QTableView, QVBoxLayout, QWidget,
 )
 
-from app.cache import store
-from app.cache.store import EstadoCache
 from app.catalog import formatos, hallazgo_columns as cols, resumenes
 from app.catalog.hallazgos import Hallazgo
 from app.exports import excel
-from app.generation import reports, sesion
+from app.generation import reports
 from app.storage.files import estado_slot
 from app.tasks.runner import POOL, Tarea
 from app.ui import theme
@@ -222,27 +220,15 @@ class HallazgoView(QWidget):
         if self._generando:
             return
 
-        slots = [s for f in self.hallazgo.fuentes for s in f.slots]
         faltantes = [s for s in self.hallazgo.slots_requeridos
                      if not estado_slot(s).existe]
         opcionales = self.hallazgo.slots_opcionales
         opc_faltantes = [s for s in opcionales if not estado_slot(s).existe]
         conectado = reports.disponible(self.hallazgo.id)
         hay_datos = self.modelo.total_original > 0
-
-        estado = store.estado(self.hallazgo) if conectado else EstadoCache.AUSENTE
-        meta = store.leer_meta(self.hallazgo)
-
-        if conectado and estado is not EstadoCache.AUSENTE and not hay_datos:
-            self._cargar_cache()
-            hay_datos = self.modelo.total_original > 0
+        info = reports.ultimo(self.hallazgo.id)
 
         puede_generar = conectado and not faltantes
-
-        # Precalienta los servicios compartidos en segundo plano apenas se
-        # puede generar, para que el primer clic no pague la carga completa.
-        if puede_generar and not self._generando and sesion.solicitar_precalentamiento():
-            POOL.start(Tarea(sesion.precalentar))
 
         self.btn_generar.setEnabled(puede_generar)
         self.vacio_boton.setEnabled(puede_generar)
@@ -290,40 +276,27 @@ class HallazgoView(QWidget):
             self._badge("FALTAN FUENTES", "aviso")
             self._mostrar_aviso(
                 f"Faltan {len(faltantes)} archivos obligatorios. Los datos "
-                "mostrados corresponden a la última generación.", "aviso")
-        elif opc_faltantes:
-            cargadas = len(opcionales) - len(opc_faltantes)
-            self._badge(
-                "VIGENTE" if estado is EstadoCache.VIGENTE and meta else "PARCIAL",
-                "ok" if estado is EstadoCache.VIGENTE and meta else "aviso",
-            )
-            if estado is EstadoCache.DESACTUALIZADA:
+                "mostrados corresponden a la generación de esta sesión.", "aviso")
+        elif hay_datos:
+            self._badge("GENERADO", "ok")
+            if opc_faltantes:
+                cargadas = len(opcionales) - len(opc_faltantes)
                 self._mostrar_aviso(
-                    "Las fuentes cambiaron desde la última generación. "
-                    "Los datos mostrados corresponden a la ejecución anterior.",
-                    "aviso")
+                    f"Generado con {cargadas} de {len(opcionales)} fuentes "
+                    "opcionales cargadas. Las no cargadas simplemente no aportan "
+                    "filas al hallazgo.", "info")
             else:
+                self.aviso.hide()
+        else:
+            self._badge("SIN GENERAR", "pendiente")
+            if opc_faltantes:
+                cargadas = len(opcionales) - len(opc_faltantes)
                 self._mostrar_aviso(
                     f"Se generará con {cargadas} de {len(opcionales)} fuentes "
                     "opcionales cargadas. Las no cargadas simplemente no aportan "
                     "filas al hallazgo.", "info")
-            if not hay_datos:
-                self._vacio(
-                    "Aún no has generado los hallazgos.",
-                    "El reporte solo se ejecuta cuando lo pides. No necesitas "
-                    "cargar todas las fuentes opcionales.",
-                )
-        elif estado is EstadoCache.DESACTUALIZADA:
-            self._badge("DESACTUALIZADO", "aviso")
-            self._mostrar_aviso(
-                "Las fuentes cambiaron desde la última generación. "
-                "Los datos mostrados corresponden a la ejecución anterior.", "aviso")
-        elif estado is EstadoCache.VIGENTE and meta:
-            self._badge("VIGENTE", "ok")
-            self.aviso.hide()
-        else:
-            self._badge("SIN GENERAR", "pendiente")
-            self.aviso.hide()
+            else:
+                self.aviso.hide()
             self._vacio(
                 "Aún no has generado los hallazgos.",
                 "El reporte solo se ejecuta cuando lo pides."
@@ -336,11 +309,11 @@ class HallazgoView(QWidget):
 
         self._alternar_contenido(hay_datos)
 
-        if hay_datos and meta:
-            self.lbl_filas.setText(
-                f"{self.modelo.total_original:,} filas · generado {meta.generado_texto}"
-                .replace(",", " ")
-            )
+        if hay_datos:
+            texto = f"{self.modelo.total_original:,} filas".replace(",", " ")
+            if info:
+                texto += f" · generado {info.generado_texto}"
+            self.lbl_filas.setText(texto)
         else:
             self.lbl_filas.setText("")
 
@@ -403,11 +376,6 @@ class HallazgoView(QWidget):
         self._generando = False
         self._reloj.stop()
         self.barra.hide()
-        try:
-            store.guardar(self.hallazgo, df)
-        except Exception as exc:
-            self._al_fallar(f"El hallazgo se generó pero no se pudo guardar: {exc}")
-            return
         self._pintar(df)
         self.refrescar()
         self.cambiado.emit()
@@ -423,11 +391,6 @@ class HallazgoView(QWidget):
         self.vacio_boton.setEnabled(True)
         self.vacio_boton.setText("Reintentar")
         self._alternar_contenido(self.modelo.total_original > 0)
-
-    def _cargar_cache(self) -> None:
-        resultado = store.cargar(self.hallazgo)
-        if resultado.df is not None:
-            self._pintar(resultado.df)
 
     def _pintar(self, df) -> None:
         self.modelo.set_dataframe(df, self.hallazgo.modelo)
@@ -485,8 +448,8 @@ class HallazgoView(QWidget):
                 f"{visibles:,} de {total:,} filas".replace(",", " ")
             )
         elif total:
-            meta = store.leer_meta(self.hallazgo)
-            sufijo = f" · generado {meta.generado_texto}" if meta else ""
+            info = reports.ultimo(self.hallazgo.id)
+            sufijo = f" · generado {info.generado_texto}" if info else ""
             self.lbl_filas.setText(f"{total:,} filas".replace(",", " ") + sufijo)
 
     def _exportar(self) -> None:

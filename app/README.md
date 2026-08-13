@@ -41,14 +41,9 @@ Crear el `.env` en la raíz (junto a `requirements.txt`):
 DATA_PATH=C:\ruta\a\la\carpeta\de\datos
 ```
 
-Opcionalmente, para mover la caché de hallazgos a otra ubicación:
-
-```
-CACHE_PATH=C:\ruta\a\la\cache
-```
-
-Si no se indica, la caché va a `%LOCALAPPDATA%\Pacifico\CertificacionPPS`.
-**Nunca dentro de OneDrive.**
+La app no usa caché en disco: los hallazgos se generan al pedirlos y el
+resultado vive en memoria mientras la app está abierta. La verificación de
+archivos cargados solo comprueba que existan en disco (no los lee).
 
 ## Ejecutar
 
@@ -73,7 +68,7 @@ con exactamente las fuentes que necesita.
 
 El usuario **arrastra el archivo sobre la card** o lo elige con el botón; la app valida las cabeceras contra
 el catálogo, consolida varios archivos si el slot lo admite, y escribe
-`{DATA_PATH}/{file_name}.parquet`.
+`{DATA_PATH}/{file_name}.csv`.
 
 Las fuentes transversales (DNI vs Usuarios, GDH, AD, Tickets) son **un solo
 archivo en disco**. Cargarlas desde el hallazgo de Aplicaciones las deja
@@ -82,14 +77,9 @@ elimina desde cualquier pantalla y se sube otra.
 
 **Generar hallazgos**: los 8 están conectados a su reporte en `logic/`: se ejecuta el reporte de `logic/`, se muestra en
 tabla con tarjetas de conteo por tipo de hallazgo, y se exporta a `.xlsx` con
-las etiquetas visibles. El resultado queda en caché, así que volver a entrar es
-instantáneo.
-
-> **Puente temporal:** los servicios de `logic/` todavía leen `.csv` y la
-> aplicación escribe `.parquet`. `app/generation/compat.py` cierra esa brecha
-> sin modificar `logic/`, para poder trabajar mientras el backend migra. Cuando
-> la migración esté hecha, se borra ese archivo y se quita el `with
-> puente_parquet():` de `app/generation/reports.py`.
+las etiquetas visibles. El resultado vive en memoria mientras la app está
+abierta: no se guarda en disco ni se precalienta nada. Cerrar la app descarta
+los hallazgos generados (los archivos fuente y los Excel exportados quedan).
 
 ## Estructura
 
@@ -97,7 +87,7 @@ instantáneo.
 app/
 ├── main.py            punto de entrada
 ├── doctor.py          verificador de entorno y contratos
-├── config.py          DATA_PATH y CACHE_PATH
+├── config.py          DATA_PATH y convenciones del CSV
 │
 ├── catalog/           QUÉ se carga  (editar aquí, no en la UI)
 │   ├── columns.py     cabeceras esperadas por fuente
@@ -111,14 +101,12 @@ app/
 │   ├── readers.py     lectura como texto, sin inferencia de tipos
 │   ├── validate.py    columnas esperadas vs encontradas
 │   ├── merge.py       consolidación de N archivos
-│   └── writer.py      pipeline completo -> Parquet
+│   └── writer.py      pipeline completo -> CSV
 │
 ├── generation/        SALIDA hacia logic/
-│   ├── reports.py     adaptadores hallazgo -> reporte de logic/
-│   └── compat.py      puente .csv -> .parquet (TEMPORAL)
+│   └── reports.py     adaptadores hallazgo -> reporte de logic/
 │
-├── storage/files.py   estado de carga (leído del disco, sin estado propio)
-├── cache/             hallazgos generados en Parquet + invalidación por huella
+├── storage/files.py   estado de carga (verificación por existencia en disco)
 ├── exports/excel.py   exportación .xlsx con las etiquetas visibles
 ├── tasks/runner.py    trabajo pesado fuera del hilo de la UI
 └── ui/                PySide6
@@ -197,9 +185,9 @@ aparece como los tres caracteres `ï»¿` pegados al nombre de la primera column
 
 **El formato de los booleanos es solo presentación.** `logic/` devuelve `bool`
 nativos; `catalog/formatos.py` los traduce a `X` / `SI`-`NO` /
-`Activo`-`Inactivo` al pintarlos y al exportarlos, pero el Parquet de caché
-conserva el booleano. Así los conteos siguen operando sobre booleanos y no
-sobre texto. El tercer estado (celda en blanco) es real: `logic/` escribe
+`Activo`-`Inactivo` al pintarlos y al exportarlos, pero el DataFrame en
+memoria conserva el booleano. Así los conteos siguen operando sobre booleanos
+y no sobre texto. El tercer estado (celda en blanco) es real: `logic/` escribe
 `is_activo_gdh = (gdh_user and gdh_user.isActive)`, que vale `None` cuando el
 DNI no aparece en GDH; eso es distinto de "No".
 
@@ -215,22 +203,25 @@ El panel de estado ocupa su propia columna: empuja las cards a la izquierda,
 nunca se superpone, y se oculta solo cuando no hay espacio para dos columnas.
 
 **No hay estado de carga guardado.** La única verdad es el disco: si el
-`.parquet` existe, la fuente está cargada. Esto elimina por construcción los
-desfases entre lo que la interfaz cree y lo que hay realmente.
+`.csv` existe, la fuente está cargada. La verificación solo comprueba la
+existencia del archivo (no lo lee); las filas/columnas que se ven en las cards
+provienen de la propia carga hecha en esta sesión. Esto elimina por
+construcción los desfases entre lo que la interfaz cree y lo que hay
+realmente.
 
 **La escritura es atómica.** Se escribe a un temporal y recién al terminar se
 reemplaza el definitivo. Si la aplicación muere a mitad de una carga grande, el
 archivo anterior queda intacto en vez de quedar truncado.
 
-**La caché de hallazgos se invalida por huella.** Cada hallazgo guardado
-recuerda el tamaño y la fecha de modificación de las fuentes que lo generaron.
-Si alguna cambió, el hallazgo se marca como desactualizado automáticamente.
+**Sin caché.** No hay caché en disco ni precalentamiento de servicios: cada
+«Generar Hallazgos» ejecuta el reporte de `logic/` desde cero con los archivos
+actuales. Lo que ves en la tabla siempre corresponde a la última generación
+que pediste en esta sesión.
 
 ---
 
 ## Pendientes
 
-- Eliminar `generation/compat.py` cuando `logic/` lea Parquet.
 - **Bug en `logic/` (reportar al backend):** `ADService.sync_last_activity_entra()`
   no la llama nadie, y aunque se llamara asigna `user.last_activity`, mientras
   que `ad_report.py` lee `ad_user.ultima_actividad_entra`, que nunca se escribe.
