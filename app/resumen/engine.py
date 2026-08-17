@@ -78,8 +78,6 @@ class Escenario:
 
     modo: ModoMarca = "positivo"
 
-    exige_responsable: bool = False
-
 
     reporta_responsable: bool = True
     campo_responsable: str = CAMPO_RESPONSABLE
@@ -89,8 +87,6 @@ class Escenario:
 
     def cumple(self, fila: dict) -> bool:
         if self.flag and not cumple_marca(fila.get(self.flag), self.modo):
-            return False
-        if self.exige_responsable and not tiene_valor(fila.get(self.campo_responsable)):
             return False
         return all(f.cumple(fila) for f in self.filtros)
 

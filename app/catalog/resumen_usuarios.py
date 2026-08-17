@@ -39,7 +39,6 @@ ESCENARIOS_AD: tuple[Escenario, ...] = (
         title="Colaboradores Cesados con cuenta activa",
         flag="is_cesado_activo",
         modo="marca",
-        exige_responsable=True,
         columnas=(
             "dominio", "usuario", "nombre", "email", "dni_ad", "dni_dnivsuser",
             "tipo_dnivsuser", "descripcion", "fecha_creacion", "title",
@@ -53,7 +52,6 @@ ESCENARIOS_AD: tuple[Escenario, ...] = (
         title="Usuarios con acceso posterior al cese del empleado",
         flag="is_login_post_cese",
         modo="marca",
-        exige_responsable=True,
         columnas=(
             "dominio", "usuario", "nombre", "email", "dni_dnivsuser",
             "tipo_dnivsuser", "descripcion", "fecha_creacion", "title",
@@ -68,7 +66,6 @@ ESCENARIOS_AD: tuple[Escenario, ...] = (
         title="Usuarios no identificados o sin sustento",
         flag="is_no_identificado",
         modo="marca",
-        exige_responsable=True,
         columnas=(
             "dominio", "usuario", "nombre", "dni_ad", "dni_dnivsuser",
             "tipo_dnivsuser", "descripcion", "fecha_creacion", "is_active",
@@ -82,7 +79,6 @@ ESCENARIOS_AD: tuple[Escenario, ...] = (
         title="Identificación de usuarios sin uso más de 90 días de inactividad",
         flag="is_sin_uso_90d",
         modo="marca",
-        exige_responsable=True,
         columnas=(
             "dominio", "usuario", "nombre", "email", "dni_ad", "dni_dnivsuser",
             "tipo_dnivsuser", "fecha_creacion", "title", "street_address",
@@ -99,7 +95,6 @@ ESCENARIOS_AD: tuple[Escenario, ...] = (
         ),
         flag="is_deshabilitado_180d",
         modo="marca",
-        exige_responsable=True,
         columnas=(
             "dominio", "usuario", "nombre", "email", "dni_ad", "dni_dnivsuser",
             "tipo_dnivsuser", "descripcion", "fecha_creacion", "title",
@@ -114,7 +109,6 @@ ESCENARIOS_AD: tuple[Escenario, ...] = (
         title="Usuarios con contraseña que no expire",
         flag="passwordneverexpires",
         modo="marca",
-        exige_responsable=True,
         columnas=(
             "dominio", "usuario", "nombre", "email", "passwordneverexpires",
             "responsable", "comentario",
@@ -125,7 +119,6 @@ ESCENARIOS_AD: tuple[Escenario, ...] = (
         title="Usuarios que no pueden cambiar su contraseña",
         flag="cannotchangepassword",
         modo="marca",
-        exige_responsable=True,
         columnas=_todas_salvo_otros_flags("cannotchangepassword"),
     ),
 )
