@@ -16,6 +16,7 @@ class ColumnDef:
     header: str
     group: str = GRUPO_POR_DEFECTO
     width: int = ANCHO_POR_DEFECTO
+    es_fecha: bool = False
 
     @property
     def color(self) -> GrupoColor:
@@ -37,27 +38,27 @@ APP_ROWS: list[ColumnDef] = [
     Col("aplicacion", "Aplicación", "C1", 180),
     Col("usuario", "Usuario", "C1", 120),
     Col("is_active", "Estado", "C1", 110),
-    Col("fecha_creacion", "Fecha de Creación", "C1", 150),
-    Col("fecha_ultimo_login", "Fecha Último Login", "C1", 150),
+    Col("fecha_creacion", "Fecha de Creación", "C1", 150, es_fecha=True),
+    Col("fecha_ultimo_login", "Fecha Último Login", "C1", 150, es_fecha=True),
     Col("dni", "DNI", "C2", 120),
     Col("tipo_usuario_dnivsuser", "Tipo Usuario (DNI vs User)", "C2", 120),
     Col("usuario_dnivsuser", "Usuario (DNI vs User)", "C2", 120),
     Col("comentario_dnivsuser", "Comentario (DNI vs User)", "C2", 240),
     Col("tipo_colaborador", "Tipo de Colaborador", "C1", 180),
     Col("estado_entra_id", "Estado Entra ID", "C7", 148),
-    Col("fecha_creacion_entra_id", "Fecha Creación Entra ID", "C7", 150),
-    Col("fecha_login_entra_id", "Fecha Login Entra ID", "C7", 150),
+    Col("fecha_creacion_entra_id", "Fecha Creación Entra ID", "C7", 150, es_fecha=True),
+    Col("fecha_login_entra_id", "Fecha Login Entra ID", "C7", 150, es_fecha=True),
     Col("faxnumber_entra_id", "Fax Number Entra ID", "C7", 180),
     Col("username_ad_pps", "Usuario AD PPS", "C3", 140),
     Col("dni_ad_pps", "DNI AD PPS", "C3", 120),
     Col("username_ad_vida", "Usuario AD Vida", "C4", 148),
     Col("dni_ad_vida", "DNI AD Vida", "C4", 120),
     Col("is_activo_gdh", "Activo GDH", "C5", 110),
-    Col("fecha_alta", "Fecha de Alta", "C5", 150),
+    Col("fecha_alta", "Fecha de Alta", "C5", 150, es_fecha=True),
     Col("is_cesado_gdh", "Cesado GDH", "C5", 110),
-    Col("fecha_cese", "Fecha de Cese", "C5", 150),
+    Col("fecha_cese", "Fecha de Cese", "C5", 150, es_fecha=True),
     Col("ticket_cese", "Ticket de Cese", "C6", 140),
-    Col("fecha_cierre_ticket_cese", "Fecha Cierre Ticket", "C6", 150),
+    Col("fecha_cierre_ticket_cese", "Fecha Cierre Ticket", "C6", 150, es_fecha=True),
     Col("escenario", "Escenario", "C6", 200),
     Col("is_cesado_activo", "Cesado Activo", "C8", 110),
     Col("is_no_identificado", "No Identificado", "C8", 110),
@@ -77,22 +78,22 @@ AD_ROWS: list[ColumnDef] = [
     Col("usuario_dnivsuser", "Usuario (DNI vs User)", "C2", 120),
     Col("comentario_dnivsuser", "Comentario (DNI vs User)", "C2", 240),
     Col("descripcion", "Descripción", "C1", 240),
-    Col("fecha_creacion", "Fecha de Creación", "C1", 150),
-    Col("fecha_cambio", "Fecha de Cambio", "C1", 150),
-    Col("passwordlastset", "Último Cambio de Password", "C1", 228),
+    Col("fecha_creacion", "Fecha de Creación", "C1", 150, es_fecha=True),
+    Col("fecha_cambio", "Fecha de Cambio", "C1", 150, es_fecha=True),
+    Col("passwordlastset", "Último Cambio de Password", "C1", 228, es_fecha=True),
     Col("title", "Cargo", "C1", 120),
     Col("department", "Departamento", "C1", 124),
     Col("company", "Empresa", "C1", 120),
     Col("street_address", "Dirección", "C1", 120),
     Col("is_active", "Estado", "C1", 110),
-    Col("fecha_ultimo_login_ad", "Último Login AD", "C4", 150),
-    Col("fecha_ultimo_login_entra", "Último Login Entra", "C4", 150),
+    Col("fecha_ultimo_login_ad", "Último Login AD", "C4", 150, es_fecha=True),
+    Col("fecha_ultimo_login_entra", "Último Login Entra", "C4", 150, es_fecha=True),
     Col("is_activo_gdh", "Activo GDH", "C5", 110),
-    Col("fecha_alta", "Fecha de Alta", "C5", 150),
+    Col("fecha_alta", "Fecha de Alta", "C5", 150, es_fecha=True),
     Col("is_cesado_gdh", "Cesado GDH", "C5", 110),
-    Col("fecha_cese", "Fecha de Cese", "C5", 150),
+    Col("fecha_cese", "Fecha de Cese", "C5", 150, es_fecha=True),
     Col("ticket_cese", "Ticket de Cese", "C6", 140),
-    Col("fecha_cierre_ticket_cese", "Fecha Cierre Ticket", "C6", 150),
+    Col("fecha_cierre_ticket_cese", "Fecha Cierre Ticket", "C6", 150, es_fecha=True),
     Col("escenario", "Escenario", "C6", 200),
     Col("is_cesado_activo", "Cesado Activo", "C6", 110),
     Col("is_login_post_cese", "Login Posterior al Cese", "C6", 110),
@@ -119,10 +120,10 @@ PROFILE_ROWS: list[ColumnDef] = [
     Col("comentario_dnivsuser", "Comentario (DNI vs User)", "C2", 240),
     Col("is_active", "Estado", "C1", 110),
     Col("perfil", "Perfil", "C1", 120),
-    Col("fecha_creacion", "Fecha de Creación", "C1", 150),
-    Col("fecha_login", "Fecha de Login", "C1", 150),
-    Col("fecha_creacion_entra", "Fecha Creación Entra", "C7", 150),
-    Col("fecha_login_entra", "Fecha Login Entra", "C7", 150),
+    Col("fecha_creacion", "Fecha de Creación", "C1", 150, es_fecha=True),
+    Col("fecha_login", "Fecha de Login", "C1", 150, es_fecha=True),
+    Col("fecha_creacion_entra", "Fecha Creación Entra", "C7", 150, es_fecha=True),
+    Col("fecha_login_entra", "Fecha Login Entra", "C7", 150, es_fecha=True),
     Col("estado_entra", "Estado Entra", "C7", 124),
     Col("dni_entra", "DNI Entra", "C7", 120),
     Col("rol_entra", "Rol Entra", "C7", 120),
@@ -183,9 +184,9 @@ DB_VIDA_ROW: list[ColumnDef] = [
     Col("server_role", "Rol de Servidor", "C1", 148),
     Col("database_rol", "Rol de Base de Datos", "C1", 188),
     Col("is_active", "Estado", "C1", 110),
-    Col("fecha_creacion", "Fecha de Creación", "C1", 150),
-    Col("fecha_actualizacion", "Fecha de Actualización", "C1", 150),
-    Col("fecha_login", "Fecha de Login", "C1", 150),
+    Col("fecha_creacion", "Fecha de Creación", "C1", 150, es_fecha=True),
+    Col("fecha_actualizacion", "Fecha de Actualización", "C1", 150, es_fecha=True),
+    Col("fecha_login", "Fecha de Login", "C1", 150, es_fecha=True),
     Col("dni", "DNI", "C2", 120),
     Col("tipo_dnivsuser", "Tipo (DNI vs User)", "C2", 120),
     Col("usuario_dnivsuser", "Usuario (DNI vs User)", "C2", 120),
@@ -195,11 +196,11 @@ DB_VIDA_ROW: list[ColumnDef] = [
     Col("username_ad_vida", "Usuario AD Vida", "C4", 148),
     Col("dni_ad_vida", "DNI AD Vida", "C4", 120),
     Col("is_activo_gdh", "Activo GDH", "C5", 110),
-    Col("fecha_alta", "Fecha de Alta", "C5", 150),
+    Col("fecha_alta", "Fecha de Alta", "C5", 150, es_fecha=True),
     Col("is_cesado_gdh", "Cesado GDH", "C5", 110),
-    Col("fecha_cese", "Fecha de Cese", "C5", 150),
+    Col("fecha_cese", "Fecha de Cese", "C5", 150, es_fecha=True),
     Col("ticket_cese", "Ticket de Cese", "C6", 140),
-    Col("fecha_cierre_ticket_cese", "Fecha Cierre Ticket", "C6", 150),
+    Col("fecha_cierre_ticket_cese", "Fecha Cierre Ticket", "C6", 150, es_fecha=True),
     Col("escenario", "Escenario", "C8", 200),
     Col("is_cesado_activo", "Cesado Activo", "C8", 110),
     Col("is_login_post_cese", "Login Posterior al Cese", "C8", 110),
@@ -215,9 +216,9 @@ DB_GENERALS_ROW: list[ColumnDef] = [
     Col("username", "Usuario", "C1", 120),
     Col("perfil", "Perfil", "C1", 120),
     Col("is_active", "Estado", "C1", 110),
-    Col("fecha_bloqueo", "Fecha de Bloqueo", "C1", 150),
-    Col("fecha_creacion", "Fecha de Creación", "C1", 150),
-    Col("fecha_login", "Fecha de Login", "C1", 150),
+    Col("fecha_bloqueo", "Fecha de Bloqueo", "C1", 150, es_fecha=True),
+    Col("fecha_creacion", "Fecha de Creación", "C1", 150, es_fecha=True),
+    Col("fecha_login", "Fecha de Login", "C1", 150, es_fecha=True),
     Col("dni", "DNI", "C2", 120),
     Col("tipo_dnivsuser", "Tipo (DNI vs User)", "C2", 120),
     Col("usuario_dnivsuser", "Usuario (DNI vs User)", "C2", 120),
@@ -227,11 +228,11 @@ DB_GENERALS_ROW: list[ColumnDef] = [
     Col("username_ad_vida", "Usuario AD Vida", "C4", 148),
     Col("dni_ad_vida", "DNI AD Vida", "C4", 120),
     Col("is_activo_gdh", "Activo GDH", "C5", 110),
-    Col("fecha_alta", "Fecha de Alta", "C5", 150),
+    Col("fecha_alta", "Fecha de Alta", "C5", 150, es_fecha=True),
     Col("is_cesado_gdh", "Cesado GDH", "C5", 110),
-    Col("fecha_cese", "Fecha de Cese", "C5", 150),
+    Col("fecha_cese", "Fecha de Cese", "C5", 150, es_fecha=True),
     Col("ticket_cese", "Ticket de Cese", "C6", 140),
-    Col("fecha_cierre_ticket_cese", "Fecha Cierre Ticket", "C6", 150),
+    Col("fecha_cierre_ticket_cese", "Fecha Cierre Ticket", "C6", 150, es_fecha=True),
     Col("escenario", "Escenario", "C8", 200),
     Col("is_cesado_activo", "Cesado Activo", "C8", 110),
     Col("is_login_post_cese", "Login Posterior al Cese", "C8", 110),
@@ -248,10 +249,10 @@ GENERALS_ROW: list[ColumnDef] = [
     Col("cuenta de acceso", "Cuenta de Acceso", "C1", 156),
     Col("host de conexión", "Host de Conexión", "C1", 156),
     Col("terminal", "Terminal", "C1", 120),
-    Col("fecha de cierre sesion", "Fecha de Cierre de Sesión", "C1", 150),
+    Col("fecha de cierre sesion", "Fecha de Cierre de Sesión", "C1", 150, es_fecha=True),
     Col("elemento consultado", "Elemento Consultado", "C1", 180),
     Col("cuenta de usuario", "Cuenta de Usuario", "C1", 164),
-    Col("fecha accion", "Fecha de Acción", "C1", 150),
+    Col("fecha accion", "Fecha de Acción", "C1", 150, es_fecha=True),
     Col("codigo accion", "Código de Acción", "C1", 156),
     Col("jefe chapter lead", "Jefe / Chapter Lead", "C5", 180),
     Col("validacion cuenta de acceso", "Validación Cuenta de Acceso", "C10", 244),
@@ -271,6 +272,12 @@ COLUMNAS: dict[str, list[ColumnDef]] = {
     "DBGeneralsRow": DB_GENERALS_ROW,
     "GeneralsRow": GENERALS_ROW,
 }
+
+def es_fecha(modelo: str | None, campo: str) -> bool:
+    return definicion(modelo, campo).es_fecha
+
+def campos_fecha(modelo: str | None) -> list[str]:
+    return [c.key for c in columnas(modelo) if c.es_fecha]
 
 
 def columnas(modelo: str | None) -> list[ColumnDef]:
@@ -314,7 +321,16 @@ def ordenar(modelo: str | None, presentes: list[str]) -> list[str]:
     declarados = [c.key for c in columnas(modelo) if c.key in presentes]
     return declarados + [c for c in presentes if c not in set(declarados)]
 
+def check_fechas() -> dict[str, list[str]]:
+    reporte: dict[str, list[str]] = {}
+    for modelo in COLUMNAS:
+        reporte[modelo] = [
+            c.key for c in columnas(modelo)
+            if not c.es_fecha and "fecha" in c.key.lower()
+        ]
+    return reporte
 
+ 
 def check_modelos() -> dict[str, dict[str, list[str]]]:
     from dataclasses import fields
 
