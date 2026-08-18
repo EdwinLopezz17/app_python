@@ -48,15 +48,15 @@ class OnbaseUserService():
                 if not usuario or usuario == 'NAN': 
                     continue
                 
-                grupo_onbase = str(row.get('GRUPO ONBASE', '')).strip()
+                grupo_onbase = str(row.get('GRUPOONBASE', '')).strip()
                 
                 cache_key = (usuario.upper(), grupo_onbase.upper())
                 self._cache[cache_key] = OnbaseUser(
                     usuario = usuario,
-                    nombre_completo=str(row.get('NOMBRE COMPLETO', '')).strip(),
+                    nombre_completo=str(row.get('NOMBRECOMPLETO', '')).strip(),
                     correo=str(row.get('CORREO', '')).strip(),
                     grupo_onbase = grupo_onbase,
-                    ultimo_logueo=str(row.get('ÚLTIMO LOGUEO', '')).strip(),
+                    ultimo_logueo=str(row.get('ÚLTIMOLOGUEO', '')).strip(),
                     isActive=True,
                     app_name="OnBase",
                 )
