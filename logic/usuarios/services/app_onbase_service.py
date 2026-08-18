@@ -56,7 +56,7 @@ class OnbaseUserService():
                     nombre_completo=str(row.get('NOMBRECOMPLETO', '')).strip(),
                     correo=str(row.get('CORREO', '')).strip(),
                     grupo_onbase = grupo_onbase,
-                    ultimo_logueo=str(row.get('ÚLTIMOLOGUEO', '')).strip(),
+                    ultimo_logueo=str(row.get('ULTIMOLOGUEO', '')).strip(),
                     isActive=True,
                     app_name="OnBase",
                 )
