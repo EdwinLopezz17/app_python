@@ -41,19 +41,8 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
     if not entra_user:
         entra_user = entra_srv.get_by_upn(usuario)
 
-    ad_user_pps = ad_user_srv.get_by_username_and_origen(usuario, "PPS")
-    ad_user_vida = ad_user_srv.get_by_username_and_origen(usuario, "PVIDA")
-
-    if not ad_user_pps:
-        ad_user_pps = ad_user_srv.get_by_email_and_origen(usuario, "PPs")
-        if not ad_user_pps:
-            ad_user_pps = ad_user_srv.get_by_dni_and_origen(dni, "PPS")   
-    
-    if not ad_user_vida:
-        ad_user_vida = ad_user_srv.get_by_email_and_origen(usuario, "PVIDA")
-        if not ad_user_vida:
-            ad_user_vida = ad_user_srv.get_by_dni_and_origen(dni, "PVIDA")
-
+    ad_user_pps = ad_user_srv.get_by_dni_and_origen(dni, "PPS")
+    ad_user_vida = ad_user_srv.get_by_dni_and_origen(dni, "PVIDA")
 
     rol_gdh = gdh_user.get_rol() if gdh_user else "*No esta en GDH*"
     rol_final = ""
@@ -76,6 +65,8 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
             if ad_user_vida and ad_user_pps:
                 if ad_user_pps.rol == ad_user_vida.rol == rol_gdh:
                     rol_final = ad_user_vida.rol
+                elif ad_user_pps.rol == ad_user_vida.rol:
+                    rol_final = "*Rol GDH no Coincide con ADs*"
                 else:
                     rol_final = "*Roles no Coinciden*"
 
