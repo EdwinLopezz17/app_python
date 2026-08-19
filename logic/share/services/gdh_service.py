@@ -1,8 +1,7 @@
 import os
 import pandas as pd
 from dataclasses import dataclass
-from datetime import date
-from typing import Optional
+from datetime import datetime
 from dotenv import load_dotenv
 from models.file_names import FileName
 from logic.share.utils import to_datetime
@@ -26,8 +25,8 @@ class GDHUserInfo:
     u_organizativa: str = ""
     servicio: str = ""
     sociedad: str = ""
-    fecha_alta: Optional[date] = None
-    fecha_cese: Optional[date] = None
+    fecha_alta: datetime = None
+    fecha_cese: datetime = None
     isActive: bool = False
     isCesado: bool = False
     area_nomina: str = ""

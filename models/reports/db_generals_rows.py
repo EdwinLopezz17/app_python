@@ -1,5 +1,6 @@
 
 from dataclasses import dataclass
+from datetime import datetime
 
 @dataclass
 class DBGeneralsRow:
@@ -7,9 +8,9 @@ class DBGeneralsRow:
     username: str
     perfil: str
     is_active: bool
-    fecha_bloqueo: str
-    fecha_creacion: str
-    fecha_login: str
+    fecha_bloqueo: datetime
+    fecha_creacion: datetime
+    fecha_login: datetime
     dni: str
     tipo_dnivsuser: str
     usuario_dnivsuser: str
@@ -21,7 +22,7 @@ class DBGeneralsRow:
     is_activo_gdh: bool
     fecha_alta: str
     is_cesado_gdh: bool
-    fecha_cese: str
+    fecha_cese: datetime
     ticket_cese: str
     fecha_cierre_ticket_cese: str
     escenario: str

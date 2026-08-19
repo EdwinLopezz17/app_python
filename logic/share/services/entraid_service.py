@@ -18,9 +18,9 @@ class EntraUser:
     email: str = ""
     isActive: bool = False
     fechaCreacion: datetime = None
-    lastSignInDateTime: str = ""
-    lastNonInteractiveSignInDateTime: str = ""
-    lastActivityDateTime: str = ""
+    lastSignInDateTime: datetime = None
+    lastNonInteractiveSignInDateTime: datetime = None
+    lastActivityDateTime: datetime = None
     dni: str = ""
     rol: str = ""
     jefe: str = ""
@@ -87,15 +87,15 @@ class EntraUserService():
 
                 dt_interactive = self._parse_datetime(last_sign_in)
                 dt_non_interactive = self._parse_datetime(last_non_interactive)
-                
+
                 if dt_interactive and dt_non_interactive:
-                    last_activity = last_sign_in if dt_interactive >= dt_non_interactive else last_non_interactive
+                    last_activity = dt_interactive if dt_interactive >= dt_non_interactive else dt_non_interactive
                 elif dt_interactive:
-                    last_activity = last_sign_in
+                    last_activity = dt_interactive
                 elif dt_non_interactive:
-                    last_activity = last_non_interactive
+                    last_activity = dt_non_interactive
                 else:
-                    last_activity = ""
+                    last_activity = None
 
                 raw_id = str(row.get('ID', '')).strip()
                 raw_upn = str(row.get('USERPRINCIPALNAME', '')).strip()
@@ -107,8 +107,8 @@ class EntraUserService():
                     email = raw_email,
                     isActive = str(row.get('ACCOUNTENABLED', '')).strip().upper() in ["TRUE", "VERDADERO", "1"],
                     fechaCreacion = to_datetime(str(row.get('CREATEDDATETIME', '')).strip(),"MDA"),
-                    lastSignInDateTime = last_sign_in,
-                    lastNonInteractiveSignInDateTime = last_non_interactive,
+                    lastSignInDateTime = dt_interactive,
+                    lastNonInteractiveSignInDateTime = dt_non_interactive,
                     lastActivityDateTime = last_activity,
                     dni = str(row.get("FAXNUMBER", '')).strip(),
                     rol = str(row.get('POSTALCODE', '')).strip(),
