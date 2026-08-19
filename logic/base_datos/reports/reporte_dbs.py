@@ -208,10 +208,10 @@ def _rows_generales(fecha_ref: date, dni_user_srv: DNIUserService, ad_srv: ADSer
                     escenarios.append("Sin Actividad 90d")
                     s90d = True
 
-            if not db_gen.isActive and db_gen.fecha_creacion and db_gen.fecha_login:
+            if not db_gen.isActive and db_gen.fecha_creacion and db_gen.fecha_bloqueo:
                 create_gt_180 = (ahora - db_gen.fecha_creacion) > limit_180
-                login_gt_180 = (ahora - db_gen.fecha_login) > limit_180
-                if create_gt_180 and login_gt_180:
+                bloqueo_gt_180 = (ahora - db_gen.fecha_bloqueo) > limit_180
+                if create_gt_180 and bloqueo_gt_180:
                     escenarios.append("Bloqueado 180d")
                     b180d = True
             
