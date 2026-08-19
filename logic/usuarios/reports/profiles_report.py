@@ -173,7 +173,7 @@ def _rows_acselx(dni_srv:DNIUserService, gdh_srv:GDHUserService, ad_srv:ADServic
             usuario = user.usuario,
             perfil_rol = user.codperfil,
             fecha_creacion = user.fechacrea,
-            ultimo_login = user.fechacrea,
+            ultimo_login = user.fecacceso,
             dni_user_srv=dni_srv,
             gdh_user_srv = gdh_srv,
             ad_user_srv = ad_srv,
