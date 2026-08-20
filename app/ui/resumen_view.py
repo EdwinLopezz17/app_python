@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.catalog import resumenes
+from app.catalog import hallazgo_columns as cols, resumenes
 from app.catalog.hallazgos import Hallazgo
 from app.resumen import engine, export
 from app.resumen.importer import ErrorDeImportacion, leer_detalle
@@ -263,9 +263,28 @@ class ResumenView(QWidget):
         self.zona.hide()
         self.btn_otro.setEnabled(True)
         self.btn_descargar.setEnabled(True)
-        self._mostrar_aviso(
-            f"Resumen listo · {self._archivo} · {len(self._filas)} filas leídas", "ok"
-        )
+
+        # Si una cabecera del archivo no se reconoce, el campo no existe en la
+        # fila y el escenario cuenta 0 sin error. Antes esto pasaba
+        # desapercibido; ahora se avisa.
+        ausentes = engine.escenarios_sin_campo(self._filas, self.config.escenarios)
+        if ausentes:
+            codes = sorted({c for lista in ausentes.values() for c in lista})
+            columnas = ", ".join(
+                cols.etiquetas(self.config.modelo).get(campo, campo)
+                for campo in ausentes
+            )
+            self._mostrar_aviso(
+                f"Atención · {self._archivo} · {len(self._filas)} filas leídas · "
+                f"faltan columnas en el archivo ({columnas}), "
+                f"por eso {', '.join(codes)} cuentan 0",
+                "aviso",
+            )
+        else:
+            self._mostrar_aviso(
+                f"Resumen listo · {self._archivo} · {len(self._filas)} filas leídas",
+                "ok",
+            )
         self._pintar_preview()
 
     def _al_fallar(self, mensaje: str) -> None:

@@ -397,7 +397,60 @@ _ALIAS_BD_COMUN: dict[str, tuple[str, ...]] = {
     "is_deshabilitado_180d": ("Deshabilitado 180d",),
 }
 
+# Cabeceras del Excel de AD generado por el frontend Next.js
+# (nextjs-laboratorio, src/features/usuarios/ad-columns.ts).
+#
+# Sin estos alias, H2_AD / H4_AD / H5_AD contaban 0 en el resumen aunque el
+# detalle tuviera las marcas, y las columnas de fecha llegaban vacías a las
+# hojas de detalle. Confirmado sobre un archivo real de 13 090 filas: 12 de
+# 35 cabeceras no mapeaban.
+_ALIAS_AD: dict[str, tuple[str, ...]] = {
+    # Fechas
+    "fecha_creacion": ("Fecha Creación", "Fecha Creacion"),
+    "fecha_cambio": ("Fecha Cambio",),
+    "fecha_ultimo_login_ad": (
+        "Fecha Ultimo Login AD", "Fecha Último Login AD", "Ultimo Login AD",
+    ),
+    "fecha_ultimo_login_entra": (
+        "Fecha Ultimo Login Entra", "Fecha Último Login Entra",
+        "Ultimo Login Entra",
+    ),
+    "fecha_alta": ("Fecha Alta",),
+    "fecha_cese": ("Fecha Cese",),
+    "fecha_cierre_ticket_cese": ("Fecha Cierre Ticket Cese",),
+    "passwordlastset": ("Password Last Set", "Ultimo Cambio de Password"),
+    # Texto
+    "street_address": ("StreetAddress", "Street Address", "Jefe"),
+    "ticket_cese": ("Ticket Cese",),
+    # Flags
+    "is_cesado_activo": ("Cesado Activo",),
+    "is_login_post_cese": ("Login Post Cese", "Login Posterior Cese"),
+    "is_no_identificado": ("No Identificado",),
+    "is_sin_uso_90d": ("Sin Uso 90d", "Sin Uso 90 dias"),
+    "is_deshabilitado_180d": ("Deshabilitado 180d", "Deshabilitado 180 dias"),
+    "passwordneverexpires": (
+        "Contraseña no Expira", "Contraseña No Expira", "Password No Expira",
+    ),
+    "cannotchangepassword": (
+        "No Puede Cambiar Contraseña", "No Puede Cambiar Password",
+    ),
+}
+
+
 ALIAS_IMPORTACION: dict[str, dict[str, tuple[str, ...]]] = {
+    "ADRows": _ALIAS_AD,
+    "AppRows": {
+        "fecha_creacion": ("Fecha Creación", "Fecha Creacion"),
+        "fecha_ultimo_login": ("Fecha Ultimo Login", "Fecha Último Login"),
+        "fecha_creacion_entra_id": ("Fecha Creación Entra ID", "Fecha Creacion Entra ID"),
+        "fecha_login_entra_id": ("Fecha Login Entra ID",),
+        "fecha_alta": ("Fecha Alta",),
+        "fecha_cese": ("Fecha Cese",),
+        "ticket_cese": ("Ticket Cese",),
+        "fecha_cierre_ticket_cese": ("Fecha Cierre Ticket Cese",),
+        "is_cesado_activo": ("Cesado Activo",),
+        "is_no_identificado": ("No Identificado",),
+    },
     "DBVidaRow": {
         **_ALIAS_BD_COMUN,
         "typee": ("Type",),

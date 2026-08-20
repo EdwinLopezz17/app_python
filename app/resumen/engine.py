@@ -110,6 +110,42 @@ def filas_de_escenario(filas: Sequence[dict], escenario: Escenario) -> list[dict
     return [f for f in filas if escenario.cumple(f)]
 
 
+def campos_requeridos(escenarios: Sequence[Escenario]) -> dict[str, list[str]]:
+    """campo del modelo -> códigos de escenario que dependen de él.
+
+    Son los campos sin los cuales un escenario no puede contar: la bandera y
+    los campos de sus filtros.
+    """
+    requeridos: dict[str, list[str]] = {}
+    for escenario in escenarios:
+        if escenario.flag:
+            requeridos.setdefault(escenario.flag, []).append(escenario.code)
+        for filtro in escenario.filtros:
+            requeridos.setdefault(filtro.campo, []).append(escenario.code)
+    return requeridos
+
+
+def escenarios_sin_campo(
+    filas: Sequence[dict], escenarios: Sequence[Escenario]
+) -> dict[str, list[str]]:
+    """Campos que los escenarios necesitan y que NO llegaron en las filas.
+
+    Cuando el Excel de detalle trae una cabecera que el importador no
+    reconoce, el campo simplemente no existe en la fila: ``fila.get(campo)``
+    devuelve ``None``, ``cumple_marca(None)`` es ``False`` y el escenario
+    cuenta 0 sin ningún error. Esta función expone ese caso para poder
+    avisarlo en la UI en lugar de fallar en silencio.
+    """
+    if not filas:
+        return {}
+    presentes = set(filas[0])
+    return {
+        campo: codes
+        for campo, codes in campos_requeridos(escenarios).items()
+        if campo not in presentes
+    }
+
+
 def tiene_gdh(valor: Any) -> bool:
     return "GDH" in _norm(valor)
 
