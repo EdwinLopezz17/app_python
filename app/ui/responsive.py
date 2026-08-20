@@ -183,6 +183,7 @@ class ChipsFlow(QFrame):
         politica.setHeightForWidth(True)
         self.setSizePolicy(politica)
         self._chips: list[QLabel] = []
+        self._firma: tuple | None = None
 
     def limpiar(self) -> None:
         for chip in self._chips:
@@ -190,6 +191,22 @@ class ChipsFlow(QFrame):
             chip.setParent(None)
             chip.deleteLater()
         self._chips = []
+        self._firma = None
+
+    @staticmethod
+    def _crear_chip() -> QLabel:
+        chip = QLabel()
+        chip.setObjectName("ChipColumna")
+        chip.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        return chip
+
+    @staticmethod
+    def _fijar_tono(widget: QWidget, tono: str) -> None:
+        if widget.property("tono") == tono:
+            return
+        widget.setProperty("tono", tono)
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
 
     def poblar(
         self,
@@ -198,21 +215,41 @@ class ChipsFlow(QFrame):
         resaltados: set[str] | None = None,
         tono_resaltado: str = "error",
     ) -> None:
-        """Pinta los chips. Los de 'resaltados' llevan 'tono_resaltado'."""
-        self.limpiar()
+        """Pinta los chips. Los de 'resaltados' llevan 'tono_resaltado'.
+
+        Los QLabel se RECICLAN en vez de destruirse y recrearse. Destruirlos
+        (setParent(None) + deleteLater) en cascada hacía que Qt revocara el
+        drop-site OLE de la ventana en Windows, y el arrastrar-y-soltar dejaba
+        de funcionar en toda la app tras varios "Eliminar". Además, la lista
+        de columnas requeridas de un slot nunca cambia: si la firma es la
+        misma, esto es un no-op completo.
+        """
         resaltados = resaltados or set()
-        for texto in items:
-            chip = QLabel(texto)
-            chip.setObjectName("ChipColumna")
-            chip.setProperty(
-                "tono", tono_resaltado if texto in resaltados else tono
-            )
-            chip.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        firma = (tuple(items), tono, frozenset(resaltados), tono_resaltado)
+        if firma == self._firma:
+            return
+        self._firma = firma
+
+        # Solo se destruye el excedente; el resto se reutiliza.
+        while len(self._chips) > len(items):
+            chip = self._chips.pop()
+            self.flow.removeWidget(chip)
+            chip.setParent(None)
+            chip.deleteLater()
+
+        while len(self._chips) < len(items):
+            chip = self._crear_chip()
             self.flow.addWidget(chip)
             self._chips.append(chip)
-        self.setProperty("tono", tono)
-        self.style().unpolish(self)
-        self.style().polish(self)
+
+        for chip, texto in zip(self._chips, items):
+            if chip.text() != texto:
+                chip.setText(texto)
+            self._fijar_tono(
+                chip, tono_resaltado if texto in resaltados else tono
+            )
+
+        self._fijar_tono(self, tono)
         self._ajustar()
 
     def hasHeightForWidth(self) -> bool:

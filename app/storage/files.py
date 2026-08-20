@@ -10,17 +10,6 @@ import pandas as pd
 from app import config
 from app.catalog.fuentes import Fuente, Slot
 
-# ---------------------------------------------------------------------------
-# Verificación de archivos cargados.
-#
-# La verificación NO lee los archivos: comprobar que el CSV existe en disco
-# (path.stat()) es suficiente para decir "cargado". Las filas/columnas que se
-# muestran en las cards vienen del propio proceso de carga: el writer ya
-# conoce esos números al escribir el CSV y los registra aquí en memoria
-# (registrar_medida). Si la app se reinicia, el archivo sigue mostrándose
-# como cargado ("En disco") aunque ya no se conozcan sus filas.
-# ---------------------------------------------------------------------------
-
 _MEMORIA: dict[Path, tuple[int, int, "Medida"]] = {}
 
 

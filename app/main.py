@@ -8,6 +8,7 @@ if str(RAIZ) not in sys.path:
     sys.path.insert(0, str(RAIZ))
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app import config
@@ -22,6 +23,10 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("Certificación de Accesos")
     app.setOrganizationName("Pacífico Seguros")
+
+    icono = config.ruta_icono()
+    if icono.is_file():
+        app.setWindowIcon(QIcon(str(icono)))
 
     familia = theme.cargar_fuentes()
     app.setStyleSheet(theme.qss(familia))

@@ -333,6 +333,19 @@ class SlotRow(QWidget):
         widget.style().unpolish(widget)
         widget.style().polish(widget)
 
+    def _reasegurar_drop(self) -> None:
+        """Vuelve a registrar la zona de drop de la ventana.
+
+        En Windows Qt registra el drop-target a nivel de la ventana top-level
+        (RegisterDragDrop), no por widget. Al destruirse widgets hijos en
+        cascada, Qt puede revocar ese registro y el arrastrar-y-soltar deja de
+        funcionar en TODA la app (el botón "Seleccionar archivo" sigue
+        andando porque no depende de OLE). Reasignar acceptDrops fuerza a Qt
+        a volver a registrarlo. Es barato e idempotente.
+        """
+        self.setAcceptDrops(False)
+        self.setAcceptDrops(True)
+
     def _ocupar(self, mensaje: str) -> None:
         self._ocupado = True
         self.ocupado_cambiado.emit(True)
@@ -406,6 +419,7 @@ class SlotRow(QWidget):
     def _al_cargar(self, resultado) -> None:
         self.limpiar_error()
         self._liberar()
+        self._reasegurar_drop()
         self.cambiado.emit()
 
     @staticmethod
@@ -433,6 +447,7 @@ class SlotRow(QWidget):
 
         self._error = (titulo, detalle)
         self.refrescar()
+        self._reasegurar_drop()
         self.cambiado.emit()
 
     def _mostrar_alerta(self, titulo: str, detalle: str = "", tono: str = "error") -> None:
@@ -505,6 +520,7 @@ class SlotRow(QWidget):
         eliminar_slot(self.slot)
         self.limpiar_error()
         self.refrescar()
+        self._reasegurar_drop()
         self.cambiado.emit()
 
 

@@ -4,6 +4,8 @@ from pathlib import Path
 
 from PySide6.QtGui import QColor, QFont, QFontDatabase, QIcon, QTextCharFormat
 
+from app import config
+
 SURFACE = "#faf8ff"
 SURFACE_CONTAINER_LOWEST = "#ffffff"
 SURFACE_CONTAINER_LOW = "#f2f3ff"
@@ -53,7 +55,7 @@ FUENTE = "Inter"
 FUENTE_RESPALDO = "Segoe UI"
 
 def cargar_fuentes() -> str:
-    carpeta = Path(__file__).parent / "fonts"
+    carpeta = config.carpeta_fuentes()
     if carpeta.is_dir():
         for archivo in sorted(carpeta.glob("*.ttf")) + sorted(carpeta.glob("*.otf")):
             if QFontDatabase.addApplicationFont(str(archivo)) != -1:
@@ -761,6 +763,27 @@ QFrame#ZonaSoltar[soltar="activa"] {{
     background: {SECONDARY_SOFT};
 }}
 QLabel#ZonaSoltarTitulo {{ font-size: 15px; font-weight: 600; }}
+
+/* Diálogos nativos (QMessageBox, QFileDialog, QInputDialog).
+   Sin esto heredan el fondo del tema del sistema: en modo oscuro quedaba
+   fondo negro con el texto oscuro que impone la regla `*`, ilegible. */
+QDialog, QMessageBox, QInputDialog, QFileDialog {{
+    background: {SURFACE_CONTAINER_LOWEST};
+    color: {ON_SURFACE};
+}}
+QMessageBox QLabel, QInputDialog QLabel {{
+    background: transparent;
+    color: {ON_SURFACE};
+    font-size: {TEXTO_LG}px;
+}}
+QMessageBox QLabel#qt_msgbox_informativelabel {{
+    color: {ON_SURFACE_VARIANT};
+    font-size: {TEXTO_MD}px;
+}}
+QMessageBox QPushButton, QInputDialog QPushButton {{
+    min-width: 88px;
+    padding: 6px 16px;
+}}
 """
 
 def configurar_fecha(campo) -> None:

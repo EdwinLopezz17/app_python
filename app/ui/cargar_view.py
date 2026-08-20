@@ -46,6 +46,7 @@ class CargarView(QWidget):
         self._sobre_umbral = True
 
         self._en_curso = 0
+        self._refrescando = False
 
         self._filtro_estado = "todas"
         self._busqueda = ""
@@ -366,6 +367,18 @@ class CargarView(QWidget):
 
 
     def refrescar(self) -> None:
+        # Guard de reentrancia: un "Eliminar" en una card emite cambiado, que
+        # llama aqui y repinta las ~20 cards; cualquiera de esas puede volver
+        # a disparar la senal. Sin este guard el repintado se anidaba.
+        if self._refrescando:
+            return
+        self._refrescando = True
+        try:
+            self._refrescar()
+        finally:
+            self._refrescando = False
+
+    def _refrescar(self) -> None:
         for card in self.cards:
             card.refrescar()
         if hasattr(self, "panel") and self.panel.isVisible():
