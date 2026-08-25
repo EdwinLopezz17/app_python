@@ -36,8 +36,6 @@ def _sin_zona(valor: datetime) -> datetime:
 
 
 def a_fecha(valor: Any) -> Any:
-    """datetime si el valor es una fecha; "" si está vacío;
-    el valor original (texto) si no se puede interpretar."""
     if valor is None or valor is pd.NaT:
         return ""
     if isinstance(valor, pd.Timestamp):
@@ -68,7 +66,7 @@ def a_fecha(valor: Any) -> Any:
         return valor
 
     if ts is None or pd.isna(ts):
-        return valor  # no es fecha: se conserva el texto original
+        return valor
     return _sin_zona(ts.to_pydatetime())
 
 
@@ -101,8 +99,6 @@ def exportar(
 
     campos_origen = [str(c) for c in columnas]
 
-    # Columnas de fecha: se normalizan a datetime cuando se puede y se
-    # escriben con formato de fecha real de Excel.
     idx_fechas: set[int] = set()
     for idx, campo in enumerate(campos_origen):
         if not cols.es_fecha(modelo, campo):
@@ -148,9 +144,6 @@ def exportar(
                 fmt_fecha if idx in idx_fechas else fmt_celda,
             )
 
-        # Reescritura explícita de las columnas de fecha: pandas escribió los
-        # datetime con el formato por defecto del libro (sin borde ni
-        # num_format), así que se sobrescriben celda a celda.
         for idx in sorted(idx_fechas):
             for fila, valor in enumerate(salida.iloc[:, idx], start=1):
                 if isinstance(valor, datetime):

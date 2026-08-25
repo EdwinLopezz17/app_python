@@ -150,14 +150,8 @@ class ResumenView(QWidget):
         self.tabla.setSelectionBehavior(QTableWidget.SelectRows)
         cabecera_tabla = self.tabla.horizontalHeader()
         cabecera_tabla.setSectionResizeMode(QHeaderView.Interactive)
-        # Sin estirar la última columna: las columnas numéricas (N°, GDH, ACC)
-        # son de 2-3 dígitos y no tienen por qué llegar al borde de la ventana.
-        # El espacio que sobre se le da a la primera columna, que es la de
-        # texto largo (escenario de monitoreo / título del escenario).
         cabecera_tabla.setStretchLastSection(False)
         cabecera_tabla.setMinimumSectionSize(56)
-        # Si el usuario arrastra una columna, dejamos de recalcular anchos:
-        # su ajuste manda hasta que se cargue otro archivo.
         self._anchos_manuales = False
         self._ajustando = False
         cabecera_tabla.sectionResized.connect(self._al_mover_columna)
@@ -264,9 +258,6 @@ class ResumenView(QWidget):
         self.btn_otro.setEnabled(True)
         self.btn_descargar.setEnabled(True)
 
-        # Si una cabecera del archivo no se reconoce, el campo no existe en la
-        # fila y el escenario cuenta 0 sin error. Antes esto pasaba
-        # desapercibido; ahora se avisa.
         ausentes = engine.escenarios_sin_campo(self._filas, self.config.escenarios)
         if ausentes:
             codes = sorted({c for lista in ausentes.values() for c in lista})
@@ -331,7 +322,6 @@ class ResumenView(QWidget):
             self._anchos_manuales = True
 
     def _ajustar_anchos(self, forzar: bool = False) -> None:
-        """Ancho por contenido, con el sobrante para la primera columna."""
         tabla = self.tabla
         if tabla.columnCount() == 0:
             return
@@ -476,9 +466,6 @@ class ResumenView(QWidget):
         tarea = Tarea(export.exportar, self.config, self._filas, destino)
         tarea.senales.ok.connect(self._al_descargar)
         tarea.senales.error.connect(self._al_fallar_descarga)
-        # Restauramos el botón en las tres señales: aunque 'terminada' basta,
-        # así el botón nunca queda colgado en "Generando…" si una de ellas se
-        # pierde. _restaurar_descarga es idempotente.
         tarea.senales.ok.connect(lambda _=None: self._restaurar_descarga())
         tarea.senales.error.connect(lambda _=None: self._restaurar_descarga())
         tarea.senales.terminada.connect(self._restaurar_descarga)
@@ -500,9 +487,6 @@ class ResumenView(QWidget):
         self._restaurar_descarga()
 
         ruta = Path(ruta)
-        # Validamos que el archivo exista de verdad en el disco y no esté
-        # vacío: xlsxwriter puede cerrar el libro sin escribir nada si el
-        # antivirus corporativo o OneDrive interceptan la escritura.
         try:
             tamano = ruta.stat().st_size
         except OSError:

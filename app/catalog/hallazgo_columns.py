@@ -363,22 +363,6 @@ def check_modelos() -> dict[str, dict[str, list[str]]]:
         }
     return reporte
 
-
-# ---------------------------------------------------------------------------
-# Alias de importación
-#
-# El Excel de detalle que se lee para armar el resumen puede venir del
-# frontend Next.js (nextjs-laboratorio, src/features/bd/bd-columns.ts), cuyas
-# cabeceras NO son idénticas a las de esta app: "Fecha Cese" vs "Fecha de
-# Cese", "Type Desc" vs "Descripción del Tipo", "Sin Uso 90d" vs "Sin Uso 90
-# Días"...
-#
-# Sin estos alias el importador no reconoce las columnas de flags, todos los
-# escenarios cuentan 0 y el resumen sale vacío. Las cadenas de abajo están
-# copiadas TAL CUAL de bd-columns.ts: si allá cambia una cabecera, hay que
-# reflejarlo aquí.
-# ---------------------------------------------------------------------------
-
 _ALIAS_BD_COMUN: dict[str, tuple[str, ...]] = {
     "nombre_archivo": ("Nombre Archivo",),
     "username": ("Usuario", "Userame"),
@@ -397,13 +381,6 @@ _ALIAS_BD_COMUN: dict[str, tuple[str, ...]] = {
     "is_deshabilitado_180d": ("Deshabilitado 180d",),
 }
 
-# Cabeceras del Excel de AD generado por el frontend Next.js
-# (nextjs-laboratorio, src/features/usuarios/ad-columns.ts).
-#
-# Sin estos alias, H2_AD / H4_AD / H5_AD contaban 0 en el resumen aunque el
-# detalle tuviera las marcas, y las columnas de fecha llegaban vacías a las
-# hojas de detalle. Confirmado sobre un archivo real de 13 090 filas: 12 de
-# 35 cabeceras no mapeaban.
 _ALIAS_AD: dict[str, tuple[str, ...]] = {
     # Fechas
     "fecha_creacion": ("Fecha Creación", "Fecha Creacion"),

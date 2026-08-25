@@ -22,12 +22,6 @@ def alto_de(widget: QWidget, ancho: int) -> int:
     if widget.hasHeightForWidth():
         alto = widget.heightForWidth(ancho)
         if alto > 0:
-            # Se devuelve el alto para ESTE ancho tal cual. No se mezcla con
-            # minimumHeight(): ese valor quedó fijado en una medición previa,
-            # normalmente con la card más angosta (más líneas de chips), y al
-            # combinarlos el contenedor pedía más alto del necesario. El
-            # sobrante lo absorbían los QLabel del layout —por eso el badge de
-            # estado se estiraba en un bloque alto al desplegar las columnas.
             return alto
 
     base = max(widget.sizeHint().height(), widget.minimumHeight())
@@ -83,10 +77,6 @@ class _AutoAlto(QObject):
             return
         layout.invalidate()
 
-        # Se mide contra el ancho real del widget cuando ya lo tiene.
-        # layout.minimumSize() ignora el ancho y devuelve el peor caso
-        # (todos los chips en una columna), lo que dejaba un mínimo enorme
-        # y un hueco vacío al fondo de la card al desplegar las columnas.
         ancho = widget.width()
         if ancho > 1 and widget.hasHeightForWidth():
             alto = widget.heightForWidth(ancho)
@@ -163,8 +153,6 @@ def auto_alto(widget: QWidget) -> None:
 
 
 class ChipsFlow(QFrame):
-    """Caja con chips que fluyen en horizontal y saltan de línea solos."""
-
     def __init__(
         self,
         parent: QWidget | None = None,
@@ -215,15 +203,6 @@ class ChipsFlow(QFrame):
         resaltados: set[str] | None = None,
         tono_resaltado: str = "error",
     ) -> None:
-        """Pinta los chips. Los de 'resaltados' llevan 'tono_resaltado'.
-
-        Los QLabel se RECICLAN en vez de destruirse y recrearse. Destruirlos
-        (setParent(None) + deleteLater) en cascada hacía que Qt revocara el
-        drop-site OLE de la ventana en Windows, y el arrastrar-y-soltar dejaba
-        de funcionar en toda la app tras varios "Eliminar". Además, la lista
-        de columnas requeridas de un slot nunca cambia: si la firma es la
-        misma, esto es un no-op completo.
-        """
         resaltados = resaltados or set()
         firma = (tuple(items), tono, frozenset(resaltados), tono_resaltado)
         if firma == self._firma:
@@ -265,10 +244,6 @@ class ChipsFlow(QFrame):
         )
 
     def minimumSizeHint(self) -> QSize:
-        # Se mide SIEMPRE contra el ancho real disponible, nunca contra
-        # self.minimumHeight(): ese valor puede venir de una medición previa
-        # con la card más angosta y, al inflar el mínimo del SlotRow, el
-        # layout repartía el sobrante estirando el badge de estado.
         if not self._chips:
             return QSize(self.flow.minimumSize().width(), 0)
         return QSize(

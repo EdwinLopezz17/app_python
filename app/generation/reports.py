@@ -98,16 +98,6 @@ GENERADORES: dict[str, Callable[[date], pd.DataFrame]] = {
 def disponible(hallazgo_id: str) -> bool:
     return hallazgo_id in GENERADORES
 
-
-# ---------------------------------------------------------------------------
-# Registro en memoria de la última generación de la sesión.
-#
-# No hay caché en disco: el resultado vive en la tabla de la vista mientras la
-# app esté abierta. Este registro solo guarda los metadatos (filas y hora)
-# para que la vista y el launcher puedan mostrar "generado hh:mm".
-# Al cerrar la app se pierde, y es el comportamiento esperado.
-# ---------------------------------------------------------------------------
-
 @dataclass(frozen=True)
 class Generado:
     filas: int

@@ -103,9 +103,6 @@ class Desplegable(QWidget):
     def _ajustar_alto(self) -> None:
         self.lista._ajustar()
 
-        # Mínimo explícito. Sin esto el QVBoxLayout del SlotRow podía
-        # comprimir el desplegable a 0px de alto y el botón
-        # "▸ Columnas requeridas (N)" desaparecía de la card.
         alto = self.heightForWidth(self._ancho_util())
         if alto > 0 and alto != self.minimumHeight():
             self.setMinimumHeight(alto)
@@ -239,8 +236,6 @@ class SlotRow(QWidget):
         self._acciones = acciones
         raiz.addWidget(acciones)
 
-        # Colchón final: cualquier alto sobrante que el contenedor asigne se
-        # queda aquí abajo en vez de repartirse entre badge, meta y botones.
         raiz.addStretch(1)
 
         auto_alto(self)
@@ -262,9 +257,6 @@ class SlotRow(QWidget):
         if estado.existe:
             _pintar_badge(self.badge, "CARGADO", "ok")
 
-            # La verificación solo confirma que el archivo existe en disco:
-            # no se vuelve a leer. Filas/columnas solo se muestran si se
-            # conocen desde la carga hecha en esta sesión.
             partes = ["En disco"]
             if estado.filas:
                 partes.append(f"{estado.filas:,} filas".replace(",", " "))
@@ -293,8 +285,6 @@ class SlotRow(QWidget):
             _pintar_badge(self.badge, "ERROR", "error")
 
             if self._faltantes_visibles:
-                # El detalle ya se ve en los chips rojos de abajo: aquí solo
-                # el resumen en una línea, sin la caja de alerta.
                 self._ocultar_alerta()
                 faltan = len(self._faltantes_visibles)
                 plural = "cabeceras" if faltan != 1 else "cabecera"
@@ -303,8 +293,6 @@ class SlotRow(QWidget):
                     f"{len(self.slot.columns)} en el archivo."
                 )
             else:
-                # Errores que no son de cabeceras (archivo corrupto, permisos,
-                # formato) sí necesitan la caja: no hay chips que los expliquen.
                 self.meta.setText(
                     "No se cargó ningún archivo nuevo."
                     if estado.existe
@@ -334,15 +322,6 @@ class SlotRow(QWidget):
         widget.style().polish(widget)
 
     def _reasegurar_drop(self) -> None:
-        """Vuelve a registrar la zona de drop de la ventana.
-
-        En Windows Qt registra el drop-target a nivel de la ventana top-level
-        (RegisterDragDrop), no por widget. Al destruirse widgets hijos en
-        cascada, Qt puede revocar ese registro y el arrastrar-y-soltar deja de
-        funcionar en TODA la app (el botón "Seleccionar archivo" sigue
-        andando porque no depende de OLE). Reasignar acceptDrops fuerza a Qt
-        a volver a registrarlo. Es barato e idempotente.
-        """
         self.setAcceptDrops(False)
         self.setAcceptDrops(True)
 
@@ -393,20 +372,11 @@ class SlotRow(QWidget):
         self._ultimas_faltantes = list(getattr(exc, "faltantes", []) or [])
 
     def _pintar_columnas(self, faltantes: list[str]) -> None:
-        """Siempre la misma lista de columnas requeridas.
-
-        Cuando faltan cabeceras no se arma una segunda lista: se resaltan en
-        rojo dentro de la de siempre, para no repetir la misma información en
-        tres sitios (alerta + lista de faltantes + lista de requeridas).
-        """
         columnas = list(self.slot.columns)
         if faltantes:
             self.desp_columnas.poblar(
                 "Columnas requeridas",
                 columnas,
-                # La caja queda neutra a propósito: si el fondo también fuera
-                # rojo, los chips que SÍ están no se distinguirían de los que
-                # faltan. El rojo se reserva para las cabeceras ausentes.
                 tono="",
                 abierto=True,
                 resaltados=set(faltantes),

@@ -4,9 +4,6 @@ from app.catalog import hallazgo_columns as cols
 from app.resumen.engine import ConfigResumen, Escenario
 
 
-# El resumen de BD del frontend (export-resumen-bd.ts) evalúa los flags con
-# isPositive (modo "positivo"), no con coincidencia exacta de "X". Se replica
-# aquí para que los conteos cuadren celda por celda con el Next.js.
 CAMPO_MONITOREO = "nombre_archivo"
 ETIQUETA_MONITOREO = "Escenarios de monitoreo"
 

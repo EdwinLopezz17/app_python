@@ -14,13 +14,6 @@ class ErrorDeImportacion(Exception):
 
 
 def _mapa_cabeceras(modelo: str) -> dict[str, str]:
-    """Cabecera normalizada -> campo del modelo.
-
-    Se aceptan tres formas: la etiqueta propia de la app, el nombre del campo,
-    y los alias del Excel exportado por el frontend Next.js (ver
-    hallazgo_columns.ALIAS_IMPORTACION). Sin los alias, el detalle de Base de
-    Datos generado allá no mapea las columnas de flags y el resumen sale en 0.
-    """
     etiquetas = cols.etiquetas(modelo)
     alias = cols.alias(modelo)
     mapa: dict[str, str] = {}

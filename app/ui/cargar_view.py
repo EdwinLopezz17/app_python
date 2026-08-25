@@ -367,9 +367,6 @@ class CargarView(QWidget):
 
 
     def refrescar(self) -> None:
-        # Guard de reentrancia: un "Eliminar" en una card emite cambiado, que
-        # llama aqui y repinta las ~20 cards; cualquiera de esas puede volver
-        # a disparar la senal. Sin este guard el repintado se anidaba.
         if self._refrescando:
             return
         self._refrescando = True

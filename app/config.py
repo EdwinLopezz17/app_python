@@ -6,30 +6,17 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-
 def _congelado() -> bool:
-    """True cuando la app corre desde el .exe de PyInstaller."""
     return getattr(sys, "frozen", False)
 
 
 def raiz_datos() -> Path:
-    """Carpeta donde vive el .exe (o la raíz del proyecto en desarrollo).
-
-    Aquí se busca el .env. Con --onefile NO sirve el cwd: si el usuario abre
-    el .exe desde otra carpeta o desde un acceso directo, load_dotenv() no
-    encontraría el archivo.
-    """
     if _congelado():
         return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent.parent
 
 
 def raiz_recursos() -> Path:
-    """Carpeta de los recursos empaquetados (iconos, fuentes).
-
-    Con --onefile PyInstaller los extrae a un temporal (sys._MEIPASS); en
-    desarrollo es la raíz del proyecto.
-    """
     interno = getattr(sys, "_MEIPASS", None)
     if interno:
         return Path(interno)
@@ -37,7 +24,6 @@ def raiz_recursos() -> Path:
 
 
 def recurso(*partes: str) -> Path:
-    """Ruta a un recurso empaquetado, p. ej. recurso("app", "ui", "assets", "logo.ico")."""
     return raiz_recursos().joinpath(*partes)
 
 
@@ -61,8 +47,6 @@ CSV_ENCODING = "utf-8"
 CSV_QUOTECHAR = '"'
 CSV_TERMINADOR = "\n"
 
-# Extensiones de versiones anteriores de la app. Solo se usan para limpiar
-# residuos al eliminar un archivo cargado (ver storage/files._residuos_de).
 EXTENSIONES_LEGADAS = (".parquet",)
 
 

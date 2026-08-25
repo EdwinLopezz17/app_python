@@ -116,8 +116,6 @@ QPushButton[variante="ghost"]:hover {{
 QPushButton[variante="peligro"] {{ background: {ERROR}; }}
 QPushButton[variante="peligro"]:hover {{ background: #93000a; }}
 
-/* Acción destructiva secundaria: fantasma con acento rojo, para que no
-   compita visualmente con el botón primario de la pantalla. */
 QPushButton[variante="ghost"][tono="peligro"] {{
     color: {ERROR}; border: 1px solid {ERROR_SOFT};
 }}
@@ -184,11 +182,8 @@ QFrame#KpiCard {{
 
 QLabel#CardMeta {{ color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_SM}px; }}
 
-/* Título de cada slot dentro de una card con varios archivos. Antes era un
-   setStyleSheet inline en fuente_card.py. */
 QLabel#SlotTitulo {{ font-size: {TEXTO_MD}px; font-weight: 600; }}
 
-/* Separador entre slots de una misma card. */
 QFrame#SeparadorSlot {{
     border: none; border-top: 1px solid {SURFACE_CONTAINER_HIGH};
     max-height: 1px;
@@ -203,9 +198,7 @@ QLabel#Badge[tono="ok"]        {{ background: {SECONDARY_SOFT}; color: {SECONDAR
 QLabel#Badge[tono="aviso"]     {{ background: {TERTIARY_SOFT}; color: {TERTIARY}; }}
 QLabel#Badge[tono="error"]     {{ background: {ERROR_SOFT}; color: {ERROR}; }}
 
-/* Chips de filtro: fantasma cuando están apagados, sólidos suaves cuando el
-   filtro está activo. No usan el primario para no competir con el botón de
-   acción principal de la pantalla. */
+
 QPushButton[variante="chip"] {{
     background: transparent; color: {ON_SURFACE_VARIANT};
     border: 1px solid {OUTLINE_VARIANT}; border-radius: 14px;
@@ -237,11 +230,6 @@ QLabel#SinResultados {{
     padding: 28px 0;
 }}
 
-/* ── Barra superior de navegación (equivalente al TopBar.tsx) ───────────────
-   OJO: el objectName es "BarraNav", NO "TopBar". Las cuatro vistas usan ya
-   "TopBar" para su cabecera clara de control panel; reutilizar ese nombre
-   pintaba de navy la franja del título y ambas se fundían en un solo bloque
-   oscuro. */
 QWidget#BarraNav {{
     background: {SIDEBAR_BG};
     border-bottom: 1px solid {SIDEBAR_BORDE};
@@ -279,13 +267,6 @@ QLabel#CertNombre {{
 }}
 QLabel#CertChevron {{ color: {SIDEBAR_MUTED_FUERTE}; font-size: {TEXTO_LG}px; }}
 
-/* Menús: el texto al 75% de opacidad no llegaba a contrastar con el navy.
-   Se sube a color pleno atenuado y el activo lleva además una línea inferior
-   en el primario, que se distingue aunque el fondo apenas cambie. */
-/* Botón «Certificar»: es el único control de navegación de la barra, así que
-   tiene que leerse como un desplegable a primera vista y no como una etiqueta.
-   Por eso lleva fondo y borde propios en reposo (no fantasma), un chevron en
-   el texto, y estados de hover/pressed/abierto claramente distintos. */
 QToolButton#BotonCertificar {{
     background: {SIDEBAR_ELEVADO}; color: {SIDEBAR_FG};
     border: 1px solid {SIDEBAR_BORDE}; border-radius: {RADIO_MD}px;
@@ -306,8 +287,7 @@ QToolButton#BotonCertificar[activo="si"] {{
     border-color: {SIDEBAR_ACENTO};
     border-bottom: 2px solid {SIDEBAR_ACENTO};
 }}
-/* El chevron va en el texto, así que se oculta el indicador nativo, que en
-   Windows dibuja una segunda flecha pegada al borde. */
+
 QToolButton#BotonCertificar::menu-indicator {{ image: none; width: 0; }}
 
 QToolButton#TopBarMenu {{
@@ -327,8 +307,6 @@ QToolButton#TopBarMenu::menu-indicator {{
     subcontrol-position: right center; right: 8px; width: 10px;
 }}
 
-/* Deshabilitado pero legible: el gris por defecto de Qt sobre navy es
-   invisible. */
 QPushButton#BuscarGlobal {{
     background: {SIDEBAR_ELEVADO}; color: {SIDEBAR_FG};
     border: 1px solid {SIDEBAR_BORDE}; border-radius: {RADIO_MD}px;
@@ -342,8 +320,6 @@ QPushButton#BuscarGlobal:disabled {{
     border-color: {SIDEBAR_BORDE};
 }}
 
-/* Desplegables del toolbar. Sin esto Qt usa el menú nativo de Windows, que
-   choca con el resto de la app. */
 QMenu {{
     background: {SURFACE_CONTAINER_LOWEST}; color: {ON_SURFACE};
     border: 1px solid {OUTLINE_VARIANT}; border-radius: {RADIO_MD}px;
@@ -361,7 +337,6 @@ QMenu::separator {{
 }}
 QMenu[objectName=""] QLabel {{ color: {ON_SURFACE_VARIANT}; }}
 
-/* ── Paleta de comandos (Ctrl+K) ─────────────────────────────────────────── */
 QFrame#PaletaMarco {{
     background: {SURFACE_CONTAINER_LOWEST};
     border: 1px solid {OUTLINE_VARIANT}; border-radius: {RADIO_LG}px;
@@ -387,8 +362,7 @@ QListWidget#PaletaLista {{
     outline: none;
 }}
 QListWidget#PaletaLista::item {{ border-radius: {RADIO_MD}px; }}
-/* El resultado activo se marca con fondo tintado, no solo con el azul de
-   selección del sistema, que en Windows tapa el texto. */
+
 QListWidget#PaletaLista::item:selected {{ background: {PRIMARY_SOFT}; }}
 QListWidget#PaletaLista::item:hover {{ background: {SURFACE_CONTAINER_LOW}; }}
 
@@ -673,8 +647,6 @@ QPushButton#Desplegable {{
 }}
 QPushButton#Desplegable:hover {{ color: {PRIMARY}; }}
 QPushButton#Desplegable[tono="error"] {{ color: {ERROR}; }}
-/* Caja de columnas requeridas: chips en horizontal que saltan de línea
-   solos (ChipsFlow), en vez de una lista vertical larga. */
 QFrame#ListaColumnas {{
     background: {SURFACE_CONTAINER_LOW};
     border: 1px solid {OUTLINE_VARIANT};
@@ -694,8 +666,7 @@ QLabel#ChipColumna {{
     letter-spacing: 0.3px;
     color: {ON_SURFACE_VARIANT};
 }}
-/* Cabecera que falta en el archivo: relleno rojo suave para que salte a la
-   vista entre las que sí están, que quedan en blanco. */
+
 QLabel#ChipColumna[tono="error"] {{
     background: {ERROR_SOFT};
     border-color: {ERROR};
@@ -764,9 +735,6 @@ QFrame#ZonaSoltar[soltar="activa"] {{
 }}
 QLabel#ZonaSoltarTitulo {{ font-size: 15px; font-weight: 600; }}
 
-/* Diálogos nativos (QMessageBox, QFileDialog, QInputDialog).
-   Sin esto heredan el fondo del tema del sistema: en modo oscuro quedaba
-   fondo negro con el texto oscuro que impone la regla `*`, ilegible. */
 QDialog, QMessageBox, QInputDialog, QFileDialog {{
     background: {SURFACE_CONTAINER_LOWEST};
     color: {ON_SURFACE};
