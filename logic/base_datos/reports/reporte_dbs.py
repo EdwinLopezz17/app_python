@@ -116,9 +116,9 @@ def _rows_vida(fecha_ref: date, dni_user_srv:DNIUserService, ad_srv:ADService,
             dni_ad_pps=ad_user_pps.dni if ad_user_pps else "*No esta en AD PPS*",
             username_ad_vida=ad_user_vida.usuario if ad_user_vida else "*No esta en AD VIDA*",
             dni_ad_vida=ad_user_vida.dni if ad_user_vida else "*No esta en AD VIDA*",
-            is_activo_gdh=(gdh_user and gdh_user.isActive),
+            is_activo_gdh=bool(gdh_user and gdh_user.isActive),
             fecha_alta=gdh_user.fecha_alta if gdh_user else "",
-            is_cesado_gdh=(gdh_user and gdh_user.isCesado),
+            is_cesado_gdh=bool(gdh_user and gdh_user.isCesado),
             fecha_cese=gdh_user.fecha_cese if gdh_user else "",
             ticket_cese=ticket_cese.numero_ticket if ticket_cese else "",
             fecha_cierre_ticket_cese=ticket_cese.fecha_cierre if ticket_cese else "",
@@ -131,7 +131,6 @@ def _rows_vida(fecha_ref: date, dni_user_srv:DNIUserService, ad_srv:ADService,
         ))
 
     return rows
-
 
 def _rows_generales(fecha_ref: date, dni_user_srv: DNIUserService, ad_srv: ADService,
                     gdh_srv: GDHUserService, ticket_srv: TicketInfoService) -> list[DBGeneralsRow]:
@@ -237,9 +236,9 @@ def _rows_generales(fecha_ref: date, dni_user_srv: DNIUserService, ad_srv: ADSer
             dni_ad_pps=ad_user_pps.dni if ad_user_pps else "*No esta en AD PPS*",
             username_ad_vida=ad_user_vida.usuario if ad_user_vida else "*No esta en AD VIDA*",
             dni_ad_vida=ad_user_vida.dni if ad_user_vida else "*No esta en AD VIDA*",
-            is_activo_gdh=(gdh_user and gdh_user.isActive),
+            is_activo_gdh=bool(gdh_user and gdh_user.isActive),
             fecha_alta=gdh_user.fecha_alta if gdh_user else "",
-            is_cesado_gdh=(gdh_user and gdh_user.isCesado),
+            is_cesado_gdh=bool(gdh_user and gdh_user.isCesado),
             fecha_cese=gdh_user.fecha_cese if gdh_user else "",
             ticket_cese=ticket_cese.numero_ticket if ticket_cese else "",
             fecha_cierre_ticket_cese=ticket_cese.fecha_cierre if ticket_cese else "",
