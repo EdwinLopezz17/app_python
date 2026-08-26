@@ -44,8 +44,7 @@ class AppConfig:
 
     def __post_init__(self):
         if self.clave_duplicados is None:
-            # Cambiado para acceder al atributo del dataclass
-            self.clave_duplicados = lambda fila: fila.usuario.strip().lower()
+            self.clave_duplicados = lambda fila: fila.usuario.lower()
 
 _APP_CONFIGS: list[AppConfig] = [
     AppConfig(
@@ -144,7 +143,7 @@ _APP_CONFIGS: list[AppConfig] = [
         get_fecha_creacion= lambda u: u.fecha_creacion,
         get_ultimo_login= lambda u: "",
         clave_duplicados=lambda fila: (
-            fila.usuario.strip().lower(),
+            fila.usuario.lower(),
             fila.aplicacion.strip().lower(),
         ),
     ),
