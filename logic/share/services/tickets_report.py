@@ -47,6 +47,8 @@ class TicketInfoService():
                 dni_cesado = str(row.get('NUMERO ID', '')).strip().upper()
                 if not dni_cesado or dni_cesado == 'NAN':
                     dni_cesado = str(row.get('INGRESA EL DNI DE LA PERSONA A CESAR', '')).strip().upper()
+                    if not dni_cesado or dni_cesado == 'NAN':
+                        dni_cesado = str(row.get('INGRESA EL DNI DE LA PERSONA A CESAR:', '')).strip().upper()
 
                 if not dni_cesado or dni_cesado == 'NAN': 
                     continue
