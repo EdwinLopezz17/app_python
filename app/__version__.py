@@ -3,7 +3,7 @@ from __future__ import annotations
 __version__ = "1.0.0"
 
 GITHUB_OWNER = "EdwinLopezz17"
-GITHUB_REPO = "app=python"
+GITHUB_REPO = "app_python"
 
 
 def version_tupla(texto: str) -> tuple[int, ...]:

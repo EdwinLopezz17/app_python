@@ -1,5 +1,5 @@
 #define NombreApp "Certificacion"
-#define NombreVisible "Certificación de Accesos"
+#define NombreVisible "Certificación"
 #define Ejecutable "Certificacion.exe"
 
 #ifndef VersionApp

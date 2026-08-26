@@ -11,7 +11,7 @@ from app.__version__ import (
 )
 
 TIMEOUT = 12
-AGENTE = "CertificacionAccesos-Updater"
+AGENTE = "Certificacion-Updater"
 
 URL_API = (
     f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/releases/latest"
