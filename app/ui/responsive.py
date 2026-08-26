@@ -1,16 +1,16 @@
-
 from __future__ import annotations
 
 from PySide6.QtCore import (
     QEvent, QMargins, QObject, QPoint, QRect, QSize, Qt, QTimer,
 )
 from PySide6.QtWidgets import (
-    QFrame, QLabel, QLayout, QSizePolicy, QVBoxLayout, QWidget,
+    QFrame, QHBoxLayout, QLabel, QLayout, QSizePolicy, QVBoxLayout, QWidget,
 )
 
 ANCHO_MIN_CARD = 290
 ANCHO_MAX_CARD = 440
 MAX_COLUMNAS_CARD = 5
+MAX_PASADAS_GRID = 4
 
 
 def alto_de(widget: QWidget, ancho: int) -> int:
@@ -19,48 +19,77 @@ def alto_de(widget: QWidget, ancho: int) -> int:
 
     ancho = max(int(ancho), 1)
 
-    if widget.hasHeightForWidth():
-        alto = widget.heightForWidth(ancho)
-        if alto > 0:
-            return alto
+    candidatos = [widget.minimumHeight()]
 
-    base = max(widget.sizeHint().height(), widget.minimumHeight())
+    if widget.hasHeightForWidth():
+        propio = widget.heightForWidth(ancho)
+        if propio > 0:
+            candidatos.append(propio)
+    else:
+        candidatos.append(widget.sizeHint().height())
 
     layout = widget.layout()
-    if isinstance(layout, QVBoxLayout):
-        base = max(base, alto_vbox(layout, ancho))
+    if layout is not None:
+        propio = alto_layout(layout, ancho)
+        if propio > 0:
+            candidatos.append(propio)
 
-    return base
+    maximo = widget.maximumHeight()
+    alto = max(candidatos)
+    if 0 < maximo < alto:
+        alto = maximo
+
+    return alto
 
 
-def alto_vbox(layout: QVBoxLayout, ancho: int) -> int:
+def alto_layout(layout: QLayout, ancho: int) -> int:
     margenes = layout.contentsMargins()
     interior = max(ancho - margenes.left() - margenes.right(), 1)
     espacio = max(layout.spacing(), 0)
+    horizontal = isinstance(layout, QHBoxLayout)
 
-    total = 0
-    visibles = 0
+    alturas = []
 
     for indice in range(layout.count()):
         item = layout.itemAt(indice)
+        if item is None:
+            continue
 
         hijo = item.widget()
         if hijo is not None:
-            alto = alto_de(hijo, interior)
+            alto = alto_de(hijo, _ancho_item(item, interior, horizontal))
         elif item.layout() is not None:
-            alto = item.layout().sizeHint().height()
+            alto = alto_layout(
+                item.layout(), _ancho_item(item, interior, horizontal)
+            )
         else:
             alto = item.sizeHint().height()
 
-        if alto <= 0:
-            continue
-        total += alto
-        visibles += 1
+        if alto > 0:
+            alturas.append(alto)
 
-    if visibles > 1:
-        total += espacio * (visibles - 1)
+    if not alturas:
+        return margenes.top() + margenes.bottom()
+
+    if horizontal:
+        total = max(alturas)
+    else:
+        total = sum(alturas) + espacio * (len(alturas) - 1)
 
     return total + margenes.top() + margenes.bottom()
+
+
+def _ancho_item(item, interior: int, horizontal: bool) -> int:
+    if not horizontal:
+        return interior
+    sugerido = item.sizeHint().width()
+    if sugerido <= 0:
+        return interior
+    return max(min(sugerido, interior), 1)
+
+
+def alto_vbox(layout: QVBoxLayout, ancho: int) -> int:
+    return alto_layout(layout, ancho)
 
 
 class _AutoAlto(QObject):
@@ -111,10 +140,10 @@ class EtiquetaAjustable(QLabel):
                 return del_padre
         return max(propio, 1)
 
-    def _ajustar(self) -> None:
+    def _ajustar(self, ancho: int | None = None) -> None:
         if not self.isVisibleTo(self.parentWidget() or self):
             return
-        alto = self.heightForWidth(self._ancho_util())
+        alto = self.heightForWidth(ancho or self._ancho_util())
         if alto > 0 and alto != self.minimumHeight():
             self.setMinimumHeight(alto)
             self.updateGeometry()
@@ -136,7 +165,7 @@ class EtiquetaAjustable(QLabel):
 
     def resizeEvent(self, evento) -> None:
         super().resizeEvent(evento)
-        self._ajustar()
+        self._ajustar(evento.size().width())
 
     def showEvent(self, evento) -> None:
         super().showEvent(evento)
@@ -265,11 +294,11 @@ class ChipsFlow(QFrame):
                 return del_padre
         return max(propio, 1)
 
-    def _ajustar(self) -> None:
+    def _ajustar(self, ancho: int | None = None) -> None:
         if not self._chips:
             self.setMinimumHeight(0)
             return
-        alto = self.heightForWidth(self._ancho_util())
+        alto = self.heightForWidth(ancho or self._ancho_util())
         if alto and alto != self.minimumHeight():
             self.setMinimumHeight(alto)
             self.updateGeometry()
@@ -287,7 +316,7 @@ class ChipsFlow(QFrame):
 
     def resizeEvent(self, evento) -> None:
         super().resizeEvent(evento)
-        self._ajustar()
+        self._ajustar(evento.size().width())
 
     def showEvent(self, evento) -> None:
         super().showEvent(evento)
@@ -364,8 +393,13 @@ class GridResponsivo(QWidget):
 
         self._recolocando = True
         try:
-            for _ in range(2):
+            total = 0
+            previo = -1
+            for _ in range(MAX_PASADAS_GRID):
                 total = self._una_pasada(ancho)
+                if total == previo:
+                    break
+                previo = total
             if self.height() != total or self.minimumHeight() != total:
                 self.setFixedHeight(total)
                 self.updateGeometry()
@@ -391,6 +425,10 @@ class GridResponsivo(QWidget):
         indice = 0
         while indice < len(visibles):
             fila = visibles[indice:indice + columnas]
+
+            for col, widget in enumerate(fila):
+                if widget.width() != anchos[col]:
+                    widget.resize(anchos[col], max(widget.height(), 1))
 
             alturas = [
                 alto_de(widget, anchos[col]) for col, widget in enumerate(fila)
