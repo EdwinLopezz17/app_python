@@ -36,7 +36,6 @@ class SiniestrosWebUserService():
             return
 
         try:
-            #df = pd.read_parquet(self.path_file, engine='pyarrow').fillna('')
             df = pd.read_csv(self.path_file, sep=';', encoding='utf-8').fillna('')
             
             df.columns = [str(c).strip().upper() for c in df.columns]
@@ -48,8 +47,8 @@ class SiniestrosWebUserService():
                 if val_primer_col == '' or val_primer_col.upper() == 'NAN' or 'ACL LOG:' in val_primer_col.upper():
                     break 
 
-                acl_entry_name = str(row.get('ACL ENTRY NAME', '')).strip()
-                acl_entry_type = str(row.get('ACL ENTRY TYPE', '')).strip()
+                acl_entry_name = str(row.get('ACL ENTRY NAME', ''))
+                acl_entry_type = str(row.get('ACL ENTRY TYPE', ''))
                 
                 if not acl_entry_name: 
                     continue

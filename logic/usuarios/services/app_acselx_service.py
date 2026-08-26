@@ -49,7 +49,7 @@ class AcselxUserService():
             df.columns = [str(c).strip().upper() for c in df.columns]
 
             for _, row in df.iterrows():
-                usuario = str(row.get('CODUSRPPS', '')).strip()
+                usuario = str(row.get('CODUSRPPS', ''))
                 if not usuario or usuario == 'NAN': 
                     continue
 

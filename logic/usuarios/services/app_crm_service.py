@@ -38,15 +38,14 @@ class CRMUserService():
             return
 
         try:
-            #df = pd.read_parquet(self.path_file, engine='pyarrow').fillna('')
             df = pd.read_csv(self.path_file, sep=';', encoding='utf-8').fillna('')
 
             df.columns = [str(c).strip().upper() for c in df.columns]
 
             for _, row in df.iterrows():
-                user_id = str(row.get('ID', '')).strip()
+                user_id = str(row.get('ID', ''))
                 
-                if not user_id or user_id.upper() == 'NAN': 
+                if not user_id: 
                     continue
                 
                 _mail = str(row.get('MAIL', '')).strip()
@@ -58,7 +57,7 @@ class CRMUserService():
 
                 self._cache[user_id] = CRMUser(
                     id=user_id,
-                    displayName=str(row.get('DISPLAYNAME', '')).strip(),
+                    displayName=str(row.get('DISPLAYNAME', '')),
                     mail=_mail,
                     upn=str(row.get('USERPRINCIPALNAME', '')).strip(),
                     isActive=True,

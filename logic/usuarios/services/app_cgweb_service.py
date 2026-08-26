@@ -49,18 +49,18 @@ class CgwebUserService():
             df.columns = [str(c).strip().upper() for c in df.columns]
 
             for _, row in df.iterrows():
-                usuario = str(row.get('CODUSRPPS', '')).strip().upper()
-                if not usuario or usuario == 'NAN': 
+                usuario = str(row.get('CODUSRPPS', ''))
+                if not usuario: 
                     continue
 
                 codaplic = str(row.get('CODAPLIC', '')).strip()
-                cache_key = (usuario, codaplic.upper())
+                cache_key = (usuario.upper(), codaplic.upper())
 
                 is_active = str(row.get('STSUSRPPSAPLIC', '')).strip().upper() == "ACT"
                 is_active = is_active and str(row.get('STSUSRPPS', '')).strip().upper() == "ACT"
 
                 self._cache[cache_key] = CgwebUser(
-                    usuario=str(row.get('CODUSRPPS', '')).strip(),
+                    usuario=usuario,
                     codaplic=codaplic,
                     codcolaborador=str(row.get('CODCOLABORADOR', '')).strip(),
                     nomusrpps=str(row.get('NOMUSRPPS', '')).strip(),

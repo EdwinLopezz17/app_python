@@ -34,18 +34,17 @@ class ProphetUserService():
             return
 
         try:
-            #df = pd.read_parquet(self.path_file, engine='pyarrow').fillna('')
             df = pd.read_csv(self.path_file, sep=';', encoding='utf-8').fillna('')
             
             df.columns = [str(c).strip().upper() for c in df.columns]
 
             for _, row in df.iterrows():
-                correo = str(row.get('CORREO', '')).strip().upper()
+                correo = str(row.get('CORREO', ''))
                 if not correo or correo == 'NAN': 
                     continue
 
-                self._cache[correo] = ProphetUser(
-                    correo=str(row.get('CORREO', '')).strip(),
+                self._cache[correo.upper()] = ProphetUser(
+                    correo=correo,
                     isActive=True,
                     app_name="Prophet",
                 )

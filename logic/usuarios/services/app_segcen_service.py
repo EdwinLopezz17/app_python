@@ -42,22 +42,21 @@ class SegcenUserService():
             return
 
         try:
-            #df = pd.read_parquet(self.path_file, engine='pyarrow').fillna('')
             df = pd.read_csv(self.path_file, sep=';', encoding='utf-8').fillna('')
             
             df.columns = [str(c).strip().upper() for c in df.columns]
 
             for _, row in df.iterrows():
-                id_usuario = str(row.get('ID USUARIO', '')).strip().upper()
-                if not id_usuario or id_usuario == 'NAN': 
+                id_usuario = str(row.get('ID USUARIO', ''))
+                if not id_usuario: 
                     continue
 
                 id_rol = str(row.get('ID ROL', '')).strip()
                 
-                cache_key = (id_usuario, id_rol.upper())
+                cache_key = (id_usuario.upper(), id_rol.upper())
 
                 self._cache[cache_key] = SegcenUser(
-                    id_usuario=str(row.get('ID USUARIO', '')).strip(),
+                    id_usuario=id_usuario,
                     apellido_paterno=str(row.get('APELLIDO PATERNO', '')).strip(),
                     apellido_materno=str(row.get('APELLIDO MATERNO', '')).strip(),
                     nombres=str(row.get('NOMBRES', '')).strip(),

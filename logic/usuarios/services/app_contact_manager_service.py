@@ -40,21 +40,20 @@ class ContactManagerUserService():
             return
 
         try:
-            #df = pd.read_parquet(self.path_file, engine='pyarrow').fillna('')
             df = pd.read_csv(self.path_file, sep=';', encoding='utf-8').fillna('')
             
             df.columns = [str(c).strip().upper() for c in df.columns]
 
             for _, row in df.iterrows():
-                username = str(row.get('USERNAME', '')).strip().upper()
-                if not username or username == 'NAN': 
+                username = str(row.get('USERNAME', ''))
+                if not username: 
                     continue
 
                 rolename = str(row.get('ROLENAME', '')).strip()
                 
-                cache_key = (username, rolename.upper())
+                cache_key = (username.upper(), rolename.upper())
                 self._cache[cache_key] = ContactManagerUser(
-                    username=str(row.get('USERNAME', '')).strip(),
+                    username=username,
                     rolename=rolename,
                     nombre=str(row.get('NAME', '')).strip(),
                     lastname=str(row.get('LASTNAME', '')).strip(),
