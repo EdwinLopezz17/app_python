@@ -86,6 +86,9 @@ class TopBar(QWidget):
         self._scroll_menus.setWidget(self._zona_menus)
         raiz.addWidget(self._scroll_menus, 1)
 
+        self._raiz = raiz
+        self._slot_badge = raiz.count()
+
         raiz.addWidget(self._construir_busqueda())
 
         self._reconstruir_menus()
@@ -251,6 +254,10 @@ class TopBar(QWidget):
         self.btn_certificar.style().unpolish(self.btn_certificar)
         self.btn_certificar.style().polish(self.btn_certificar)
 
+    def montar_badge(self, badge: QWidget) -> None:
+        badge.setParent(self)
+        self._raiz.insertWidget(self._slot_badge, badge)
+
     def ruta_actual(self) -> str:
         return self._ruta
 
@@ -270,5 +277,5 @@ class PieDatos(QLabel):
             ruta = str(config.data_path())
         except RuntimeError:
             ruta = "DATA_PATH no configurado"
-        self.setText(f"Certificación  ·  Datos: {Path(ruta).name or ruta}")
+        self.setText(f"Datos: {Path(ruta).name or ruta}")
         self.setToolTip(ruta)

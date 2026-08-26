@@ -7,6 +7,7 @@ ocultos = []
 ocultos += collect_submodules('logic')
 ocultos += collect_submodules('models')
 ocultos += ['pandas', 'openpyxl', 'xlsxwriter', 'xlrd']
+ocultos += ['app.update', 'app.update.checker', 'app.update.downloader', 'app.update.installer']
 
 datos = [
     # Icono de la ventana (config.ruta_icono lo resuelve vía sys._MEIPASS).
@@ -28,6 +29,7 @@ a = Analysis(
     noarchive=False,
 )
 
+
 pyz = PYZ(a.pure)
 
 # ONEFILE: a.binaries y a.datas van DENTRO de EXE(), no en un COLLECT aparte.
@@ -37,7 +39,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='CertificacionAccesos',
+    name='Certificacion',
     debug=False,
     strip=False,
     upx=False,                      # UPX rompe DLLs de Qt: dejar en False

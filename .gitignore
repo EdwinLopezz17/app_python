@@ -28,3 +28,7 @@ datos/
 Thumbs.db
 
 ax.py
+
+installer/Output/
+.idea/
+

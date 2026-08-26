@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QMainWindow, QStackedWidget, QVBoxLayout, QWidget,
@@ -11,6 +12,7 @@ from app.ui.hallazgo_view import HallazgoView
 from app.ui.launcher_view import LauncherView
 from app.ui.resumen_view import ResumenView
 from app.ui import preferencias
+from app.ui.update_badge import BadgeActualizacion
 from app.ui.paleta import PaletaComandos
 from app.ui.topbar import (
     INICIO, PieDatos, TopBar, ruta_cargar, ruta_hallazgo, ruta_resumen,
@@ -46,6 +48,9 @@ class VentanaPrincipal(QMainWindow):
         self.topbar.abrir_busqueda.connect(self.abrir_paleta)
         raiz.addWidget(self.topbar)
 
+        self.badge_update = BadgeActualizacion(self.topbar)
+        self.topbar.montar_badge(self.badge_update)
+
         self.stack = QStackedWidget()
         self.stack.setObjectName("Canvas")
 
@@ -65,6 +70,8 @@ class VentanaPrincipal(QMainWindow):
         atajo.activated.connect(self.abrir_paleta)
 
         self._restaurar_vista()
+
+        QTimer.singleShot(3000, self.badge_update.buscar)
 
     def abrir_paleta(self) -> None:
         self.paleta.abrir()
