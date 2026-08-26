@@ -18,7 +18,7 @@ URL_API = (
 )
 URL_RAW = (
     f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}"
-    "/main/version.json"
+    "/master/version.json"
 )
 
 
