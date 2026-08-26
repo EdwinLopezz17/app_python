@@ -37,8 +37,8 @@ def carpeta_fuentes() -> Path:
 
 load_dotenv(raiz_datos() / ".env")
 
-APP_NAME = "CertificacionPPS"
-APP_AUTHOR = "Pacifico"
+APP_NAME = "Certificacion"
+APP_AUTHOR = "Automatizadores"
 
 EXTENSION_DATOS = ".csv"
 

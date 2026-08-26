@@ -270,5 +270,5 @@ class PieDatos(QLabel):
             ruta = str(config.data_path())
         except RuntimeError:
             ruta = "DATA_PATH no configurado"
-        self.setText(f"PACÍFICO SEGUROS  ·  Datos: {Path(ruta).name or ruta}")
+        self.setText(f"Certificación  ·  Datos: {Path(ruta).name or ruta}")
         self.setToolTip(ruta)

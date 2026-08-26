@@ -21,8 +21,8 @@ def main() -> int:
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
     app = QApplication(sys.argv)
-    app.setApplicationName("Certificación de Accesos")
-    app.setOrganizationName("Pacífico Seguros")
+    app.setApplicationName("Certificación")
+    app.setOrganizationName("Automatización")
 
     icono = config.ruta_icono()
     if icono.is_file():
