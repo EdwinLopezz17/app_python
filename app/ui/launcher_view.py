@@ -174,7 +174,7 @@ class LauncherView(QWidget):
         breadcrumb.setObjectName("Breadcrumb")
         layout.addWidget(breadcrumb)
 
-        titulo = QLabel("Certificación de Accesos")
+        titulo = QLabel("Certificación")
         titulo.setObjectName("Titulo")
         layout.addWidget(titulo)
         return barra

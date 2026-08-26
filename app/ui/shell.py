@@ -22,7 +22,7 @@ from app.ui.topbar import (
 class VentanaPrincipal(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Certificación de Accesos")
+        self.setWindowTitle("Certificación")
         self.resize(1440, 900)
         self.setMinimumSize(900, 600)
 
