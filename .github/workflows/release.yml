@@ -1,0 +1,108 @@
+name: Build y Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Resolver version desde el tag
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if ($tag -notmatch '^v\d+\.\d+\.\d+') { $tag = "v1.0.0" }
+          $ver = $tag.TrimStart('v')
+          "version=$ver" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: Sincronizar __version__.py
+        shell: pwsh
+        run: |
+          $ruta = "app/__version__.py"
+          $texto = Get-Content $ruta -Raw
+          $texto = $texto -replace '__version__ = "[^"]*"', "__version__ = `"${{ steps.ver.outputs.version }}`""
+          Set-Content $ruta $texto -NoNewline
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compilar ejecutable
+        run: pyinstaller app.spec --noconfirm
+
+      - name: Verificar salida de PyInstaller
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist/Certificacion.exe")) {
+            Get-ChildItem dist -Recurse | Select-Object FullName
+            throw "No se genero dist/Certificacion.exe"
+          }
+
+      - name: Compilar instalador
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          & $iscc "/DVersionApp=${{ steps.ver.outputs.version }}" "installer\setup.iss"
+
+      - name: Generar version.json
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.ver.outputs.version }}"
+          $setup = "installer/Output/Certificacion-Setup-$ver.exe"
+          $hash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+          $size = (Get-Item $setup).Length
+          $url = "https://github.com/${{ github.repository }}/releases/download/${{ steps.ver.outputs.tag }}/Certificacion-Setup-$ver.exe"
+          $json = [ordered]@{
+            version = $ver
+            url     = $url
+            sha256  = $hash
+            tamano  = $size
+            notas   = "Version $ver"
+          }
+          $json | ConvertTo-Json -Depth 3 | Set-Content version.json -Encoding utf8
+
+      - name: Publicar release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Certificacion ${{ steps.ver.outputs.version }}
+          generate_release_notes: true
+          files: |
+            installer/Output/Certificacion-Setup-${{ steps.ver.outputs.version }}.exe
+            version.json
+
+      - name: Publicar version.json en main
+        shell: pwsh
+        run: |
+          Copy-Item version.json "$env:RUNNER_TEMP/version.json" -Force
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          Copy-Item "$env:RUNNER_TEMP/version.json" version.json -Force
+          git add version.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "chore: version.json ${{ steps.ver.outputs.version }}"
+            git push origin main
+          }
