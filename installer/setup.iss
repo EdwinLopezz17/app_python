@@ -54,7 +54,7 @@ Type: files; Name: "{app}\.env"
 var
   PaginaDatos: TInputDirWizardPage;
   RutaDatosPrevia: String;
-  ActualizacionEnCurso: Boolean;
+  DeteccionHecha: Boolean;
 
 function RutaEnvExistente(): String;
 var
@@ -64,7 +64,7 @@ var
   ArchivoEnv: String;
 begin
   Result := '';
-  ArchivoEnv := ExpandConstant('{app}\.env');
+  ArchivoEnv := AddBackslash(WizardDirValue) + '.env';
   if not FileExists(ArchivoEnv) then
     Exit;
   if not LoadStringsFromFile(ArchivoEnv, Contenido) then
@@ -80,17 +80,10 @@ begin
   end;
 end;
 
-function RutaPorDefecto(): String;
-begin
-  Result := RutaDatosPrevia;
-  if Result = '' then
-    Result := ExpandConstant('{userdocs}\Certificacion\Datos');
-end;
-
 procedure InitializeWizard();
 begin
-  RutaDatosPrevia := RutaEnvExistente();
-  ActualizacionEnCurso := RutaDatosPrevia <> '';
+  RutaDatosPrevia := '';
+  DeteccionHecha := False;
 
   PaginaDatos := CreateInputDirPage(
     wpSelectDir,
@@ -103,7 +96,23 @@ begin
     'Carpeta de datos'
   );
   PaginaDatos.Add('');
-  PaginaDatos.Values[0] := RutaPorDefecto();
+  PaginaDatos.Values[0] := '';
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID <> PaginaDatos.ID then
+    Exit;
+  if DeteccionHecha then
+    Exit;
+
+  DeteccionHecha := True;
+  RutaDatosPrevia := RutaEnvExistente();
+
+  if RutaDatosPrevia <> '' then
+    PaginaDatos.Values[0] := RutaDatosPrevia
+  else
+    PaginaDatos.Values[0] := ExpandConstant('{userdocs}\Certificacion\Datos');
 end;
 
 function CarpetaEsEscribible(Ruta: String): Boolean;
