@@ -4,8 +4,9 @@ import os
 from dataclasses import dataclass
 from dotenv import load_dotenv
 from models.file_names import FileName
-from logic.share.utils import to_datetime, delete_file
+from logic.share.utils import to_datetime
 
+#prueba
 load_dotenv()
 
 DATA_PATH = os.getenv("DATA_PATH")
