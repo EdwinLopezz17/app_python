@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from models.file_names import FileName
 from logic.share.utils import to_datetime
 
+#prueba
 load_dotenv()
 
 DATA_PATH = os.getenv("DATA_PATH")
