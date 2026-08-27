@@ -21,7 +21,7 @@ def main() -> int:
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
     app = QApplication(sys.argv)
-    app.setApplicationName("Certificación")
+    app.setApplicationName("Certificación Automatizada")
     app.setOrganizationName("Automatización")
 
     icono = config.ruta_icono()
