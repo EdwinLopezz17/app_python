@@ -251,6 +251,5 @@ class BadgeActualizacion(QToolButton):
             return
         dialogo = DialogoActualizacion(self._info, self.window())
         if dialogo.exec() == QDialog.Accepted:
-            ventana = self.window()
-            if ventana is not None:
-                ventana.close()
+            from PySide6.QtWidgets import QApplication
+            QApplication.quit()
