@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QToolButton, QVBoxLayout, QWidget,
 )
 
+from app.__version__ import __version__
 from app import config
 from app.catalog import resumenes
 from app.catalog.hallazgos import (
@@ -275,7 +276,9 @@ class PieDatos(QLabel):
         self.setObjectName("PieDatos")
         try:
             ruta = str(config.data_path())
-        except RuntimeError:
+        except RunTimeError:
             ruta = "DATA_PATH no configurado"
-        self.setText(f"Datos: {Path(ruta).name or ruta}")
-        self.setToolTip(ruta)
+
+        nombre = Path(ruta).name or ruta
+        self.setText(f"Datos: {nombre} • v{__version__}")
+        self.setToolTip(f"Carpeta de datos: {ruta}\nVersión: {__version__}")
