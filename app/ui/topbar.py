@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.__version__ import __version__
-from app import config
+from app.ingest import config
 from app.catalog import resumenes
 from app.catalog.hallazgos import (
     Certificacion, certificaciones, get as get_hallazgo,

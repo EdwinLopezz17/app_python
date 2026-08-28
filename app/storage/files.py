@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from app import config
+from app.ingest import config
 from app.catalog.fuentes import Fuente, Slot
 
 _MEMORIA: dict[Path, tuple[int, int, "Medida"]] = {}

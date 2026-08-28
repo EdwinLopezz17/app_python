@@ -9,9 +9,10 @@ import csv
 
 import pandas as pd
 
-from app import config
+from app.ingest import config
 from app.catalog.fuentes import Slot
 from app.ingest.merge import consolidar
+from app.ingest.normalize import limpiar_celda
 from app.ingest.readers import leer_cabeceras, texto_celda
 from app.ingest.validate import ResultadoValidacion, formato_permitido, validar_columnas
 from app.storage import files
@@ -35,7 +36,7 @@ class ResultadoCarga:
 def a_texto(df: pd.DataFrame) -> pd.DataFrame:
     salida = pd.DataFrame(index=df.index)
     for nombre in df.columns:
-        salida[str(nombre)] = df[nombre].map(texto_celda)
+        salida[str(nombre)] = df[nombre].map(texto_celda).map(limpiar_celda)
     return salida
 
 
