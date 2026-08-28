@@ -50,9 +50,9 @@ jobs:
       - name: Verificar salida de PyInstaller
         shell: pwsh
         run: |
-          if (-not (Test-Path "dist/Certificacion.exe")) {
+          if (-not (Test-Path "dist/Certificacion/Certificacion.exe")) {
             Get-ChildItem dist -Recurse | Select-Object FullName
-            throw "No se genero dist/Certificacion.exe"
+            throw "No se genero dist/Certificacion/Certificacion.exe"
           }
 
       - name: Compilar instalador
