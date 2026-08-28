@@ -85,7 +85,7 @@ def lanzar_instalador(ruta: Path, log: Path | None = None) -> None:
         innolog=ruta_log_inno(),
         exe=ruta_ejecutable(),
     )
-    script.write_text(contenido, encoding="cp1252")
+    script.write_text(contenido, encoding="cp1252", newline="\r\n")
 
     anotar(f"Script intermediario: {script}")
     anotar(f"Setup descargado    : {ruta} ({ruta.stat().st_size} bytes)")
