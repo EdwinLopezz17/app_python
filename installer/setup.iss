@@ -36,7 +36,8 @@ Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "desktopicon"; Description: "Crear un acceso directo en el escritorio"; GroupDescription: "Accesos directos:"
 
 [Files]
-Source: "..\dist\{#NombreApp}\*"
+Source: "..\dist\{#NombreApp}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
 [Icons]
 Name: "{group}\{#NombreVisible}"; Filename: "{app}\{#Ejecutable}"
 Name: "{group}\Desinstalar {#NombreVisible}"; Filename: "{uninstallexe}"
