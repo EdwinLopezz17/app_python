@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import getpass
 import os
@@ -54,7 +54,7 @@ def cerrar_sesion(exito: bool, detalle: str = "") -> None:
 
 def copiar_a_datos() -> None:
     try:
-        from app.ingest import config
+        from app import config
 
         destino = config.data_path() / "_logs"
         destino.mkdir(parents=True, exist_ok=True)

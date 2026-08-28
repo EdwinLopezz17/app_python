@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.ingest import config
+from app import config
 from app.catalog.fuentes import Fuente, Slot
 
 _MEMORIA: dict[Path, tuple[int, int, "Medida"]] = {}

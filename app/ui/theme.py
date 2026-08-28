@@ -1,8 +1,8 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from PySide6.QtGui import QColor, QFont, QFontDatabase, QIcon, QTextCharFormat
 
-from app.ingest import config
+from app import config
 
 SURFACE = "#faf8ff"
 SURFACE_CONTAINER_LOWEST = "#ffffff"

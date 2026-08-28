@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 import tempfile
@@ -9,7 +9,7 @@ import csv
 
 import pandas as pd
 
-from app.ingest import config
+from app import config
 from app.catalog.fuentes import Slot
 from app.ingest.merge import consolidar
 from app.ingest.normalize import limpiar_celda
