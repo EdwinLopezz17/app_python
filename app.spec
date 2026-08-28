@@ -32,18 +32,24 @@ a = Analysis(
 
 pyz = PYZ(a.pure)
 
-# ONEFILE: a.binaries y a.datas van DENTRO de EXE(), no en un COLLECT aparte.
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
+    exclude_binaries=True,
     name='Certificacion',
     debug=False,
     strip=False,
-    upx=False,                      # UPX rompe DLLs de Qt: dejar en False
-    runtime_tmpdir=None,            # extrae en %TEMP%
-    console=False,                  # True para ver traceback en consola
+    upx=False,
+    console=False,
     icon='app/ui/assets/logo.ico',
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=False,
+    name='Certificacion',
 )

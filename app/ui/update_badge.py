@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from app.update.bitacora import abrir_sesion, anotar, carpeta_logs, cerrar_sesion
+from app.update.installer import carpeta_instalacion, es_escribible, lanzar_instalador
+
 from PySide6.QtCore import QObject, QThread, Qt, Signal
 from PySide6.QtWidgets import (
     QDialog, QHBoxLayout, QLabel, QProgressBar, QPushButton, QSizePolicy,
@@ -116,6 +119,21 @@ class DialogoActualizacion(QDialog):
         raiz.addLayout(botones)
 
     def _iniciar(self) -> None:
+        abrir_sesion(__version__, self._info.version)
+
+        carpeta = carpeta_instalacion()
+        if not es_escribible(carpeta):
+            cerrar_sesion(False, f"Sin permiso de escritura en {carpeta}")
+            self.estado.setVisible(True)
+            self.estado.setText(
+                f"No hay permiso de escritura en:\n{carpeta}\n\n"
+                "Descargá el instalador manualmente desde GitHub y ejecutalo "
+                "como administrador."
+            )
+            self.btn_actualizar.setEnabled(False)
+            return
+
+        anotar("Permisos OK. Iniciando descarga.")
         self.btn_actualizar.setEnabled(False)
         self.btn_despues.setText("Cancelar")
         self.barra.setVisible(True)
@@ -151,16 +169,18 @@ class DialogoActualizacion(QDialog):
         )
         self.btn_despues.setEnabled(False)
 
+        anotar("Descarga verificada (SHA-256 coincide).")
         try:
             limpiar_descargas(conservar=ruta)
             lanzar_instalador(ruta)
         except Exception as exc:
+            cerrar_sesion(False, str(exc))
             self._al_fallar(str(exc))
             return
-
         self.accept()
 
     def _al_fallar(self, mensaje: str) -> None:
+        cerrar_sesion(False, mensaje)
         self._detener_hilo()
         self.barra.setVisible(False)
         self.estado.setVisible(True)
@@ -168,6 +188,7 @@ class DialogoActualizacion(QDialog):
         self.btn_actualizar.setEnabled(True)
         self.btn_despues.setEnabled(True)
         self.btn_despues.setText("Cerrar")
+        self.estado.setText(f"{mensaje}\n\nDetalle en: {carpeta_logs()}")
 
     def _detener_hilo(self) -> None:
         if self._hilo is not None:

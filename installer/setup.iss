@@ -12,7 +12,8 @@ AppName={#NombreVisible}
 AppVersion={#VersionApp}
 AppVerName={#NombreVisible} {#VersionApp}
 VersionInfoVersion={#VersionApp}
-DefaultDirName={autopf}\{#NombreApp}
+DefaultDirName={localappdata}\Programs\{#NombreApp}
+PrivilegesRequired=lowest
 DefaultGroupName={#NombreVisible}
 DisableProgramGroupPage=yes
 DisableWelcomePage=no
@@ -23,11 +24,9 @@ OutputBaseFilename={#NombreApp}-Setup-{#VersionApp}
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
-PrivilegesRequired=lowest
-PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesInstallIn64BitMode=x64compatible
-CloseApplications=yes
-RestartApplications=yes
+CloseApplications=no
+RestartApplications=no
 SetupIconFile=..\app\ui\assets\logo.ico
 
 [Languages]
@@ -37,8 +36,7 @@ Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "desktopicon"; Description: "Crear un acceso directo en el escritorio"; GroupDescription: "Accesos directos:"
 
 [Files]
-Source: "..\dist\{#Ejecutable}"; DestDir: "{app}"; Flags: ignoreversion
-
+Source: "..\dist\{#NombreApp}\*"
 [Icons]
 Name: "{group}\{#NombreVisible}"; Filename: "{app}\{#Ejecutable}"
 Name: "{group}\Desinstalar {#NombreVisible}"; Filename: "{uninstallexe}"
