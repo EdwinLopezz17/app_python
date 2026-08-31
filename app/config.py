@@ -35,7 +35,19 @@ def carpeta_fuentes() -> Path:
     return recurso("app", "ui", "fonts")
 
 
-load_dotenv(raiz_datos() / ".env")
+#load_dotenv(raiz_datos() / ".env")
+def _cargar_env() -> None:
+    ruta = raiz_datos() / ".env"
+    if not ruta.exists():
+        return
+    for codificacion in ("utf-8", "cp1252", "latin-1"):
+        try:
+            load_dotenv(ruta, encoding=codificacion)
+            return
+        except UnicodeDecodeError:
+            continue
+
+_cargar_env()
 
 APP_NAME = "Certificacion"
 APP_AUTHOR = "Automatizadores"
