@@ -6,6 +6,9 @@ from typing import Callable
 
 import pandas as pd
 
+from app.generation import precheck
+from app.telemetry import uso
+
 
 def a_dataframe(filas: list) -> pd.DataFrame:
     if not filas:
@@ -125,8 +128,39 @@ def generar(hallazgo_id: str, fecha_ref: date) -> pd.DataFrame:
         raise NotImplementedError(
             f"La generación de «{hallazgo_id}» aún no está conectada."
         )
-    df = generador(fecha_ref)
+    inicio = datetime.now()
+    uso.registrar(
+        "generacion_inicio", hallazgo=hallazgo_id, fecha_ref=str(fecha_ref)
+    )
+
+    try:
+        precheck.verificar(hallazgo_id)
+    except precheck.ErrorDeCodificacion:
+        raise
+    except Exception as exc:
+        uso.registrar_excepcion("precheck_fallo", exc, hallazgo=hallazgo_id)
+
+    try:
+        df = generador(fecha_ref)
+    except Exception as exc:
+        uso.registrar_excepcion(
+            "generacion_error",
+            exc,
+            hallazgo=hallazgo_id,
+            fecha_ref=str(fecha_ref),
+            duracion_s=round((datetime.now() - inicio).total_seconds(), 2),
+        )
+        raise
+
     _GENERADOS[hallazgo_id] = Generado(
         filas=len(df), generado_en=datetime.now()
+    )
+    uso.registrar(
+        "generacion_ok",
+        hallazgo=hallazgo_id,
+        fecha_ref=str(fecha_ref),
+        filas=len(df),
+        columnas=len(df.columns),
+        duracion_s=round((datetime.now() - inicio).total_seconds(), 2),
     )
     return df

@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
 
+from app.telemetry import uso
 
 class SenalesTarea(QObject):
     ok = Signal(object)
@@ -40,6 +41,9 @@ class Tarea(QRunnable):
             resultado = self._fn(*self._args, **self._kwargs)
         except Exception as exc:
             traceback.print_exc()
+            uso.registrar_excepcion(
+                "tarea_error", exc, funcion=getattr(self._fn, "__qualname__", str(self._fn))
+            )
             self.senales.excepcion.emit(exc)
             self.senales.error.emit(str(exc) or exc.__class__.__name__)
         else:

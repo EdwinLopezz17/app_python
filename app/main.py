@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app import config
 from app.ui import theme
+from app.telemetry import uso
 from app.ui.shell import VentanaPrincipal
 
 
@@ -20,7 +21,9 @@ def main() -> int:
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
+    uso.abrir_sesion()
     app = QApplication(sys.argv)
+    app.aboutToQuit.connect(uso.cerrar_sesion)
     app.setApplicationName("Certificación")
     app.setOrganizationName("Automatización")
 
@@ -35,6 +38,7 @@ def main() -> int:
         ruta = config.data_path()
         ruta.mkdir(parents=True, exist_ok=True)
     except Exception as exc:
+        uso.registrar_excepcion("data_path_invalido", exc)
         QMessageBox.critical(None, "Configuración incompleta", str(exc))
         return 1
 
