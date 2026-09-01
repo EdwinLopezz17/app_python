@@ -3,43 +3,11 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 from app.update.bitacora import anotar, ruta_log_inno
 
 ARGUMENTOS = ["/SILENT", "/NORESTART", "/SUPPRESSMSGBOXES"]
-
-PLANTILLA = r"""@echo off
-setlocal
-set PID={pid}
-set N=0
-
-:esperar
-tasklist /FI "PID eq %PID%" 2>nul | find "%PID%" >nul
-if errorlevel 1 goto instalar
-set /a N+=1
-if %N% GEQ 90 goto rendirse
-timeout /t 1 /nobreak >nul
-goto esperar
-
-:rendirse
-echo [cmd] La aplicacion no cerro en 90 segundos. >> "{log}"
-goto fin
-
-:instalar
-timeout /t 3 /nobreak >nul
-echo [cmd] Lanzando instalador: {setup} >> "{log}"
-start "" /wait "{setup}" {args} /LOG="{innolog}"
-set CODIGO=%ERRORLEVEL%
-echo [cmd] Codigo de salida de Inno: %CODIGO% >> "{log}"
-if not "%CODIGO%"=="0" goto fin
-echo [cmd] Relanzando aplicacion. >> "{log}"
-start "" "{exe}"
-
-:fin
-del "%~f0"
-"""
 
 
 class ErrorInstalacion(RuntimeError):
@@ -52,6 +20,14 @@ def _sin_ventana() -> int:
 
 def _separado() -> int:
     return getattr(subprocess, "DETACHED_PROCESS", 0x00000008) if os.name == "nt" else 0
+
+
+def _nuevo_grupo() -> int:
+    return (
+        getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
+        if os.name == "nt"
+        else 0
+    )
 
 
 def desbloquear(ruta: Path) -> None:
@@ -68,39 +44,41 @@ def desbloquear(ruta: Path) -> None:
 
 def lanzar_instalador(ruta: Path, log: Path | None = None) -> None:
     if os.name != "nt":
-        raise ErrorInstalacion("La actualización automática solo está disponible en Windows.")
+        raise ErrorInstalacion(
+            "La actualización automática solo está disponible en Windows."
+        )
     if not ruta.is_file():
         raise ErrorInstalacion(f"No se encontró el instalador en {ruta}")
 
     desbloquear(ruta)
 
-    from app.update.bitacora import ruta_log
+    log_inno = ruta_log_inno()
+    pid = os.getpid()
 
-    script = Path(tempfile.gettempdir()) / f"cert_update_{os.getpid()}.cmd"
-    contenido = PLANTILLA.format(
-        pid=os.getpid(),
-        setup=ruta,
-        args=" ".join(ARGUMENTOS),
-        log=ruta_log(),
-        innolog=ruta_log_inno(),
-        exe=ruta_ejecutable(),
-    )
-    script.write_text(contenido, encoding="cp1252", newline="\r\n")
+    comando = [
+        str(ruta),
+        *ARGUMENTOS,
+        f"/LOG={log_inno}",
+        f"/PID={pid}",
+    ]
 
-    anotar(f"Script intermediario: {script}")
     anotar(f"Setup descargado    : {ruta} ({ruta.stat().st_size} bytes)")
-    anotar(f"Log de Inno         : {ruta_log_inno()}")
-    anotar("Lanzando cmd.exe y cerrando la aplicacion.")
+    anotar(f"Log de Inno         : {log_inno}")
+    anotar(f"PID a esperar       : {pid}")
+    anotar("Lanzando el instalador directamente (sin script intermediario).")
 
     try:
-        subprocess.Popen(
-            ["cmd.exe", "/c", str(script)],
+        proceso = subprocess.Popen(
+            comando,
             close_fds=True,
-            creationflags=_sin_ventana() | _separado(),
+            cwd=str(ruta.parent),
+            creationflags=_sin_ventana() | _separado() | _nuevo_grupo(),
         )
     except OSError as exc:
-        anotar(f"FALLO al lanzar cmd.exe: {exc}")
+        anotar(f"FALLO al lanzar el instalador: {exc}")
         raise ErrorInstalacion(f"No se pudo ejecutar el instalador: {exc}") from exc
+
+    anotar(f"Instalador lanzado con PID {proceso.pid}. Cerrando la aplicacion.")
 
 
 def ruta_ejecutable() -> Path:

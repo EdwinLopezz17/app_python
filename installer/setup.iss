@@ -45,15 +45,73 @@ Name: "{autodesktop}\{#NombreVisible}"; Filename: "{app}\{#Ejecutable}"; Tasks: 
 
 [Run]
 Filename: "{app}\{#Ejecutable}"; Description: "Iniciar {#NombreVisible}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#Ejecutable}"; Flags: nowait runasoriginaluser; Check: EsActualizacion
 
 [UninstallDelete]
 Type: files; Name: "{app}\.env"
 
 [Code]
+const
+  SYNCHRONIZE = $00100000;
+  ESPERA_MAXIMA_MS = 90000;
+
+function OpenProcess(dwDesiredAccess: DWORD; bInheritHandle: BOOL;
+  dwProcessId: DWORD): THandle;
+  external 'OpenProcess@kernel32.dll stdcall';
+
+function WaitForSingleObject(hHandle: THandle; dwMilliseconds: DWORD): DWORD;
+  external 'WaitForSingleObject@kernel32.dll stdcall';
+
+function CloseHandle(hObject: THandle): BOOL;
+  external 'CloseHandle@kernel32.dll stdcall';
+
 var
   PaginaDatos: TInputDirWizardPage;
   RutaDatosPrevia: String;
   DeteccionHecha: Boolean;
+  PidEsperado: Integer;
+
+
+function EsActualizacion(): Boolean;
+begin
+  Result := PidEsperado > 0;
+end;
+
+
+procedure EsperarCierreApp(Pid: Integer);
+var
+  Manejador: THandle;
+  Resultado: DWORD;
+begin
+  if Pid <= 0 then
+    Exit;
+
+  Manejador := OpenProcess(SYNCHRONIZE, False, Pid);
+  if Manejador = 0 then
+    Exit;
+
+  try
+    Resultado := WaitForSingleObject(Manejador, ESPERA_MAXIMA_MS);
+    if Resultado <> 0 then
+      Log('La aplicacion no cerro dentro del tiempo de espera.');
+  finally
+    CloseHandle(Manejador);
+  end;
+
+  Sleep(1500);
+end;
+
+
+function InitializeSetup(): Boolean;
+begin
+  Result := True;
+  PidEsperado := StrToIntDef(ExpandConstant('{param:PID|0}'), 0);
+  if PidEsperado > 0 then
+  begin
+    Log('Actualizacion: esperando el cierre del PID ' + IntToStr(PidEsperado));
+    EsperarCierreApp(PidEsperado);
+  end;
+end;
 
 function RutaEnvExistente(): String;
 var
