@@ -13,6 +13,7 @@ class AppRows:
     tipo_usuario_dnivsuser: str
     usuario_dnivsuser: str
     comentario_dnivsuser: str
+    sociedad: str
     tipo_colaborador: str
     estado_entra_id: str
     fecha_creacion_entra_id: datetime

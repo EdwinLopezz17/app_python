@@ -96,6 +96,7 @@ def get_ad_report(fecha_ref: date)-> list[ADRows]:
                 department=ad_user.department,
                 company=ad_user.company,
                 street_address=ad_user.jefe,
+                sociedad=gdh_user.sociedad if gdh_user else "",
                 is_active=ad_user.isActive,
                 fecha_ultimo_login_ad=ad_user.fecha_ult_login,
                 fecha_ultimo_login_entra=ad_user.ultima_actividad_entra,

@@ -26,6 +26,7 @@ class ADRows:
     is_active: bool
     fecha_ultimo_login_ad: datetime
     fecha_ultimo_login_entra: datetime
+    sociedad: str
     is_activo_gdh: bool
     fecha_alta: datetime
     is_cesado_gdh: bool

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 @dataclass
 class ProfileRows:
@@ -23,8 +24,10 @@ class ProfileRows:
     dni_entra: str
     rol_entra: str
     jefatura_entra: str
+    sociedad: str
     tipo_colaborador: str
     rol_gdh: str
+    fecha_cese: datetime
     username_pps: str
     rol_ad_pps: str
     username_vida: str

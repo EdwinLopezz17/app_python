@@ -319,6 +319,7 @@ def _construir_fila_reporte(
         tipo_usuario_dnivsuser=dni_user_info.tipo_usuario if dni_user_info else "*No esta en DNI vs Usuarios*",
         usuario_dnivsuser=dni_user_info.usuario if dni_user_info else "*No esta en DNI vs Usuarios*",
         comentario_dnivsuser=dni_user_info.comentario if dni_user_info else "*No esta en DNI vs Usuarios*",
+        sociedad=gdh_user.sociedad if gdh_user else "",
         tipo_colaborador=("Proveedor" if gdh_user and gdh_user.esProveedor else ("Planilla" if gdh_user else "")),
         estado_entra_id=("Activo" if user_entraid.isActive else "Bloqueado") if user_entraid else "",
         fecha_creacion_entra_id=user_entraid.fechaCreacion if user_entraid else "",

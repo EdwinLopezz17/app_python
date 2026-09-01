@@ -19,6 +19,7 @@ class DBGeneralsRow:
     dni_ad_pps: str
     username_ad_vida: str
     dni_ad_vida: str
+    sociedad: str
     is_activo_gdh: bool
     fecha_alta: str
     is_cesado_gdh: bool
