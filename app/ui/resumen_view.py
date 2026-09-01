@@ -218,14 +218,7 @@ class ResumenView(QWidget):
         titulo.setObjectName("CardTitulo")
         layout.addWidget(titulo)
 
-        pasos = [
-            f"1.  En «{self.hallazgo.label}» exporta el Excel de detalle.",
-            "2.  Llena la columna Responsable con GDH, ACCESOS o «GDH | ACCESOS» "
-            "(y Comentario si aplica) y guarda.",
-            "3.  Sube aquí ese mismo archivo y descarga el resumen por escenarios "
-            f"({self.config.escenarios[0].code} a {self.config.escenarios[-1].code}).",
-        ]
-        for texto in pasos:
+        for texto in self._pasos():
             paso = QLabel(texto)
             paso.setObjectName("CardMeta")
             paso.setWordWrap(True)
@@ -233,6 +226,30 @@ class ResumenView(QWidget):
 
         return tarjeta
 
+
+    def _pasos(self) -> list[str]:
+        exportar = f"1.  En «{self.hallazgo.label}» exporta el Excel de detalle."
+
+        if self.config.modo == "poblacion":
+            bloques = ", ".join(b.titulo for b in self.config.poblacion.bloques)
+            return [
+                exportar,
+                "2.  Sube aquí ese mismo archivo, sin modificarlo.",
+                f"3.  Descarga el resumen con los bloques {bloques} y una hoja "
+                "de detalle por cada escenario con hallazgos.",
+            ]
+
+        escenarios = self.config.escenarios
+        rango = (
+            f" ({escenarios[0].code} a {escenarios[-1].code})" if escenarios else ""
+        )
+        return [
+            exportar,
+            "2.  Llena la columna Responsable con GDH, ACCESOS o «GDH | ACCESOS» "
+            "(y Comentario si aplica) y guarda.",
+            f"3.  Sube aquí ese mismo archivo y descarga el resumen por escenarios"
+            f"{rango}.",
+        ]
 
     def _procesar(self, ruta: str) -> None:
         self._archivo = Path(ruta).name
@@ -258,17 +275,28 @@ class ResumenView(QWidget):
         self.btn_otro.setEnabled(True)
         self.btn_descargar.setEnabled(True)
 
-        ausentes = engine.escenarios_sin_campo(self._filas, self.config.escenarios)
-        if ausentes:
-            codes = sorted({c for lista in ausentes.values() for c in lista})
-            columnas = ", ".join(
-                cols.etiquetas(self.config.modelo).get(campo, campo)
-                for campo in ausentes
+        etiquetas = cols.etiquetas(self.config.modelo)
+
+        if self.config.modo == "poblacion":
+            ausentes = engine.campos_poblacion_ausentes(
+                self._filas, self.config.poblacion
             )
+            afectados = "los conteos"
+        else:
+            sin_campo = engine.escenarios_sin_campo(
+                self._filas, self.config.escenarios
+            )
+            ausentes = list(sin_campo)
+            afectados = ", ".join(
+                sorted({c for lista in sin_campo.values() for c in lista})
+            )
+
+        if ausentes:
+            columnas = ", ".join(etiquetas.get(campo, campo) for campo in ausentes)
             self._mostrar_aviso(
                 f"Atención · {self._archivo} · {len(self._filas)} filas leídas · "
                 f"faltan columnas en el archivo ({columnas}), "
-                f"por eso {', '.join(codes)} cuentan 0",
+                f"por eso {afectados} cuentan 0",
                 "aviso",
             )
         else:

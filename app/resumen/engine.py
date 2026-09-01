@@ -429,6 +429,28 @@ def por_poblacion(
     return ResumenPoblacion(bloques=bloques, total_registros=len(filas))
 
 
+def campos_requeridos_poblacion(config: ConfigPoblacion) -> list[str]:
+    campos = [config.campo_bloque, config.campo_columna]
+    for bloque in config.bloques:
+        campos += [m.campo for m in bloque.metricas]
+        campos += [f.campo for f in bloque.hallazgo]
+
+    vistos: list[str] = []
+    for campo in campos:
+        if campo and campo not in vistos:
+            vistos.append(campo)
+    return vistos
+
+
+def campos_poblacion_ausentes(
+    filas: Sequence[dict], config: ConfigPoblacion
+) -> list[str]:
+    if not filas:
+        return []
+    presentes = set(filas[0])
+    return [c for c in campos_requeridos_poblacion(config) if c not in presentes]
+
+
 def escenarios_poblacion_con_hallazgos(
     filas: Sequence[dict], config: ConfigPoblacion
 ) -> list[tuple[BloquePoblacion, str, list[dict]]]:
