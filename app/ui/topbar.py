@@ -3,10 +3,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QMenu, QPushButton, QScrollArea, QSizePolicy,
-    QToolButton, QVBoxLayout, QWidget,
+    QFrame, QHBoxLayout, QLabel, QMenu, QMessageBox, QPushButton, QScrollArea,
+    QSizePolicy, QToolButton, QVBoxLayout, QWidget,
 )
 
 from app.__version__ import __version__
@@ -269,16 +270,60 @@ class TopBar(QWidget):
             return "DATA_PATH no configurado"
 
 
-class PieDatos(QLabel):
+class PieDatos(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("PieDatos")
-        try:
-            ruta = str(config.data_path())
-        except RunTimeError:
-            ruta = "DATA_PATH no configurado"
 
-        nombre = Path(ruta).name or ruta
-        self.setText(f"Datos: {nombre} • v{__version__}")
-        self.setToolTip(f"Carpeta de datos: {ruta}\nVersión: {__version__}")
+        try:
+            self._ruta = str(config.data_path())
+            configurada = True
+        except RuntimeError:
+            self._ruta = "DATA_PATH no configurado"
+            configurada = False
+
+        fila = QHBoxLayout(self)
+        fila.setContentsMargins(16, 5, 16, 5)
+        fila.setSpacing(8)
+
+        etiqueta = QLabel("Datos:")
+        etiqueta.setObjectName("PieEtiqueta")
+        fila.addWidget(etiqueta)
+
+        self.ruta = QLabel(self._ruta)
+        self.ruta.setObjectName("PieRuta")
+        self.ruta.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.ruta.setToolTip(self._ruta)
+        fila.addWidget(self.ruta, 1)
+
+        if configurada:
+            self.btn_abrir = QPushButton("Abrir carpeta")
+            self.btn_abrir.setObjectName("PieBoton")
+            self.btn_abrir.setCursor(Qt.PointingHandCursor)
+            self.btn_abrir.setToolTip(
+                f"Abrir en el Explorador de archivos:\n{self._ruta}"
+            )
+            self.btn_abrir.clicked.connect(self._abrir_carpeta)
+            fila.addWidget(self.btn_abrir)
+
+        version = QLabel(f"v{__version__}")
+        version.setObjectName("PieVersion")
+        version.setToolTip(f"Versión instalada: {__version__}")
+        fila.addWidget(version)
+
+    def _abrir_carpeta(self) -> None:
+        destino = Path(self._ruta)
+        if not destino.is_dir():
+            QMessageBox.warning(
+                self, "Carpeta no encontrada",
+                f"No se encontró la carpeta de datos:\n\n{self._ruta}\n\n"
+                "Revisa el archivo .env o vuelve a instalar la aplicación.",
+            )
+            return
+
+        if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(destino))):
+            QMessageBox.warning(
+                self, "No se pudo abrir",
+                f"No se pudo abrir la carpeta en el Explorador:\n\n{self._ruta}",
+            )

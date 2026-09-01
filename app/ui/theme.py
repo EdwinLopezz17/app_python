@@ -386,10 +386,39 @@ QLabel#PaletaPieTexto {{
     letter-spacing: 0.5px;
 }}
 
-QLabel#PieDatos {{
-    color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_XS}px;
-    padding: 5px 16px; background: {SURFACE_CONTAINER_LOWEST};
+QWidget#PieDatos {{
+    background: {SURFACE_CONTAINER_LOWEST};
     border-top: 1px solid {OUTLINE_VARIANT};
+}}
+
+QLabel#PieEtiqueta {{
+    color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_XS}px;
+    background: transparent;
+}}
+
+QLabel#PieRuta {{
+    color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_XS}px;
+    background: transparent;
+}}
+
+QLabel#PieVersion {{
+    color: {ON_SURFACE}; font-size: {TEXTO_XS}px; font-weight: 700;
+    background: transparent;
+}}
+
+QPushButton#PieBoton {{
+    color: {PRIMARY}; font-size: {TEXTO_XS}px; font-weight: 600;
+    background: transparent;
+    border: 1px solid {OUTLINE_VARIANT}; border-radius: 4px;
+    padding: 2px 10px;
+}}
+
+QPushButton#PieBoton:hover {{
+    background: {SURFACE_CONTAINER}; border-color: {PRIMARY};
+}}
+
+QPushButton#PieBoton:pressed {{
+    background: {SURFACE_CONTAINER_HIGH};
 }}
 
 QLabel#Seccion {{
@@ -749,6 +778,45 @@ QMessageBox QLabel#qt_msgbox_informativelabel {{
 QMessageBox QPushButton, QInputDialog QPushButton {{
     min-width: 88px;
     padding: 6px 16px;
+}}
+
+QDialog#DialogoActualizacion {{
+    background: {SURFACE_CONTAINER_LOWEST};
+}}
+
+QDialog#DialogoActualizacion QLabel {{
+    background: transparent; color: {ON_SURFACE};
+}}
+
+QLabel#TituloDialogo {{
+    color: {ON_SURFACE}; font-size: 18px; font-weight: 700;
+    background: transparent;
+}}
+
+QLabel#SubtituloDialogo {{
+    color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_MD}px;
+    background: transparent;
+}}
+
+QLabel#EstadoDialogo {{
+    color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_MD}px;
+    background: transparent;
+}}
+
+QDialog#DialogoActualizacion QTextEdit {{
+    background: {SURFACE_CONTAINER_LOW}; color: {ON_SURFACE};
+    border: 1px solid {OUTLINE_VARIANT}; border-radius: 6px;
+    padding: 8px; font-size: {TEXTO_MD}px;
+}}
+
+QDialog#DialogoActualizacion QProgressBar {{
+    background: {SURFACE_CONTAINER}; color: {ON_SURFACE};
+    border: 1px solid {OUTLINE_VARIANT}; border-radius: 4px;
+    text-align: center; height: 18px;
+}}
+
+QDialog#DialogoActualizacion QProgressBar::chunk {{
+    background: {PRIMARY}; border-radius: 3px;
 }}
 """
 
