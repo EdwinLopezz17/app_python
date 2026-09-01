@@ -55,6 +55,14 @@ const
   SYNCHRONIZE = $00100000;
   ESPERA_MAXIMA_MS = 90000;
 
+  GENERIC_WRITE = $40000000;
+  OPEN_EXISTING = 3;
+  SIN_COMPARTIR = 0;
+  HANDLE_INVALIDO = -1;
+
+  ESPERA_ARCHIVO_MS = 60000;
+  INTERVALO_MS = 500;
+
 function OpenProcess(dwDesiredAccess: DWORD; bInheritHandle: BOOL;
   dwProcessId: DWORD): THandle;
   external 'OpenProcess@kernel32.dll stdcall';
@@ -64,6 +72,12 @@ function WaitForSingleObject(hHandle: THandle; dwMilliseconds: DWORD): DWORD;
 
 function CloseHandle(hObject: THandle): BOOL;
   external 'CloseHandle@kernel32.dll stdcall';
+
+function CreateFile(lpFileName: String; dwDesiredAccess: DWORD;
+  dwShareMode: DWORD; lpSecurityAttributes: Integer;
+  dwCreationDisposition: DWORD; dwFlagsAndAttributes: DWORD;
+  hTemplateFile: Integer): Integer;
+  external 'CreateFileW@kernel32.dll stdcall';
 
 var
   PaginaDatos: TInputDirWizardPage;
@@ -97,8 +111,49 @@ begin
   finally
     CloseHandle(Manejador);
   end;
+end;
 
-  Sleep(1500);
+
+function ArchivoLiberado(Ruta: String): Boolean;
+var
+  Manejador: Integer;
+begin
+  if not FileExists(Ruta) then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  Manejador := CreateFile(
+    Ruta, GENERIC_WRITE, SIN_COMPARTIR, 0, OPEN_EXISTING, 0, 0
+  );
+
+  Result := Manejador <> HANDLE_INVALIDO;
+  if Result then
+    CloseHandle(Manejador);
+end;
+
+
+function EsperarArchivoLibre(Ruta: String): Boolean;
+var
+  Transcurrido: Integer;
+begin
+  Transcurrido := 0;
+  while Transcurrido < ESPERA_ARCHIVO_MS do
+  begin
+    if ArchivoLiberado(Ruta) then
+    begin
+      if Transcurrido > 0 then
+        Log('Archivo liberado tras ' + IntToStr(Transcurrido) + ' ms: ' + Ruta);
+      Result := True;
+      Exit;
+    end;
+    Sleep(INTERVALO_MS);
+    Transcurrido := Transcurrido + INTERVALO_MS;
+  end;
+
+  Log('El archivo sigue bloqueado tras ' + IntToStr(Transcurrido) + ' ms: ' + Ruta);
+  Result := False;
 end;
 
 
@@ -282,7 +337,15 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   Base: String;
+  Destino: String;
 begin
+  if (CurStep = ssInstall) and EsActualizacion() then
+  begin
+    Destino := ExpandConstant('{app}\{#Ejecutable}');
+    if not EsperarArchivoLibre(Destino) then
+      Log('Se continua igual; Inno reintentara al copiar.');
+  end;
+
   if CurStep <> ssPostInstall then
     Exit;
 
