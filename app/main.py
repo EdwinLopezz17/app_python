@@ -22,6 +22,14 @@ def main() -> int:
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
     uso.abrir_sesion()
+
+    try:
+        from app.generation.precheck import reparar_env
+
+        uso.registrar("env_estado", resultado=reparar_env())
+    except Exception as exc:
+        uso.registrar_excepcion("env_revision_fallo", exc)
+
     app = QApplication(sys.argv)
     app.aboutToQuit.connect(uso.cerrar_sesion)
     app.setApplicationName("Certificación")

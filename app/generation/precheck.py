@@ -45,6 +45,62 @@ class ErrorDeCodificacion(Exception):
     pass
 
 
+def revisar_env() -> Defecto | None:
+    from app.config import raiz_datos
+
+    ruta = raiz_datos() / ".env"
+    if not ruta.exists():
+        return None
+    return revisar_archivo(ruta)
+
+
+def reparar_env() -> str:
+    from app.config import raiz_datos
+
+    ruta = raiz_datos() / ".env"
+    if not ruta.exists():
+        return "ausente"
+
+    crudo = ruta.read_bytes()
+    if crudo.startswith(_BOM_UTF8):
+        cuerpo = crudo[len(_BOM_UTF8):]
+        try:
+            texto = cuerpo.decode("utf-8")
+        except UnicodeDecodeError:
+            return "ilegible"
+        ruta.write_bytes(texto.encode("utf-8"))
+        uso.registrar("env_reparado", motivo="BOM eliminado", ruta=str(ruta))
+        return "reparado"
+
+    try:
+        crudo.decode("utf-8")
+        return "ok"
+    except UnicodeDecodeError:
+        pass
+
+    for codificacion in ("cp1252", "latin-1"):
+        try:
+            texto = crudo.decode(codificacion)
+        except UnicodeDecodeError:
+            continue
+        respaldo = ruta.with_name(".env.ansi.bak")
+        try:
+            respaldo.write_bytes(crudo)
+        except OSError:
+            pass
+        ruta.write_bytes(texto.encode("utf-8"))
+        uso.registrar(
+            "env_reparado",
+            motivo=f"reescrito desde {codificacion}",
+            ruta=str(ruta),
+            respaldo=str(respaldo),
+        )
+        return "reparado"
+
+    uso.registrar("env_irreparable", ruta=str(ruta))
+    return "ilegible"
+
+
 @dataclass(frozen=True)
 class Defecto:
     archivo: str
@@ -119,7 +175,7 @@ def _archivos_de(hallazgo_id: str) -> list[Path]:
 
 def _mensaje(defectos: list[Defecto]) -> str:
     lineas = [
-        "Hay archivos de origen que no están en UTF-8 y el motor de reportes "
+        "Hay archivos que no están en UTF-8 y el motor de reportes "
         "no puede leerlos.",
         "",
     ]
@@ -130,6 +186,10 @@ def _mensaje(defectos: list[Defecto]) -> str:
         lineas.append("")
 
     lineas.append("Cómo se corrige:")
+    lineas.append(
+        "  Si el archivo es .env: ábrelo con el Bloc de notas, usa «Guardar "
+        "como» y elige codificación UTF-8."
+    )
     lineas.append(
         "  1. Ve a «Cargar Información» y vuelve a subir esa fuente desde el "
         "archivo original."
@@ -150,6 +210,13 @@ def _mensaje(defectos: list[Defecto]) -> str:
 def verificar(hallazgo_id: str) -> None:
     defectos: list[Defecto] = []
     revisados = 0
+
+    defecto_env = revisar_env()
+    if defecto_env is not None:
+        if reparar_env() == "reparado":
+            defecto_env = revisar_env()
+        if defecto_env is not None:
+            defectos.append(defecto_env)
 
     for ruta in _archivos_de(hallazgo_id):
         if not ruta.exists():

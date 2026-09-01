@@ -8,6 +8,7 @@ from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
 
 from app.telemetry import uso
 
+
 class SenalesTarea(QObject):
     ok = Signal(object)
     error = Signal(str)

@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 
 from app.catalog import formatos, hallazgo_columns as cols, resumenes
 from app.catalog.hallazgos import Hallazgo
-from app.exports import excel
+from app.exports import activos_gdh_excel, excel
 from app.generation import reports
 from app.storage.files import estado_slot
 from app.tasks.runner import POOL, Tarea
@@ -458,10 +458,15 @@ class HallazgoView(QWidget):
             QMessageBox.information(self, "Exportar", "No hay datos para exportar.")
             return
 
+        es_activos_gdh = self.hallazgo.id == "activos-gdh"
+        sugerido = (
+            activos_gdh_excel.nombre_sugerido()
+            if es_activos_gdh
+            else excel.nombre_sugerido(self.hallazgo.id)
+        )
+
         destino, _ = QFileDialog.getSaveFileName(
-            self, "Exportar hallazgo",
-            excel.nombre_sugerido(self.hallazgo.id),
-            "Excel (*.xlsx)",
+            self, "Exportar hallazgo", sugerido, "Excel (*.xlsx)",
         )
         if not destino:
             return
@@ -469,11 +474,14 @@ class HallazgoView(QWidget):
         self.btn_exportar.setEnabled(False)
         self.btn_exportar.setText("Exportando…")
 
-        tarea = Tarea(
-            excel.exportar, df, destino, self.hallazgo.modelo, "Hallazgos",
-            resumenes.COLUMNAS_EDITABLES
-            if resumenes.disponible(self.hallazgo.id) else (),
-        )
+        if es_activos_gdh:
+            tarea = Tarea(activos_gdh_excel.exportar, df, destino)
+        else:
+            tarea = Tarea(
+                excel.exportar, df, destino, self.hallazgo.modelo, "Hallazgos",
+                resumenes.COLUMNAS_EDITABLES
+                if resumenes.disponible(self.hallazgo.id) else (),
+            )
         tarea.senales.ok.connect(self._al_exportar)
         tarea.senales.error.connect(
             lambda m: QMessageBox.critical(self, "Exportar", f"No se pudo exportar: {m}")

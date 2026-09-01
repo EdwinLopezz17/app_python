@@ -87,7 +87,7 @@ begin
   PaginaDatos := CreateInputDirPage(
     wpSelectDir,
     'Carpeta de datos',
-    'Elegí dónde se guardará la información de las certificaciones.',
+    'Elige dónde se guardará la información de las certificaciones.',
     'Los archivos Excel que cargues y los reportes generados se guardarán en' + #13#10 +
     'esta carpeta. Si no existe, el instalador la creará junto con su estructura' + #13#10 +
     'interna de subcarpetas.',
@@ -144,7 +144,7 @@ begin
 
   if Ruta = '' then
   begin
-    MsgBox('Indicá una carpeta de datos para continuar.', mbError, MB_OK);
+    MsgBox('Indica una carpeta de datos para continuar.', mbError, MB_OK);
     Result := False;
     Exit;
   end;
@@ -160,7 +160,7 @@ begin
   begin
     MsgBox(
       'No se puede escribir en esa carpeta.' + #13#10#13#10 +
-      'Elegí otra ubicación donde tengas permiso de escritura, ' +
+      'Elige otra ubicación donde tengas permiso de escritura, ' +
       'por ejemplo dentro de Documentos.',
       mbError, MB_OK
     );
@@ -178,13 +178,47 @@ begin
   ForceDirectories(AddBackslash(Base) + '_backups');
 end;
 
-procedure EscribirEnv(Base: String);
+function GuardarEnvUTF8(Archivo: String; Linea: String): Boolean;
 var
   Contenido: TArrayOfString;
 begin
   SetArrayLength(Contenido, 1);
-  Contenido[0] := 'DATA_PATH=' + RemoveBackslash(Base);
-  SaveStringsToFile(ExpandConstant('{app}\.env'), Contenido, False);
+  Contenido[0] := Linea;
+  try
+    Result := SaveStringsToUTF8FileWithoutBOM(Archivo, Contenido, False);
+  except
+    Result := False;
+  end;
+  if not Result then
+    Result := SaveStringsToUTF8File(Archivo, Contenido, False);
+end;
+
+procedure EscribirEnv(Base: String);
+var
+  Archivo: String;
+  Linea: String;
+begin
+  Archivo := ExpandConstant('{app}\.env');
+  Linea := 'DATA_PATH=' + RemoveBackslash(Base);
+
+  if not GuardarEnvUTF8(Archivo, Linea) then
+  begin
+    MsgBox(
+      'No se pudo escribir el archivo de configuración .env' + #13#10#13#10 +
+      'La aplicación no podrá encontrar la carpeta de datos.',
+      mbError, MB_OK
+    );
+    Exit;
+  end;
+
+  if Pos('?', Linea) > 0 then
+    MsgBox(
+      'La ruta de datos contiene caracteres que no se pudieron guardar ' +
+      'correctamente.' + #13#10#13#10 +
+      'Si la aplicación no encuentra la carpeta, elige una ruta sin tildes ' +
+      'ni caracteres especiales.',
+      mbInformation, MB_OK
+    );
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

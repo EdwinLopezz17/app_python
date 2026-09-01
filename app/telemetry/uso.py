@@ -130,7 +130,7 @@ def publicar() -> None:
         return
 
     ident = identidad()
-    marca = f"{ident['equipo']}-{ident['usuario']}"
+    marca = f"{ident['equipo']}-{ident['usuario']}-{_SESION}"
     copiados = 0
     for origen in sorted(carpeta_logs().glob("uso-*")):
         try:
