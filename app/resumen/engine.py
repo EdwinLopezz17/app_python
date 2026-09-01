@@ -91,6 +91,53 @@ class Escenario:
         return all(f.cumple(fila) for f in self.filtros)
 
 
+ModoResumen = Literal["escenario", "grupo", "poblacion"]
+
+
+@dataclass(frozen=True)
+class Metrica:
+    id: str
+    label: str
+    campo: str
+    modo: Literal["conteo", "distinto"] = "conteo"
+
+    def medir(self, filas: Sequence[dict]) -> int:
+        presentes = [f for f in filas if tiene_valor(f.get(self.campo))]
+        if self.modo == "distinto":
+            return len({str(f.get(self.campo)).strip() for f in presentes})
+        return len(presentes)
+
+
+@dataclass(frozen=True)
+class BloquePoblacion:
+    titulo: str
+    valor: str
+
+    metricas: tuple[Metrica, ...]
+
+    hallazgo: tuple[Filtro, ...]
+
+    etiqueta_total: str = "Total"
+    etiqueta_hallazgo: str = "# Hallazgos inicial"
+    etiqueta_porcentaje: str = "% Hallazgos inicial"
+
+    def es_hallazgo(self, fila: dict) -> bool:
+        return all(f.cumple(fila) for f in self.hallazgo)
+
+
+@dataclass(frozen=True)
+class ConfigPoblacion:
+    campo_bloque: str
+    campo_columna: str
+    columnas: tuple[str, ...]
+    bloques: tuple[BloquePoblacion, ...]
+
+    codigos_columna: dict[str, str] = field(default_factory=dict)
+
+    def codigo(self, columna: str) -> str:
+        return self.codigos_columna.get(columna, columna)
+
+
 @dataclass(frozen=True)
 class ConfigResumen:
     hallazgo_id: str
@@ -104,6 +151,18 @@ class ConfigResumen:
     campo_grupo: str | None = None
 
     etiqueta_grupo: str = ""
+
+    poblacion: ConfigPoblacion | None = None
+
+    columnas_accion: tuple[str, ...] = ()
+
+    @property
+    def modo(self) -> ModoResumen:
+        if self.poblacion is not None:
+            return "poblacion"
+        if self.campo_grupo:
+            return "grupo"
+        return "escenario"
 
 
 def filas_de_escenario(filas: Sequence[dict], escenario: Escenario) -> list[dict]:
@@ -278,6 +337,119 @@ def por_grupo(
     return ResumenGrupos(
         filas=ordenadas, total=total, codes=codes, total_registros=len(filas)
     )
+
+
+@dataclass
+class CeldaPoblacion:
+    columna: str
+    total: dict[str, int] = field(default_factory=dict)
+    hallazgo: dict[str, int] = field(default_factory=dict)
+
+    def porcentaje(self, metrica_id: str) -> float:
+        base = self.total.get(metrica_id, 0)
+        return self.hallazgo.get(metrica_id, 0) / base if base else 0.0
+
+
+@dataclass
+class BloqueResumen:
+    titulo: str
+    metricas: tuple[Metrica, ...]
+    celdas: list[CeldaPoblacion]
+
+    etiqueta_total: str
+    etiqueta_hallazgo: str
+    etiqueta_porcentaje: str
+
+    @property
+    def total_hallazgos(self) -> int:
+        principal = self.metricas[-1].id if self.metricas else ""
+        return sum(c.hallazgo.get(principal, 0) for c in self.celdas)
+
+
+@dataclass
+class ResumenPoblacion:
+    bloques: list[BloqueResumen]
+    total_registros: int
+
+    @property
+    def total_hallazgos(self) -> int:
+        return sum(b.total_hallazgos for b in self.bloques)
+
+
+def _filas_de(
+    filas: Sequence[dict], campo_bloque: str, valor: str,
+    campo_columna: str, columna: str,
+) -> list[dict]:
+    objetivo_bloque = _norm(valor)
+    objetivo_columna = _norm(columna)
+    return [
+        f for f in filas
+        if _norm(f.get(campo_bloque)) == objetivo_bloque
+        and _norm(f.get(campo_columna)) == objetivo_columna
+    ]
+
+
+def filas_de_poblacion(
+    filas: Sequence[dict], config: ConfigPoblacion,
+    bloque: BloquePoblacion, columna: str, solo_hallazgos: bool = False,
+) -> list[dict]:
+    alcance = _filas_de(
+        filas, config.campo_bloque, bloque.valor, config.campo_columna, columna
+    )
+    if solo_hallazgos:
+        return [f for f in alcance if bloque.es_hallazgo(f)]
+    return alcance
+
+
+def por_poblacion(
+    filas: Sequence[dict], config: ConfigPoblacion
+) -> ResumenPoblacion:
+    bloques: list[BloqueResumen] = []
+
+    for bloque in config.bloques:
+        celdas: list[CeldaPoblacion] = []
+        for columna in config.columnas:
+            alcance = filas_de_poblacion(filas, config, bloque, columna)
+            hallazgos = [f for f in alcance if bloque.es_hallazgo(f)]
+            celdas.append(CeldaPoblacion(
+                columna=columna,
+                total={m.id: m.medir(alcance) for m in bloque.metricas},
+                hallazgo={m.id: m.medir(hallazgos) for m in bloque.metricas},
+            ))
+
+        bloques.append(BloqueResumen(
+            titulo=bloque.titulo,
+            metricas=bloque.metricas,
+            celdas=celdas,
+            etiqueta_total=bloque.etiqueta_total,
+            etiqueta_hallazgo=bloque.etiqueta_hallazgo,
+            etiqueta_porcentaje=bloque.etiqueta_porcentaje,
+        ))
+
+    return ResumenPoblacion(bloques=bloques, total_registros=len(filas))
+
+
+def escenarios_poblacion_con_hallazgos(
+    filas: Sequence[dict], config: ConfigPoblacion
+) -> list[tuple[BloquePoblacion, str, list[dict]]]:
+    salida: list[tuple[BloquePoblacion, str, list[dict]]] = []
+    for bloque in config.bloques:
+        for columna in config.columnas:
+            hallazgos = filas_de_poblacion(
+                filas, config, bloque, columna, solo_hallazgos=True
+            )
+            if hallazgos:
+                salida.append((bloque, columna, hallazgos))
+    return salida
+
+
+_CARACTERES_INVALIDOS = set(r"[]:*?/\\")
+
+
+def nombre_hoja(titulo: str, codigo: str) -> str:
+    crudo = f"{titulo} - {codigo}"
+    limpio = "".join(c for c in crudo if c not in _CARACTERES_INVALIDOS)
+    return limpio[:31]
 
 
 _ISO = re.compile(r"^(\d{4})-(\d{2})")

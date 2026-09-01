@@ -280,6 +280,186 @@ def _hoja_por_grupo(
     return [(e, engine.filas_de_escenario(filas, e)) for e in escenarios]
 
 
+HOJA_POBLACION = "RESUMEN"
+
+AMBAR = "#ffe6cc"
+GRIS_FILA = "#f2f3ff"
+
+
+def _formatos_poblacion(libro: xlsxwriter.Workbook) -> dict:
+    base = {
+        "border": 1, "border_color": GRIS_BORDE,
+        "font_name": "Inter", "font_size": 10,
+    }
+    return {
+        "etiqueta": libro.add_format({**base, "bold": True, "align": "left"}),
+        "numero": libro.add_format({**base, "align": "center", "num_format": "#,##0"}),
+        "etiqueta_hallazgo": libro.add_format({
+            **base, "bold": True, "align": "left", "bg_color": AMBAR,
+        }),
+        "numero_hallazgo": libro.add_format({
+            **base, "align": "center", "num_format": "#,##0", "bg_color": AMBAR,
+        }),
+        "etiqueta_pct": libro.add_format({
+            **base, "bold": True, "align": "left", "bg_color": GRIS_FILA,
+        }),
+        "pct": libro.add_format({
+            **base, "bold": True, "align": "center",
+            "num_format": "0.00%", "bg_color": GRIS_FILA,
+        }),
+    }
+
+
+def _hoja_poblacion(
+    libro: xlsxwriter.Workbook, fmt: _Formatos, config: ConfigResumen,
+    filas: Sequence[dict],
+) -> list[tuple[str, list[dict]]]:
+    poblacion = config.poblacion
+    if poblacion is None:
+        return []
+
+    hoja = libro.add_worksheet(HOJA_POBLACION)
+    hoja.hide_gridlines(2)
+
+    resumen = engine.por_poblacion(filas, poblacion)
+    detalles = engine.escenarios_poblacion_con_hallazgos(filas, poblacion)
+    con_hoja = {
+        engine.nombre_hoja(b.titulo, poblacion.codigo(c)) for b, c, _ in detalles
+    }
+
+    numeros = fmt_pob = _formatos_poblacion(libro)
+
+    primera = 1
+    ancho_max = max(len(b.metricas) for b in poblacion.bloques) * len(poblacion.columnas)
+
+    hoja.set_column(0, 0, 3)
+    hoja.set_column(primera, primera, 26)
+    hoja.set_column(primera + 1, primera + ancho_max, 18)
+
+    fila_excel = 1
+
+    for bloque in resumen.bloques:
+        n_metricas = len(bloque.metricas)
+        columnas_bloque = n_metricas * len(poblacion.columnas)
+        fin = primera + columnas_bloque
+
+        hoja.merge_range(
+            fila_excel, primera, fila_excel, fin,
+            bloque.titulo, fmt.cabecera(colors.INVERSE_SURFACE),
+        )
+        hoja.set_row(fila_excel, 24)
+        fila_excel += 1
+
+        if n_metricas > 1:
+            hoja.merge_range(
+                fila_excel, primera + 1, fila_excel, fin,
+                bloque.etiqueta_total, fmt.cabecera(colors.PRIMARY),
+            )
+            fila_excel += 1
+
+        hoja.write(fila_excel, primera, "", fmt.cabecera(colors.OUTLINE))
+        for indice, celda in enumerate(bloque.celdas):
+            ini = primera + 1 + indice * n_metricas
+            final = ini + n_metricas - 1
+            nombre = engine.nombre_hoja(bloque.titulo, poblacion.codigo(celda.columna))
+            formato = fmt.enlace if nombre in con_hoja else fmt.cabecera(colors.PRIMARY)
+
+            if final > ini:
+                hoja.merge_range(fila_excel, ini, fila_excel, final, "", formato)
+            if nombre in con_hoja:
+                hoja.write_url(
+                    fila_excel, ini, f"internal:'{nombre}'!A1", formato, celda.columna
+                )
+            else:
+                hoja.write(fila_excel, ini, celda.columna, formato)
+        fila_excel += 1
+
+        if n_metricas > 1:
+            hoja.write(fila_excel, primera, "", fmt.cabecera(colors.OUTLINE))
+            for indice in range(len(bloque.celdas)):
+                ini = primera + 1 + indice * n_metricas
+                for desplazamiento, metrica in enumerate(bloque.metricas):
+                    hoja.write(
+                        fila_excel, ini + desplazamiento, metrica.label,
+                        fmt.cabecera(colors.PRIMARY),
+                    )
+            fila_excel += 1
+
+        filas_datos = (
+            (bloque.etiqueta_total, "total", "etiqueta", "numero"),
+            (bloque.etiqueta_hallazgo, "hallazgo", "etiqueta_hallazgo", "numero_hallazgo"),
+            (bloque.etiqueta_porcentaje, "pct", "etiqueta_pct", "pct"),
+        )
+
+        for titulo, clase, fmt_etiqueta, fmt_valor in filas_datos:
+            hoja.write(fila_excel, primera, titulo, fmt_pob[fmt_etiqueta])
+            for indice, celda in enumerate(bloque.celdas):
+                ini = primera + 1 + indice * n_metricas
+                for desplazamiento, metrica in enumerate(bloque.metricas):
+                    columna = ini + desplazamiento
+                    if clase == "pct":
+                        valor = celda.porcentaje(metrica.id)
+                    elif clase == "hallazgo":
+                        valor = celda.hallazgo.get(metrica.id, 0)
+                    else:
+                        valor = celda.total.get(metrica.id, 0)
+                    hoja.write_number(fila_excel, columna, valor, fmt_pob[fmt_valor])
+            fila_excel += 1
+
+        fila_excel += 1
+
+    return [
+        (engine.nombre_hoja(b.titulo, poblacion.codigo(c)), alcance)
+        for b, c, alcance in detalles
+    ]
+
+
+def _hoja_detalle_poblacion(
+    libro: xlsxwriter.Workbook, fmt: _Formatos, config: ConfigResumen,
+    nombre: str, filas: Sequence[dict],
+) -> None:
+    hoja = libro.add_worksheet(nombre)
+    etiquetas = cols.etiquetas(config.modelo)
+    campos = cols.campos(config.modelo)
+    extras = list(config.columnas_accion)
+
+    hoja.merge_range(0, 1, 0, 2, "", fmt.volver)
+    hoja.write_url(
+        0, 1, f"internal:'{HOJA_POBLACION}'!A1", fmt.volver, "VOLVER AL RESUMEN"
+    )
+
+    cabecera_extra = fmt.cabecera(colors.GRUPOS["C8"].fill)
+
+    for col, campo in enumerate(campos):
+        hoja.write(2, col, etiquetas.get(campo, campo),
+                   fmt.cabecera_campo(config.modelo, campo))
+    for indice, extra in enumerate(extras):
+        hoja.write(2, len(campos) + indice, extra, cabecera_extra)
+    hoja.set_row(2, 28)
+
+    for indice, fila in enumerate(filas):
+        for col, campo in enumerate(campos):
+            hoja.write(3 + indice, col,
+                       _texto(fila.get(campo), config.modelo, campo), fmt.celda)
+        for desplazamiento in range(len(extras)):
+            hoja.write(3 + indice, len(campos) + desplazamiento, "", fmt.celda)
+
+    for col, campo in enumerate(campos):
+        titulo = etiquetas.get(campo, campo)
+        ancho = max(len(titulo) + 4, ANCHO_MIN)
+        muestra = [len(_texto(f.get(campo), config.modelo, campo)) for f in filas[:200]]
+        if muestra:
+            ancho = max(ancho, min(max(muestra) + 2, ANCHO_MAX))
+        hoja.set_column(col, col, ancho)
+    for indice in range(len(extras)):
+        hoja.set_column(len(campos) + indice, len(campos) + indice, 26)
+
+    hoja.freeze_panes(3, 0)
+    total_cols = len(campos) + len(extras)
+    if total_cols:
+        hoja.autofilter(2, 0, max(2 + len(filas), 3), total_cols - 1)
+
+
 def exportar(config: ConfigResumen, filas: Sequence[dict], destino: str | Path) -> Path:
     destino = Path(destino)
     destino.parent.mkdir(parents=True, exist_ok=True)
@@ -287,13 +467,18 @@ def exportar(config: ConfigResumen, filas: Sequence[dict], destino: str | Path) 
     libro = xlsxwriter.Workbook(str(destino), {"default_date_format": "dd/mm/yyyy"})
     try:
         fmt = _Formatos(libro)
-        if config.campo_grupo:
-            detalles = _hoja_por_grupo(libro, fmt, config, filas)
-        else:
-            detalles = _hoja_por_escenario(libro, fmt, config, filas)
 
-        for escenario, alcance in detalles:
-            _hoja_detalle(libro, fmt, config, escenario, alcance)
+        if config.modo == "poblacion":
+            for nombre, alcance in _hoja_poblacion(libro, fmt, config, filas):
+                _hoja_detalle_poblacion(libro, fmt, config, nombre, alcance)
+        else:
+            if config.campo_grupo:
+                detalles = _hoja_por_grupo(libro, fmt, config, filas)
+            else:
+                detalles = _hoja_por_escenario(libro, fmt, config, filas)
+
+            for escenario, alcance in detalles:
+                _hoja_detalle(libro, fmt, config, escenario, alcance)
     finally:
         libro.close()
 

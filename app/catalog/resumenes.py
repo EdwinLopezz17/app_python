@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from app.catalog import resumen_base_datos, resumen_usuarios
+from app.catalog import resumen_base_datos, resumen_perfiles, resumen_usuarios
 from app.resumen.engine import ConfigResumen
 
 
 COLUMNAS_EDITABLES = resumen_usuarios.COLUMNAS_EDITABLES
 
-_FUENTES = (resumen_usuarios.CONFIGS, resumen_base_datos.CONFIGS)
+_FUENTES = (
+    resumen_usuarios.CONFIGS,
+    resumen_base_datos.CONFIGS,
+    resumen_perfiles.CONFIGS,
+)
 
 CONFIGS: dict[str, ConfigResumen] = {}
 for _fuente in _FUENTES:

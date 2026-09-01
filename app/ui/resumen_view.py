@@ -306,7 +306,10 @@ class ResumenView(QWidget):
 
 
     def _pintar_preview(self) -> None:
-        if self.config.campo_grupo:
+        modo = self.config.modo
+        if modo == "poblacion":
+            self._preview_por_poblacion()
+        elif modo == "grupo":
             self._preview_por_grupo()
         else:
             self._preview_por_escenario()
@@ -375,6 +378,41 @@ class ResumenView(QWidget):
         self._celda(ultima, 2, resumen.total_hallazgos, numero=True, negrita=True)
         self._celda(ultima, 3, resumen.total_gdh, numero=True, negrita=True)
         self._celda(ultima, 4, resumen.total_accesos, numero=True, negrita=True)
+
+    def _preview_por_poblacion(self) -> None:
+        poblacion = self.config.poblacion
+        resumen = engine.por_poblacion(self._filas, poblacion)
+
+        self._pintar_kpis(
+            [("Registros leídos", resumen.total_registros)]
+            + [(b.titulo, b.total_hallazgos) for b in resumen.bloques]
+            + [("Total hallazgos", resumen.total_hallazgos)]
+        )
+
+        cabeceras = ["Bloque", "Métrica"]
+        for columna in poblacion.columnas:
+            codigo = poblacion.codigo(columna)
+            cabeceras += [f"{codigo} total", f"{codigo} hallazgos", f"{codigo} %"]
+
+        self.tabla.setColumnCount(len(cabeceras))
+        self.tabla.setHorizontalHeaderLabels(cabeceras)
+        self.tabla.setRowCount(sum(len(b.metricas) for b in resumen.bloques))
+
+        indice = 0
+        for bloque in resumen.bloques:
+            for posicion, metrica in enumerate(bloque.metricas):
+                self._celda(indice, 0, bloque.titulo if posicion == 0 else "",
+                            negrita=True)
+                self._celda(indice, 1, metrica.label)
+                for orden, celda in enumerate(bloque.celdas):
+                    base = 2 + orden * 3
+                    self._celda(indice, base,
+                                celda.total.get(metrica.id, 0), numero=True)
+                    self._celda(indice, base + 1,
+                                celda.hallazgo.get(metrica.id, 0), numero=True)
+                    self._celda(indice, base + 2,
+                                f"{celda.porcentaje(metrica.id):.2%}", numero=True)
+                indice += 1
 
     def _preview_por_grupo(self) -> None:
         escenarios = list(self.config.escenarios)
