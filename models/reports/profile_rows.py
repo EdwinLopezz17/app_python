@@ -41,6 +41,8 @@ class ProfileRows:
     val_rol_app: bool
     val_rol_app_perfil: bool
     val_rol_perfil: bool
+    val_inicial: str
+    val_final: str
     escenario: str
     responsable: str
     comentario: str

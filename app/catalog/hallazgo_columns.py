@@ -147,6 +147,8 @@ PROFILE_ROWS: list[ColumnDef] = [
     Col("val_rol_app", "Validación Rol / Aplicación", "C10", 244),
     Col("val_rol_app_perfil", "Validación Rol / Aplicación / Perfil", "C10", 280),
     Col("val_rol_perfil", "Validación Rol / Perfil", "C10", 212),
+    Col("val_inicial", "Validación Inicial", "C8", 200),
+    Col("val_final", "Validación Final", "C8", 200),
     Col("escenario", "Escenario", "C8", 200),
     Col("responsable", "Responsable", "C8", 180),
     Col("comentario", "Comentario", "C8", 260),

@@ -144,6 +144,8 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
         val_rol_app=mr_srv.exists_by_rol_and_activo(rol_final, app_name),
         val_rol_app_perfil=mr_srv.exists_by_rol_activo_and_perfil(rol_final, app_name,perfil_rol),
         val_rol_perfil=mr_srv.exists_by_rol_and_perfil(rol_final, perfil_rol),
+        val_inicial="",
+        val_final="",
         escenario="",
         responsable="",
         comentario=""
