@@ -17,4 +17,4 @@ class GeneralesAE:
     usuario_utilizado: str
     val_usuario_utilizado: str
     usuario_corresponde: str
-    val_usuario_corrsponde: str
+    val_usuario_corresponde: str

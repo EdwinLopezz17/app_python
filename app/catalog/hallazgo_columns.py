@@ -252,20 +252,20 @@ DB_GENERALS_ROW: list[ColumnDef] = [
 
 GENERALS_ROW: list[ColumnDef] = [
     Col("db", "Base de Datos", "C1", 132),
-    Col("cuenta de acceso", "Cuenta de Acceso", "C1", 156),
-    Col("host de conexión", "Host de Conexión", "C1", 156),
+    Col("cuenta_acceso", "Cuenta de Acceso", "C1", 156),
+    Col("host_conexion", "Host de Conexión", "C1", 156),
     Col("terminal", "Terminal", "C1", 120),
-    Col("fecha de cierre sesion", "Fecha de Cierre de Sesión", "C1", 150, es_fecha=True),
-    Col("elemento consultado", "Elemento Consultado", "C1", 180),
-    Col("cuenta de usuario", "Cuenta de Usuario", "C1", 164),
-    Col("fecha accion", "Fecha de Acción", "C1", 150, es_fecha=True),
-    Col("codigo accion", "Código de Acción", "C1", 156),
-    Col("jefe chapter lead", "Jefe / Chapter Lead", "C5", 180),
-    Col("validacion cuenta de acceso", "Validación Cuenta de Acceso", "C10", 244),
-    Col("usuario utilizado", "Usuario Utilizado", "C1", 164),
-    Col("validacion usuario utilizado", "Validación Usuario Utilizado", "C10", 252),
-    Col("usuario corresponde", "Usuario que Corresponde", "C1", 212),
-    Col("validacion usuario corrsponde", "Validación Usuario que Corresponde", "C10", 280),
+    Col("fecha_cierre_sesion", "Fecha de Cierre de Sesión", "C1", 150, es_fecha=True),
+    Col("elemento_consultado", "Elemento Consultado", "C1", 180),
+    Col("cuenta_usuario", "Cuenta de Usuario", "C1", 164),
+    Col("fecha_accion", "Fecha de Acción", "C1", 150, es_fecha=True),
+    Col("codigo_accion", "Código de Acción", "C1", 156),
+    Col("jefe_chapter_lead", "Jefe / Chapter Lead", "C5", 180),
+    Col("val_cuenta_acceso", "Validación Cuenta de Acceso", "C10", 244),
+    Col("usuario_utilizado", "Usuario Utilizado", "C1", 164),
+    Col("val_usuario_utilizado", "Validación Usuario Utilizado", "C10", 252),
+    Col("usuario_corresponde", "Usuario que Corresponde", "C1", 212),
+    Col("val_usuario_corrsponde", "Validación Usuario que Corresponde", "C10", 280),
 ]
 
 
@@ -345,6 +345,7 @@ def check_modelos() -> dict[str, dict[str, list[str]]]:
     from models.reports.db_generals_rows import DBGeneralsRow
     from models.reports.db_vida_rows import DBVidaRow
     from models.reports.gdh_rows import GDHRows
+    from models.reports.generales_ac import GeneralesAC
     from models.reports.profile_rows import ProfileRows
 
     reales = {
@@ -354,6 +355,7 @@ def check_modelos() -> dict[str, dict[str, list[str]]]:
         "GDHRows": GDHRows,
         "DBVidaRow": DBVidaRow,
         "DBGeneralsRow": DBGeneralsRow,
+        "GeneralsRow": GeneralesAC,
     }
 
     reporte: dict[str, dict[str, list[str]]] = {}

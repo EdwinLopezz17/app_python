@@ -38,7 +38,7 @@ def hallazgos_ac() -> list[GeneralesAC]:
                 usuario_utilizado=usuario_utiliza,
                 val_usuario_utilizado=( "Coincide" if usuario_utiliza.upper() == epps_ac_user.userid.upper() else NO_MATCH),
                 usuario_corresponde=usuario_corresponde,
-                val_usuario_corrsponde=("Coincide" if usuario_corresponde.upper() == epps_ac_user.userid.upper() else NO_MATCH),
+                val_usuario_corresponde=("Coincide" if usuario_corresponde.upper() == epps_ac_user.userid.upper() else NO_MATCH),
             )
         )
 
@@ -65,7 +65,7 @@ def hallazgos_ac() -> list[GeneralesAC]:
                 usuario_utilizado=usuario_utiliza,
                 val_usuario_utilizado=("Coincide" if usuario_utiliza.upper() == igwprd_ac_user.userid.upper() else NO_MATCH),
                 usuario_corresponde=usuario_corresponde,
-                val_usuario_corrsponde=("Coincide" if usuario_corresponde.upper() == igwprd_ac_user.userid.upper() else NO_MATCH),
+                val_usuario_corresponde=("Coincide" if usuario_corresponde.upper() == igwprd_ac_user.userid.upper() else NO_MATCH),
             )
         )
 
@@ -101,7 +101,7 @@ def hallazgos_ae() -> list[GeneralesAE]:
                 usuario_utilizado=usuario_utiliza,
                 val_usuario_utilizado=("Coincide" if usuario_utiliza.upper() == epps_ae_user.userid.upper() else NO_MATCH),
                 usuario_corresponde=usuario_corresponde,
-                val_usuario_corrsponde=("Coincide" if usuario_corresponde.upper() == epps_ae_user.userid.upper() else NO_MATCH),
+                val_usuario_corresponde=("Coincide" if usuario_corresponde.upper() == epps_ae_user.userid.upper() else NO_MATCH),
             )
         )
 
@@ -128,7 +128,7 @@ def hallazgos_ae() -> list[GeneralesAE]:
                 usuario_utilizado=usuario_utiliza,
                 val_usuario_utilizado=("Coincide" if usuario_utiliza.upper() == igwprd_ae_user.userid.upper() else NO_MATCH),
                 usuario_corresponde=usuario_corresponde,
-                val_usuario_corrsponde=("Coincide" if usuario_corresponde.upper() == igwprd_ae_user.userid.upper() else NO_MATCH),
+                val_usuario_corresponde=("Coincide" if usuario_corresponde.upper() == igwprd_ae_user.userid.upper() else NO_MATCH),
             )
         )
 
