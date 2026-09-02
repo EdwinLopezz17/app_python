@@ -267,7 +267,7 @@ GENERALS_ROW: list[ColumnDef] = [
     Col("usuario_utilizado", "Usuario Utilizado", "C1", 164),
     Col("val_usuario_utilizado", "Validación Usuario Utilizado", "C10", 252),
     Col("usuario_corresponde", "Usuario que Corresponde", "C1", 212),
-    Col("val_usuario_corrsponde", "Validación Usuario que Corresponde", "C10", 280),
+    Col("val_usuario_corresponde", "Validación Usuario que Corresponde", "C10", 280),
 ]
 
 

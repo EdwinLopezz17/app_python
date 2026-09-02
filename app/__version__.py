@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__version__ = "1.0.18"
+__version__ = "1.0.20"
 
 GITHUB_OWNER = "EdwinLopezz17"
 GITHUB_REPO = "app_python"

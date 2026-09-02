@@ -69,21 +69,19 @@ def _generar_activos_gdh(fecha_ref: date) -> pd.DataFrame:
 
     return a_dataframe(gdh_report())
 
+def _generar_generales_ac(fecha_ref: date) -> pd.DataFrame:
+    from logic.generals.reports.generals_report import hallazgos_ac
 
-def _generales(clave: str) -> pd.DataFrame:
-    from logic.generals.reports.generals_report import generate_report
-
-    resultado = generate_report()
-    filas = resultado.get(clave, [])
+    filas = hallazgos_ac()
     return pd.DataFrame(filas) if filas else pd.DataFrame()
 
 
-def _generar_generales_ac(fecha_ref: date) -> pd.DataFrame:
-    return _generales("hallazgos_ac")
-
-
 def _generar_generales_ae(fecha_ref: date) -> pd.DataFrame:
-    return _generales("hallazgos_ae")
+    from logic.generals.reports.generals_report import hallazgos_ae
+
+    filas = hallazgos_ae()
+    return pd.DataFrame(filas) if filas else pd.DataFrame()
+
 
 
 GENERADORES: dict[str, Callable[[date], pd.DataFrame]] = {
