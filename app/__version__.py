@@ -5,7 +5,6 @@ __version__ = "1.0.20"
 GITHUB_OWNER = "EdwinLopezz17"
 GITHUB_REPO = "app_python"
 
-
 def version_tupla(texto: str) -> tuple[int, ...]:
     limpio = str(texto).strip().lstrip("vV")
     limpio = limpio.split("-")[0].split("+")[0]
