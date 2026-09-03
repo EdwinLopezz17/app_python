@@ -335,10 +335,14 @@ class ChipsFlow(QFrame):
     def _ajustar(self, ancho: int | None = None) -> None:
         if not self._chips:
             self.setMinimumHeight(0)
+            self.setMaximumHeight(0)
             return
         alto = self.heightForWidth(ancho or self._ancho_util())
-        if alto and alto != self.minimumHeight():
+        if alto <= 0:
+            return
+        if self.minimumHeight() != alto or self.maximumHeight() != alto:
             self.setMinimumHeight(alto)
+            self.setMaximumHeight(alto)
             self.updateGeometry()
 
     def ajustar_diferido(self) -> None:

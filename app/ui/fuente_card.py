@@ -101,11 +101,13 @@ class Desplegable(QWidget):
         return max(propio, 1)
 
     def _ajustar_alto(self) -> None:
-        self.lista._ajustar()
+        ancho = self._ancho_util()
+        self.lista._ajustar(ancho)
 
-        alto = self.heightForWidth(self._ancho_util())
-        if alto > 0 and alto != self.minimumHeight():
+        alto = self.heightForWidth(ancho)
+        if alto > 0 and (alto != self.minimumHeight() or alto != self.maximumHeight()):
             self.setMinimumHeight(alto)
+            self.setMaximumHeight(alto)
 
         self.updateGeometry()
         self.alto_cambiado.emit()
