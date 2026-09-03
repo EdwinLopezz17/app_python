@@ -84,7 +84,9 @@ def validar_archivos(slot: Slot, paths: list[str | Path]) -> ResultadoValidacion
                 f"Formato no permitido: {path.name}. "
                 f"Se aceptan {', '.join(sorted({'.csv', '.xls', '.xlsx'}))}."
             )
-        resultado = validar_columnas(slot.columns, leer_cabeceras(path))
+        resultado = validar_columnas(
+            slot.columns, leer_cabeceras(path, slot.columns)
+        )
         if not resultado.ok:
             return resultado
         if peor is None or len(resultado.extra) > len(peor.extra):

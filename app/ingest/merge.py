@@ -41,7 +41,7 @@ def consolidar(
     partes: list[pd.DataFrame] = []
     for path in paths:
         path = Path(path)
-        bruto = leer_como_texto(path)
+        bruto = leer_como_texto(path, columnas)
         parte = _reordenar(bruto, columnas)
         if origin_file:
             parte[COLUMNA_ORIGEN] = path.name

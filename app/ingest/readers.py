@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv as _csv
 import io
 import math
 import re
@@ -8,6 +9,8 @@ from decimal import Decimal
 from pathlib import Path
 
 import pandas as pd
+
+from app.ingest.localizar import MAX_FILAS, Ancla, localizar_cabecera
 
 _BOM_UTF8 = b"\xef\xbb\xbf"
 _SEPARADORES = [";", ",", "\t", "|"]
@@ -38,36 +41,94 @@ def detectar_separador(primera_linea: str) -> str:
     return mejor if conteos[mejor] > 0 else ";"
 
 
-def _desenvolver_csv_doble(df: pd.DataFrame) -> pd.DataFrame:
-    if df.shape[1] != 1:
-        return df
+def _mejor_separador(lineas: list[str]) -> str:
+    mejor, conteo = ";", 0
+    for sep in _SEPARADORES:
+        total = max((linea.count(sep) for linea in lineas), default=0)
+        if total > conteo:
+            mejor, conteo = sep, total
+    return mejor
 
-    cabecera = str(df.columns[0])
-    sep = detectar_separador(cabecera)
-    if cabecera.count(sep) == 0:
-        return df
 
-    lineas = [cabecera] + [str(v) for v in df.iloc[:, 0].tolist()]
-    texto = "\n".join(lineas)
-    return pd.read_csv(
-        io.StringIO(texto), sep=sep, dtype=str,
-        keep_default_na=False, na_filter=False, engine="python",
+def _desenvolver_matriz(matriz: list[list[str]], sep: str) -> list[list[str]]:
+    if not matriz or any(len(fila) > 1 for fila in matriz):
+        return matriz
+
+    interno = _mejor_separador([fila[0] for fila in matriz if fila])
+    if interno == sep and not any(sep in fila[0] for fila in matriz if fila):
+        return matriz
+
+    lector = _csv.reader(
+        [fila[0] for fila in matriz if fila], delimiter=interno, quotechar='"'
     )
+    return [list(fila) for fila in lector]
 
 
-def _leer_csv(path: Path) -> pd.DataFrame:
+def _matriz_csv(path: Path, limite: int | None = None) -> list[list[str]]:
     texto = decodificar(path.read_bytes())
     if not texto.strip():
         raise ErrorDeLectura(f"El archivo está vacío: {path.name}")
 
-    primera = texto.splitlines()[0] if texto.splitlines() else ""
-    sep = detectar_separador(primera)
+    lineas = texto.splitlines()
+    sep = _mejor_separador(lineas[:MAX_FILAS])
 
-    df = pd.read_csv(
-        io.StringIO(texto), sep=sep, dtype=str,
-        keep_default_na=False, na_filter=False, engine="python",
+    lector = _csv.reader(io.StringIO(texto), delimiter=sep, quotechar='"')
+    filas: list[list[str]] = []
+    for fila in lector:
+        filas.append([str(c) for c in fila])
+        if limite is not None and len(filas) >= limite:
+            break
+
+    return _desenvolver_matriz(filas, sep)
+
+
+def _matriz_xlsx(path: Path, limite: int | None = None) -> list[list[str]]:
+    from openpyxl import load_workbook
+
+    libro = load_workbook(path, read_only=True, data_only=True)
+    try:
+        hoja = _hoja_principal(libro)
+        filas: list[list[str]] = []
+        for cruda in hoja.iter_rows(max_row=limite, values_only=True):
+            filas.append([texto_celda(v) for v in cruda])
+            if limite is not None and len(filas) >= limite:
+                break
+    finally:
+        libro.close()
+
+    return filas
+
+
+def _matriz_xls(path: Path, limite: int | None = None) -> list[list[str]]:
+    df = pd.read_excel(
+        path, dtype=object, header=None, keep_default_na=False, na_filter=False,
+        nrows=limite,
     )
-    return _desenvolver_csv_doble(df)
+    return [[texto_celda(v) for v in fila] for fila in df.values.tolist()]
+
+
+def matriz_cruda(path: Path, limite: int | None = None) -> list[list[str]]:
+    ext = path.suffix.lower()
+    if ext in EXTENSIONES_CSV:
+        return _matriz_csv(path, limite)
+    if ext == ".xls":
+        return _matriz_xls(path, limite)
+    if ext in EXTENSIONES_EXCEL:
+        return _matriz_xlsx(path, limite)
+    raise ErrorDeLectura(f"Formato no soportado: {ext}")
+
+
+def _ancla(matriz: list[list[str]], esperadas: list[str] | None) -> Ancla:
+    if not esperadas:
+        return Ancla(0, 0, 0, 0)
+    return localizar_cabecera(matriz, esperadas)
+
+
+def _cabeceras_en(matriz: list[list[str]], ancla: Ancla) -> list[str]:
+    if ancla.fila >= len(matriz):
+        return []
+    fila = matriz[ancla.fila][ancla.columna:]
+    return _cabeceras_unicas([texto_celda(c) for c in _recortar_cola_vacia(fila)])
 
 
 _ENTERO_CON_DECIMAL_CERO = re.compile(r"[+-]?\d+\.0+")
@@ -173,108 +234,49 @@ def _hoja_principal(libro):
     return hoja
 
 
-def _leer_xlsx(path: Path) -> pd.DataFrame:
-    from openpyxl import load_workbook
+def _desde_matriz(matriz: list[list[str]], ancla: Ancla) -> pd.DataFrame:
+    cabeceras = _cabeceras_en(matriz, ancla)
+    if not cabeceras:
+        raise ErrorDeLectura("El archivo no tiene cabecera.")
 
-    libro = load_workbook(path, read_only=True, data_only=True)
-    try:
-        hoja = _hoja_principal(libro)
-        filas = hoja.iter_rows(values_only=True)
-
-        try:
-            cruda = next(filas)
-        except StopIteration:
-            raise ErrorDeLectura(f"El archivo no tiene cabecera: {path.name}") from None
-
-        cabeceras = _cabeceras_unicas(
-            [texto_celda(c) for c in _recortar_cola_vacia(list(cruda))]
-        )
-        if not cabeceras:
-            raise ErrorDeLectura(f"El archivo no tiene cabecera: {path.name}")
-
-        ancho = len(cabeceras)
-        datos: list[list[str]] = []
-        for fila in filas:
-            celdas = [texto_celda(v) for v in fila][:ancho]
-            if len(celdas) < ancho:
-                celdas += [""] * (ancho - len(celdas))
-            if any(c.strip() for c in celdas):
-                datos.append(celdas)
-    finally:
-        libro.close()
+    ancho = len(cabeceras)
+    datos: list[list[str]] = []
+    for fila in matriz[ancla.fila + 1:]:
+        celdas = [texto_celda(v) for v in fila[ancla.columna:]][:ancho]
+        if len(celdas) < ancho:
+            celdas += [""] * (ancho - len(celdas))
+        if any(c.strip() for c in celdas):
+            datos.append(celdas)
 
     return pd.DataFrame(datos, columns=cabeceras, dtype=object)
 
 
-def _leer_xls(path: Path) -> pd.DataFrame:
-    df = pd.read_excel(path, dtype=object, keep_default_na=False, na_filter=False)
-    return df.map(texto_celda) if hasattr(df, "map") else df.applymap(texto_celda)
-
-
-def _leer_excel(path: Path) -> pd.DataFrame:
-    if path.suffix.lower() == ".xls":
-        return _leer_xls(path)
-    return _leer_xlsx(path)
-
-
-def leer_como_texto(path: str | Path) -> pd.DataFrame:
+def leer_como_texto(
+    path: str | Path, esperadas: list[str] | None = None
+) -> pd.DataFrame:
     path = Path(path)
     if not path.exists():
         raise ErrorDeLectura(f"No existe el archivo: {path}")
 
-    ext = path.suffix.lower()
-    if ext in EXTENSIONES_CSV:
-        df = _leer_csv(path)
-    elif ext in EXTENSIONES_EXCEL:
-        df = _leer_excel(path)
-    else:
-        raise ErrorDeLectura(f"Formato no soportado: {ext}")
+    matriz = matriz_cruda(path)
+    if not matriz:
+        raise ErrorDeLectura(f"El archivo está vacío: {path.name}")
 
+    df = _desde_matriz(matriz, _ancla(matriz, esperadas))
     df.columns = [str(c) for c in df.columns]
     df = df.map(texto_celda) if hasattr(df, "map") else df.applymap(texto_celda)
     return df
 
 
-def leer_cabeceras(path: str | Path) -> list[str]:
+def leer_cabeceras(
+    path: str | Path, esperadas: list[str] | None = None
+) -> list[str]:
     path = Path(path)
-    ext = path.suffix.lower()
+    matriz = matriz_cruda(path, limite=MAX_FILAS)
+    if not matriz:
+        raise ErrorDeLectura(f"El archivo no tiene cabecera: {path.name}")
 
-    if ext in EXTENSIONES_CSV:
-        with open(path, "rb") as fh:
-            crudo = fh.readline()
-        linea = decodificar(crudo).rstrip("\r\n")
-        if not linea:
-            raise ErrorDeLectura(f"El archivo no tiene cabecera: {path.name}")
-        sep = detectar_separador(linea)
-        cabeceras = next(iter(
-            pd.read_csv(io.StringIO(linea), sep=sep, dtype=str, header=None,
-                        keep_default_na=False, na_filter=False,
-                        engine="python").itertuples(index=False, name=None)
-        ))
-        cabeceras = [str(c) for c in cabeceras]
-
-        if len(cabeceras) == 1 and cabeceras[0].count(sep) > 0:
-            cabeceras = cabeceras[0].split(sep)
-
-        return cabeceras
-
-    if ext in EXTENSIONES_EXCEL:
-        if ext == ".xls":
-            df = pd.read_excel(path, dtype=object, nrows=0)
-            return [texto_celda(c) for c in df.columns]
-
-        from openpyxl import load_workbook
-
-        libro = load_workbook(path, read_only=True, data_only=True)
-        try:
-            hoja = _hoja_principal(libro)
-            cruda = next(hoja.iter_rows(min_row=1, max_row=1, values_only=True), None)
-        finally:
-            libro.close()
-        if cruda is None:
-            raise ErrorDeLectura(f"El archivo no tiene cabecera: {path.name}")
-        return _cabeceras_unicas(
-            [texto_celda(c) for c in _recortar_cola_vacia(list(cruda))]
-        )
-
-    raise ErrorDeLectura(f"Formato no soportado: {ext}")
+    cabeceras = _cabeceras_en(matriz, _ancla(matriz, esperadas))
+    if not cabeceras:
+        raise ErrorDeLectura(f"El archivo no tiene cabecera: {path.name}")
+    return cabeceras
