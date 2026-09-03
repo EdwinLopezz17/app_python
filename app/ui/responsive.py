@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
 
 ANCHO_MIN_CARD = 290
 ANCHO_MAX_CARD = 440
+ANCHO_MAX_CHIP = 240
 MAX_COLUMNAS_CARD = 5
 MAX_PASADAS_GRID = 4
 
@@ -19,23 +20,23 @@ def alto_de(widget: QWidget, ancho: int) -> int:
 
     ancho = max(int(ancho), 1)
 
-    candidatos = [widget.minimumHeight()]
+    alto = 0
 
     if widget.hasHeightForWidth():
         propio = widget.heightForWidth(ancho)
         if propio > 0:
-            candidatos.append(propio)
-    else:
-        candidatos.append(widget.sizeHint().height())
+            alto = propio
 
     layout = widget.layout()
     if layout is not None:
         propio = alto_layout(layout, ancho)
         if propio > 0:
-            candidatos.append(propio)
+            alto = max(alto, propio)
+
+    if alto <= 0:
+        alto = max(widget.sizeHint().height(), widget.minimumHeight())
 
     maximo = widget.maximumHeight()
-    alto = max(candidatos)
     if 0 < maximo < alto:
         alto = maximo
 
@@ -181,6 +182,46 @@ def auto_alto(widget: QWidget) -> None:
     _AutoAlto._aplicar(widget)
 
 
+class ChipColumna(QLabel):
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("ChipColumna")
+        self.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        self.setMaximumWidth(ANCHO_MAX_CHIP)
+        self._completo = ""
+
+    def text(self) -> str:
+        return self._completo
+
+    def setText(self, texto: str) -> None:
+        self._completo = texto
+        self.setToolTip(texto)
+        super().setText(texto)
+        self._elidir()
+
+    def sizeHint(self) -> QSize:
+        base = self.fontMetrics().boundingRect(self._completo).width()
+        margenes = self.contentsMargins()
+        ancho = base + margenes.left() + margenes.right() + 22
+        return QSize(min(ancho, ANCHO_MAX_CHIP), super().sizeHint().height())
+
+    def _elidir(self) -> None:
+        disponible = self.width() - 18
+        if disponible <= 0 or not self._completo:
+            return
+        recortado = self.fontMetrics().elidedText(
+            self._completo, Qt.ElideRight, disponible
+        )
+        if recortado != super().text():
+            super().setText(recortado)
+
+    def resizeEvent(self, evento) -> None:
+        super().resizeEvent(evento)
+        self._elidir()
+
+
 class ChipsFlow(QFrame):
     def __init__(
         self,
@@ -212,10 +253,7 @@ class ChipsFlow(QFrame):
 
     @staticmethod
     def _crear_chip() -> QLabel:
-        chip = QLabel()
-        chip.setObjectName("ChipColumna")
-        chip.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        return chip
+        return ChipColumna()
 
     @staticmethod
     def _fijar_tono(widget: QWidget, tono: str) -> None:
@@ -435,6 +473,8 @@ class GridResponsivo(QWidget):
             ]
 
             for col, widget in enumerate(fila):
+                if widget.minimumHeight() != alturas[col]:
+                    widget.setMinimumHeight(alturas[col])
                 widget.setGeometry(equis[col], y, anchos[col], alturas[col])
 
             y += max(alturas) + self._espacio
@@ -511,7 +551,7 @@ class FlowLayout(QLayout):
     def minimumSize(self) -> QSize:
         ancho_min = 0
         for item in self._items:
-            ancho_min = max(ancho_min, item.minimumSize().width())
+            ancho_min = max(ancho_min, min(item.minimumSize().width(), ANCHO_MAX_CHIP))
 
         margenes = self.contentsMargins()
         extra_h = margenes.left() + margenes.right()
@@ -536,6 +576,8 @@ class FlowLayout(QLayout):
 
         for item in self._items:
             tamano = item.sizeHint()
+            if tamano.width() > area.width() > 0:
+                tamano = QSize(area.width(), tamano.height())
             siguiente = x + tamano.width() + self._espacio_h
             if siguiente - self._espacio_h > area.right() and alto_linea > 0:
                 x = area.x()

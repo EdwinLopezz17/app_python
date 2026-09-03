@@ -14,7 +14,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from app import config
 from app.ui import theme
 from app.telemetry import uso
-from app.ui.shell import VentanaPrincipal
+from app.ui.splash import PantallaCarga
 
 
 def main() -> int:
@@ -42,16 +42,25 @@ def main() -> int:
     familia = theme.cargar_fuentes()
     app.setStyleSheet(theme.qss(familia))
 
+    splash = PantallaCarga()
+    splash.show()
+    app.processEvents()
+
     try:
         ruta = config.data_path()
         ruta.mkdir(parents=True, exist_ok=True)
     except Exception as exc:
+        splash.close()
         uso.registrar_excepcion("data_path_invalido", exc)
         QMessageBox.critical(None, "Configuración incompleta", str(exc))
         return 1
 
+    splash.mensaje("Cargando catálogos y certificaciones…")
+    from app.ui.shell import VentanaPrincipal
+
+    splash.mensaje("Preparando la interfaz…")
     ventana = VentanaPrincipal()
-    ventana.show()
+    splash.cerrar_con(ventana)
     return app.exec()
 
 

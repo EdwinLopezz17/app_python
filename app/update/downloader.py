@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Callable
 
 from app.update.checker import Actualizacion, ErrorRed, abrir
+from app.update.privacidad import sin_origen
 
 BLOQUE = 256 * 1024
 
@@ -63,7 +64,7 @@ def descargar(
         raise
     except Exception as exc:
         parcial.unlink(missing_ok=True)
-        raise ErrorRed(f"Falló la descarga: {exc}") from exc
+        raise ErrorRed(f"Falló la descarga: {sin_origen(str(exc))}") from exc
 
     if info.sha256:
         obtenido = resumen.hexdigest().lower()

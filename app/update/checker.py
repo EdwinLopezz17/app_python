@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from app.__version__ import (
     GITHUB_OWNER, GITHUB_REPO, __version__, es_mas_nueva,
 )
+from app.update.privacidad import SERVIDOR, limpiar_notas
 
 TIMEOUT = 12
 AGENTE = "Certificacion-Updater"
@@ -63,9 +64,11 @@ def _leer_json(url: str) -> dict:
         with abrir(url) as respuesta:
             return json.loads(respuesta.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        raise ErrorRed(f"El servidor respondió {exc.code} al consultar {url}") from exc
-    except Exception as exc:
-        raise ErrorRed(f"No se pudo contactar con el servidor: {exc}") from exc
+        raise ErrorRed(
+            f"No se pudo consultar {SERVIDOR} (código {exc.code})."
+        ) from exc
+    except Exception:
+        raise ErrorRed(f"No se pudo contactar con {SERVIDOR}.") from None
 
 
 def _desde_api(datos: dict) -> Actualizacion | None:
@@ -92,7 +95,7 @@ def _desde_api(datos: dict) -> Actualizacion | None:
         version=version,
         url=str(asset.get("browser_download_url") or ""),
         sha256=sha,
-        notas=str(datos.get("body") or "").strip(),
+        notas=limpiar_notas(str(datos.get("body") or "")),
         tamano=int(asset.get("size") or 0),
     )
 
@@ -106,7 +109,7 @@ def _desde_raw(datos: dict) -> Actualizacion | None:
         version=version,
         url=url,
         sha256=str(datos.get("sha256") or "").strip().lower(),
-        notas=str(datos.get("notas") or "").strip(),
+        notas=limpiar_notas(str(datos.get("notas") or "")),
         tamano=int(datos.get("tamano") or 0),
     )
 
@@ -129,6 +132,6 @@ def buscar_actualizacion() -> Actualizacion | None:
         fallos.append(str(exc))
 
     if fallos:
-        raise ErrorRed(" | ".join(fallos))
+        raise ErrorRed(f"No se pudo verificar si hay una versión nueva en {SERVIDOR}.")
 
     return None

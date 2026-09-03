@@ -7,7 +7,8 @@ ocultos = []
 ocultos += collect_submodules('logic')
 ocultos += collect_submodules('models')
 ocultos += ['pandas', 'openpyxl', 'xlsxwriter', 'xlrd']
-ocultos += ['app.update', 'app.update.checker', 'app.update.downloader', 'app.update.installer']
+ocultos += ['app.update', 'app.update.checker', 'app.update.downloader', 'app.update.installer', 'app.update.privacidad']
+ocultos += ['PySide6.QtSvg']
 
 datos = [
     # Icono de la ventana (config.ruta_icono lo resuelve vía sys._MEIPASS).

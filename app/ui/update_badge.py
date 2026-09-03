@@ -15,6 +15,7 @@ from app.__version__ import __version__
 from app.update.checker import Actualizacion, buscar_actualizacion
 from app.update.downloader import descargar, limpiar_descargas
 from app.update.installer import lanzar_instalador
+from app.update.privacidad import sin_origen
 
 
 class _HiloBusqueda(QObject):
@@ -78,7 +79,7 @@ class DialogoActualizacion(QDialog):
         titulo.setObjectName("TituloDialogo")
         raiz.addWidget(titulo)
 
-        actual = QLabel(f"Tenés instalada la versión {__version__}.")
+        actual = QLabel(f"Tienes instalada la versión {__version__}.")
         actual.setObjectName("SubtituloDialogo")
         raiz.addWidget(actual)
 
@@ -127,8 +128,8 @@ class DialogoActualizacion(QDialog):
             self.estado.setVisible(True)
             self.estado.setText(
                 f"No hay permiso de escritura en:\n{carpeta}\n\n"
-                "Descargá el instalador manualmente desde GitHub y ejecutalo "
-                "como administrador."
+                "Solicita al equipo de Automatización la instalación manual "
+                "de la nueva versión."
             )
             self.btn_actualizar.setEnabled(False)
             return
@@ -180,6 +181,7 @@ class DialogoActualizacion(QDialog):
         self.accept()
 
     def _al_fallar(self, mensaje: str) -> None:
+        mensaje = sin_origen(mensaje)
         cerrar_sesion(False, mensaje)
         self._detener_hilo()
         self.barra.setVisible(False)
@@ -258,7 +260,7 @@ class BadgeActualizacion(QToolButton):
 
     def _al_fallar(self, mensaje: str) -> None:
         self._limpiar()
-        self.setToolTip(mensaje)
+        self.setToolTip("No se pudo verificar si hay una versión nueva.")
 
     def _limpiar(self) -> None:
         if self._hilo is not None:
