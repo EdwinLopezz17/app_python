@@ -13,6 +13,7 @@ LADO_LOGO = 96
 ANCHO = 420
 MINIMO_MS = 700
 
+
 def _logo(lado: int = LADO_LOGO) -> QPixmap:
     svg = config.recurso("app", "ui", "assets", "logo.svg")
     if svg.is_file():
@@ -30,7 +31,6 @@ def _logo(lado: int = LADO_LOGO) -> QPixmap:
                 return mapa
         except Exception:
             pass
-    
 
     ico = config.ruta_icono()
     if ico.is_file():
@@ -44,33 +44,26 @@ class PantallaCarga(QWidget):
     def __init__(self) -> None:
         super().__init__(
             None,
-            Qt.SplashScreen | Qt.FramelessWindowHint | Qt.WindowStayOnTopHint,
+            Qt.SplashScreen | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint,
         )
-    self.setObjectName("Splash")
-    self.setAttribute(Qt.WA_DeleteOnClose, False)
-    self._reloj = QElapsedTimer()
-    self._reloj.start()
+        self.setObjectName("Splash")
+        self.setAttribute(Qt.WA_DeleteOnClose, False)
+        self._reloj = QElapsedTimer()
+        self._reloj.start()
 
-    raiz = QVBoxLayout(self)
-    raiz.setContentsMargins(0, 0, 0, 0)
+        raiz = QVBoxLayout(self)
+        raiz.setContentsMargins(0, 0, 0, 0)
 
-    tarjeta = QFrame()
-    tarjeta.setObjectName("SplashCard")
-    raiz.addWidget(tarjeta)
+        tarjeta = QFrame()
+        tarjeta.setObjectName("SplashCard")
+        raiz.addWidget(tarjeta)
 
-    cuerpo = QVBoxLayout(tarjeta)
-    cuerpo.setContentsMargins(32, 32, 32, 26)
-    cuerpo.setSpacing(14)
+        cuerpo = QVBoxLayout(tarjeta)
+        cuerpo.setContentsMargins(32, 32, 32, 26)
+        cuerpo.setSpacing(14)
 
-    marca = QLabel()
-    marca.setAlignment(Qt.AlignCenter)
-    mapa = _logo()
-    if not mapa.isNull():
-        marca.setPixmap(mapa)
-    cuerpo.addWidget(marca)
-
-    titulo = QLabel()
-    marca.setAlignment(Qt.AlignCenter)
+        marca = QLabel()
+        marca.setAlignment(Qt.AlignCenter)
         mapa = _logo()
         if not mapa.isNull():
             marca.setPixmap(mapa)
@@ -149,4 +142,3 @@ QProgressBar#SplashBarra::chunk {{
     border-radius: 2px;
 }}
 """
-
