@@ -3,7 +3,6 @@ import os
 from dataclasses import dataclass
 from dotenv import load_dotenv
 from models.file_names import FileName
-from logic.share.utils import to_datetime
 
 load_dotenv()
 
@@ -49,7 +48,6 @@ class AutorizedUserService():
             return
 
         try:
-            #df = pd.read_parquet(self.path_file, engine='pyarrow').fillna('')
             df = pd.read_csv(self.path_file, sep=';', encoding='utf-8').fillna('')
             
             df.columns = [str(c).strip().upper() for c in df.columns]
@@ -72,10 +70,10 @@ class AutorizedUserService():
                     db_oweb_uc=str(row.get('BD OWEB UC', '')).strip(),
                     db_odw1_uc=str(row.get('BD ODW1 UC', '')).strip(),
                     db_dbprodn2_ae=str(row.get('BD DBPRODN2 AE', '')).strip(),
-                    db_igwprd_ae=str(row.get('BD IGWPRD  AE', '')).strip(),
-                    db_epps_ae=str(row.get('BD EPPS  AE', '')).strip(),
+                    db_igwprd_ae=str(row.get('BD IGWPRD AE', '')).strip(),
+                    db_epps_ae=str(row.get('BD EPPS AE', '')).strip(),
                     db_igwprd_ac=str(row.get('BD IGWPRD AC', '')).strip(),
-                    db_epps_ac=str(row.get('BD EPPS  AC', '')).strip(),
+                    db_epps_ac=str(row.get('BD EPPS AC', '')).strip(),
                 )
                 self._cache[correo.upper()] = usuario
 
