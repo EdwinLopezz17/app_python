@@ -60,7 +60,16 @@ class VentanaPrincipal(QMainWindow):
         self.stack.addWidget(self.launcher)
 
         raiz.addWidget(self.stack, 1)
-        raiz.addWidget(PieDatos())
+
+        self.pie = PieDatos()
+        self.pie.buscar_update.connect(self.badge_update.buscar)
+        self.badge_update.busqueda_iniciada.connect(self.pie.update_buscando)
+        self.badge_update.sin_novedad.connect(self.pie.update_al_dia)
+        self.badge_update.busqueda_fallida.connect(self.pie.update_fallido)
+        self.badge_update.actualizacion_lista.connect(
+            lambda info: self.pie.update_disponible(info.version)
+        )
+        raiz.addWidget(self.pie)
 
         self.setCentralWidget(central)
 
@@ -71,7 +80,9 @@ class VentanaPrincipal(QMainWindow):
 
         self._restaurar_vista()
 
-        QTimer.singleShot(3000, self.badge_update.buscar)
+        QTimer.singleShot(
+            3000, lambda: self.badge_update.buscar(manual=False)
+        )
 
     def abrir_paleta(self) -> None:
         self.paleta.abrir()

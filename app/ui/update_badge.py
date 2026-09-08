@@ -208,6 +208,9 @@ class DialogoActualizacion(QDialog):
 
 class BadgeActualizacion(QToolButton):
     actualizacion_lista = Signal(object)
+    busqueda_iniciada = Signal()
+    sin_novedad = Signal()
+    busqueda_fallida = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -235,8 +238,14 @@ class BadgeActualizacion(QToolButton):
         self._info: Actualizacion | None = None
         self._hilo: QThread | None = None
         self._tarea: _HiloBusqueda | None = None
+        self._manual = False
 
-    def buscar(self) -> None:
+    def buscar(self, manual: bool = True) -> None:
+        self._manual = self._manual or manual
+
+        if manual:
+            self.busqueda_iniciada.emit()
+
         if self._hilo is not None:
             return
 
@@ -256,11 +265,23 @@ class BadgeActualizacion(QToolButton):
             self.setText(f"Versión {version} disponible")
             self.setToolTip(f"Actualizar a la versión {version}")
             self.setVisible(True)
-            self.actualizacion_lista.emit(info)
+            if self._manual:
+                self.actualizacion_lista.emit(info)
+            self._manual = False
+            return
+
+        self.setVisible(False)
+        self._info = None
+        if self._manual:
+            self.sin_novedad.emit()
+        self._manual = False
 
     def _al_fallar(self, mensaje: str) -> None:
         self._limpiar()
         self.setToolTip("No se pudo verificar si hay una versión nueva.")
+        if self._manual:
+            self.busqueda_fallida.emit(sin_origen(mensaje))
+        self._manual = False
 
     def _limpiar(self) -> None:
         if self._hilo is not None:

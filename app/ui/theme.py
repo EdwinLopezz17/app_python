@@ -401,6 +401,20 @@ QLabel#PieRuta {{
     background: transparent;
 }}
 
+QLabel#PieEstado {{
+    color: {ON_SURFACE_VARIANT}; font-size: {TEXTO_XS}px; font-weight: 600;
+    background: transparent;
+}}
+
+QLabel#PieEstado[tono="exito"] {{ color: {SECONDARY}; }}
+QLabel#PieEstado[tono="aviso"] {{ color: {TERTIARY}; }}
+QLabel#PieEstado[tono="error"] {{ color: {ERROR}; }}
+
+QPushButton#PieBoton:disabled {{
+    color: {OUTLINE}; border-color: {OUTLINE_VARIANT};
+    background: transparent;
+}}
+
 QLabel#PieVersion {{
     color: {ON_SURFACE}; font-size: {TEXTO_XS}px; font-weight: 700;
     background: transparent;

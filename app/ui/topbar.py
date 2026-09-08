@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtCore import Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QMenu, QMessageBox, QPushButton, QScrollArea,
@@ -271,6 +271,7 @@ class TopBar(QWidget):
 
 
 class PieDatos(QWidget):
+    buscar_update = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -307,6 +308,20 @@ class PieDatos(QWidget):
             self.btn_abrir.clicked.connect(self._abrir_carpeta)
             fila.addWidget(self.btn_abrir)
 
+        self.estado_update = QLabel("")
+        self.estado_update.setObjectName("PieEstado")
+        self.estado_update.setVisible(False)
+        fila.addWidget(self.estado_update)
+
+        self.btn_update = QPushButton("Buscar actualizaciones")
+        self.btn_update.setObjectName("PieBoton")
+        self.btn_update.setCursor(Qt.PointingHandCursor)
+        self.btn_update.setToolTip(
+            "Verificar si existe una versión más reciente de la aplicación."
+        )
+        self.btn_update.clicked.connect(lambda: self.buscar_update.emit())
+        fila.addWidget(self.btn_update)
+
         version = QLabel(f"v{__version__}")
         version.setObjectName("PieVersion")
         version.setToolTip(f"Versión instalada: {__version__}")
@@ -327,3 +342,44 @@ class PieDatos(QWidget):
                 self, "No se pudo abrir",
                 f"No se pudo abrir la carpeta en el Explorador:\n\n{self._ruta}",
             )
+
+    def _pintar_estado(self, texto: str, tono: str, transitorio: bool) -> None:
+        self.estado_update.setText(texto)
+        self.estado_update.setToolTip(texto)
+        self.estado_update.setProperty("tono", tono)
+        self.estado_update.style().unpolish(self.estado_update)
+        self.estado_update.style().polish(self.estado_update)
+        self.estado_update.setVisible(True)
+
+        if transitorio:
+            QTimer.singleShot(8000, self._limpiar_estado)
+
+    def _limpiar_estado(self) -> None:
+        self.estado_update.setVisible(False)
+        self.estado_update.setText("")
+
+    def update_buscando(self) -> None:
+        self.btn_update.setEnabled(False)
+        self.btn_update.setText("Buscando…")
+        self._pintar_estado("Consultando versiones…", "neutro", False)
+
+    def update_al_dia(self) -> None:
+        self._restaurar_boton()
+        self._pintar_estado(
+            f"Estás en la última versión (v{__version__})", "exito", True
+        )
+
+    def update_disponible(self, version: str) -> None:
+        self._restaurar_boton()
+        self._pintar_estado(
+            f"Versión {version.lstrip('vV')} disponible", "aviso", False
+        )
+
+    def update_fallido(self, mensaje: str) -> None:
+        self._restaurar_boton()
+        self._pintar_estado("No se pudo verificar", "error", True)
+        self.estado_update.setToolTip(mensaje)
+
+    def _restaurar_boton(self) -> None:
+        self.btn_update.setEnabled(True)
+        self.btn_update.setText("Buscar actualizaciones")
