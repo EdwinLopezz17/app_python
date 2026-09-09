@@ -22,6 +22,7 @@ class ADRows:
     title: str
     department: str
     company: str
+    office: str
     street_address: str
     is_active: bool
     fecha_ultimo_login_ad: datetime

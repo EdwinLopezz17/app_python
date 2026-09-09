@@ -17,7 +17,7 @@ from logic.share.services.ad_service import ADService
 from logic.share.services.dni_vs_user_service import DNIUserService
 from logic.share.services.gdh_service import GDHUserService
 from logic.share.services.entraid_service import EntraUserService
-from logic.usuarios.services.rol_ticket import RolTicketService
+from logic.usuarios.services.rol_ticket_service import RolTicketService
 
 from models.reports.profile_rows import ProfileRows
 
@@ -95,6 +95,10 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
         elif ad_user_vida:
             rol_final = ad_user_vida.rol
 
+    if entra_user:
+        if not rol_final and entra_user.rol:
+            rol_final = entra_user.rol
+
     profiles_mr = " | ".join({p.perfil_rol for p in mr_srv.get_by_rol_and_activo(rol_final, app_name)})
     apps_mr = " | ".join({a.nombre_activo for a in mr_srv.get_by_rol_and_perfil(rol_final, perfil_rol)})
 
@@ -128,6 +132,8 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
         rol_entra=entra_user.rol if entra_user else "",
         jefatura_entra=entra_user.jefe if entra_user else "",
         sociedad=gdh_user.sociedad if gdh_user else "",
+        office_pps=ad_user_pps.office if ad_user_pps else "",
+        office_vida=ad_user_vida.office if ad_user_vida else "",
         tipo_colaborador=gdh_user.calculate_role_type() if gdh_user else "",
         rol_gdh=rol_gdh,
         fecha_cese=gdh_user.fecha_cese if gdh_user else None,

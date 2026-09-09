@@ -31,6 +31,7 @@ class ADUserInfo:
     company: str = ""
     jefe: str = ""
     origen: str = ""
+    office: str = ""
     ultima_actividad_entra: str = ""
     last_activity: datetime = None 
 
@@ -97,6 +98,7 @@ class ADService():
                     company = str(row.get('COMPANY', '')).strip(),
                     jefe = str(row.get('STREETADDRESS', '')).strip(),
                     origen = origen,
+                    office = str(row.get('OFFICE', '')).strip(),
                 )
                 self._cache[cache_key] = user_info
 

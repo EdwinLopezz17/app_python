@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from models.file_names import FileName
 from logic.share.utils import to_datetime
 
-#prueba
 load_dotenv()
 
 DATA_PATH = os.getenv("DATA_PATH")
@@ -16,10 +15,8 @@ class RolTicket:
     ticket_number: str = ""
     dni_user: str = ""
     assigned_role: str = ""
-    requested_role: str = ""
     creation_date: datetime = None
     closure_date: datetime = None
-
 
 class RolTicketService():
     def __init__(self, lazy:bool = False):
@@ -42,7 +39,6 @@ class RolTicketService():
             return
 
         try:
-            #df = pd.read_csv(self.path_file, sep=';', encoding='utf-8').fillna('')
             df = pd.read_csv(self.path_file, sep=';', encoding='utf-8').fillna('')
             
             df.columns = [str(c).strip().upper() for c in df.columns]
@@ -51,14 +47,29 @@ class RolTicketService():
                 ticket_number = str(row.get('ELEMENTO DE SOLICITUD', '')).strip().upper()
                 if not ticket_number or ticket_number == 'NAN': 
                     continue
-                
-                dni = str(row.get('NÚMERO DE DOCUMENTO', '')).strip()
+
+                element = str(row.get('ELEMENTO', '')).strip()
+                escoge_opcion = str(row.get('ESCOGE UNA OPCIÓN', '')).strip()
+                brief_description=str(row.get('DESCRIPCIÓN BREVE', '')).strip()
+
+                if element.upper() == "FICHA DE ALTA PARA USUARIO DE TERCEROS":
+                    role = str(row.get('ROL ASIGNADO', '')).strip()
+                    dni = str(row.get('NÚMERO DE DOCUMENTO', '')).strip()
+                    
+                else:
+                    dni = str(row.get('DNI', '')).strip()
+                    if escoge_opcion.upper() == "CREAR Y ASIGNAR ROL":
+                        role = str(row.get('¿QUÉ ROL SE CREARA?', '')).strip()
+                    else:
+                        role = str(row.get('¿QUÉ ROL SE LE ASIGNARÁ?2', '')).strip()
+                    
+                if "ROL BASICO" in brief_description.upper():
+                                    role = "RP00011202"
 
                 ticket = RolTicket(
                     ticket_number=ticket_number,
                     dni_user=dni,
-                    assigned_role=str(row.get('ROL ASIGNADO', '')).strip(),
-                    requested_role=str(row.get('¿QUÉ ROL SE LE ASIGNARÁ?', '')).strip(),
+                    assigned_role=role,
                     creation_date=to_datetime(str(row.get('CREADO', '')).strip(), "DMA"),
                     closure_date=to_datetime(str(row.get('CERRADO', '')).strip(), "DMA"),
                 )

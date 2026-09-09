@@ -25,6 +25,8 @@ class ProfileRows:
     rol_entra: str
     jefatura_entra: str
     sociedad: str
+    office_pps: str
+    office_vida: str
     tipo_colaborador: str
     rol_gdh: str
     fecha_cese: datetime

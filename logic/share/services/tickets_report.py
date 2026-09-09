@@ -55,7 +55,7 @@ class TicketInfoService():
 
                 self._cache[dni_cesado] = TicketInfo(
                     elemento=str(row.get('ELEMENTO', '')).strip(),
-                    numero_ticket=str(row.get('NÚMERO', '')).strip(),
+                    numero_ticket=str(row.get('NÚMERO2', '')).strip(),
                     fecha_cierre=str(row.get('CERRADO', '')).strip(),
                     dni_cesado=dni_cesado,
                     fecha_creacion=str(row.get('CREADO', '')).strip()
