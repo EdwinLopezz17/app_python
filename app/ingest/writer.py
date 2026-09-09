@@ -85,7 +85,7 @@ def validar_archivos(slot: Slot, paths: list[str | Path]) -> ResultadoValidacion
                 f"Se aceptan {', '.join(sorted({'.csv', '.xls', '.xlsx'}))}."
             )
         resultado = validar_columnas(
-            slot.columns, leer_cabeceras(path, slot.columns)
+            slot.columns, leer_cabeceras(path, slot.columns, numerar=False)
         )
         if not resultado.ok:
             return resultado

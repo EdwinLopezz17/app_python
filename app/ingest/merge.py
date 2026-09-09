@@ -6,10 +6,9 @@ from pathlib import Path
 import pandas as pd
 
 from app.ingest.normalize import norm_header
-from app.ingest.readers import leer_como_texto
+from app.ingest.readers import BASES, leer_como_texto
 
 COLUMNA_ORIGEN = "ORIGIN_FILE"
-
 
 @dataclass
 class ResultadoConsolidacion:
@@ -17,18 +16,52 @@ class ResultadoConsolidacion:
     total_filas: int
     archivos: int
 
-
-def _reordenar(df: pd.DataFrame, columnas: list[str]) -> pd.DataFrame:
-    lut: dict[str, str] = {}
+def _agrupar(df: pd.DataFrame) -> dict[str, list[str]]:
+    bases = df.attrs.get(BASES, {})
+    grupos: dict[str, list[str]] = {}
     for real in df.columns:
-        lut.setdefault(norm_header(real), real)
+        clave = norm_header(bases.get(real, real))
+        grupos.setdefault(clave, []).append(real)
+    return grupos
+
+def _repeticiones(brutos: list[pd.DataFrame], columnas: list[str]) -> dict[str, int]:
+    maximos: dict[str, int] = {}
+    for df in brutos:
+        grupos = _agrupar(df)
+        for canonica in columnas:
+            clave = norm_header(canonica)
+            actual = len(grupos.get(clave, []))
+            if actual > maximos.get(clave, 0):
+                maximos[clave] = actual
+    return maximos
+
+def _reordenar(
+    df: pd.DataFrame, columnas: list[str], repeticiones: dict[str, int]
+) -> pd.DataFrame:
+    grupos = _agrupar(df)
 
     salida = pd.DataFrame(index=df.index)
-    for canonica in columnas:
-        real = lut.get(norm_header(canonica))
-        salida[canonica] = df[real] if real is not None else ""
-    return salida
+    duplicadas: list[tuple[str, object]] = []
 
+    for canonica in columnas:
+        clave = norm_header(canonica)
+        reales = grupos.get(clave, [])
+        total = max(repeticiones.get(clave, 0), 1)
+
+        if total == 1:
+            salida[canonica] = df[reales[0]] if reales else ""
+            continue
+
+        salida[f"{canonica}1"] = df[reales[0]] if reales else ""
+        for orden in range(2, total + 1):
+            real = reales[orden - 1] if len(reales) >= orden else None
+            duplicadas.append(
+                (f"{canonica}{orden}", df[real] if real is not None else "")
+            )
+    for nombre, serie in duplicadas:
+        salida[nombre] = serie
+
+    return salida
 
 def consolidar(
     paths: list[str | Path],
@@ -36,13 +69,15 @@ def consolidar(
     origin_file: bool = False,
 ) -> ResultadoConsolidacion:
     if not paths:
-        raise ValueError("No se recibió ningún archivo para consolidar")
+        raise ValueError("No se proporcionaron rutas de archivos para consolidar.")
+
+    rutas = [Path(p) for p in paths]
+    brutos = [leer_como_texto(path, columnas) for path in rutas]
+    repeticiones = _repeticiones(brutos, columnas)
 
     partes: list[pd.DataFrame] = []
-    for path in paths:
-        path = Path(path)
-        bruto = leer_como_texto(path, columnas)
-        parte = _reordenar(bruto, columnas)
+    for path, bruto in zip(rutas, brutos):
+        parte = _reordenar(bruto, columnas, repeticiones)
         if origin_file:
             parte[COLUMNA_ORIGEN] = path.name
         partes.append(parte)
@@ -51,3 +86,4 @@ def consolidar(
     df = df.reset_index(drop=True)
 
     return ResultadoConsolidacion(df=df, total_filas=len(df), archivos=len(partes))
+

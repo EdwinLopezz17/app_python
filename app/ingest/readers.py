@@ -18,6 +18,8 @@ _SEPARADORES = [";", ",", "\t", "|"]
 EXTENSIONES_EXCEL = {".xls", ".xlsx", ".xlsm"}
 EXTENSIONES_CSV = {".csv", ".txt"}
 
+BASES = "cabeceras_base"
+
 
 class ErrorDeLectura(Exception):
     pass
@@ -125,10 +127,14 @@ def _ancla(matriz: list[list[str]], esperadas: list[str] | None) -> Ancla:
 
 
 def _cabeceras_en(matriz: list[list[str]], ancla: Ancla) -> list[str]:
+    return _numerar_repetidas(_cabeceras_crudas_en(matriz, ancla))
+
+
+def _cabeceras_crudas_en(matriz: list[list[str]], ancla: Ancla) -> list[str]:
     if ancla.fila >= len(matriz):
         return []
     fila = matriz[ancla.fila][ancla.columna:]
-    return _cabeceras_unicas([texto_celda(c) for c in _recortar_cola_vacia(fila)])
+    return _cabeceras_base([texto_celda(c) for c in _recortar_cola_vacia(fila)])
 
 
 _ENTERO_CON_DECIMAL_CERO = re.compile(r"[+-]?\d+\.0+")
@@ -206,17 +212,48 @@ def _sin_notacion_cientifica(texto: str) -> str:
         return texto
 
 
-def _cabeceras_unicas(cabeceras: list[str]) -> list[str]:
-    vistas: dict[str, int] = {}
+def _cabeceras_base(cabeceras: list[str]) -> list[str]:
+    return [
+        bruta.strip() or f"Columna_{indice + 1}"
+        for indice, bruta in enumerate(cabeceras)
+    ]
+
+
+def _numerar_repetidas(bases: list[str]) -> list[str]:
+    from app.ingest.normalize import norm_header
+
+    total: dict[str, int] = {}
+    for base in bases:
+        clave = norm_header(base)
+        total[clave] = total.get(clave, 0) + 1
+
+    orden: dict[str, int] = {}
     salida: list[str] = []
-    for indice, bruta in enumerate(cabeceras):
-        nombre = bruta.strip() or f"Columna_{indice + 1}"
-        if nombre in vistas:
-            vistas[nombre] += 1
-            nombre = f"{nombre}.{vistas[nombre]}"
+    for base in bases:
+        clave = norm_header(base)
+        if total[clave] == 1:
+            nombre = base
         else:
-            vistas[nombre] = 0
+            orden[clave] = orden.get(clave, 0) + 1
+            nombre = f"{base}{orden[clave]}"
         salida.append(nombre)
+
+    return _resolver_colisiones(salida)
+
+
+def _resolver_colisiones(nombres: list[str]) -> list[str]:
+    from app.ingest.normalize import norm_header
+
+    usados: set[str] = set()
+    salida: list[str] = []
+    for nombre in nombres:
+        candidato = nombre
+        sufijo = 1
+        while norm_header(candidato) in usados:
+            sufijo += 1
+            candidato = f"{nombre}_{sufijo}"
+        usados.add(norm_header(candidato))
+        salida.append(candidato)
     return salida
 
 
@@ -235,7 +272,8 @@ def _hoja_principal(libro):
 
 
 def _desde_matriz(matriz: list[list[str]], ancla: Ancla) -> pd.DataFrame:
-    cabeceras = _cabeceras_en(matriz, ancla)
+    bases = _cabeceras_crudas_en(matriz, ancla)
+    cabeceras = _numerar_repetidas(bases)
     if not cabeceras:
         raise ErrorDeLectura("El archivo no tiene cabecera.")
 
@@ -248,7 +286,9 @@ def _desde_matriz(matriz: list[list[str]], ancla: Ancla) -> pd.DataFrame:
         if any(c.strip() for c in celdas):
             datos.append(celdas)
 
-    return pd.DataFrame(datos, columns=cabeceras, dtype=object)
+    df = pd.DataFrame(datos, columns=cabeceras, dtype=object)
+    df.attrs[BASES] = dict(zip(cabeceras, bases))
+    return df
 
 
 def leer_como_texto(
@@ -263,20 +303,27 @@ def leer_como_texto(
         raise ErrorDeLectura(f"El archivo está vacío: {path.name}")
 
     df = _desde_matriz(matriz, _ancla(matriz, esperadas))
+    bases = df.attrs.get(BASES, {})
     df.columns = [str(c) for c in df.columns]
     df = df.map(texto_celda) if hasattr(df, "map") else df.applymap(texto_celda)
+    df.attrs[BASES] = bases
     return df
 
 
 def leer_cabeceras(
-    path: str | Path, esperadas: list[str] | None = None
+    path: str | Path, esperadas: list[str] | None = None,
+    numerar: bool = True,
 ) -> list[str]:
     path = Path(path)
     matriz = matriz_cruda(path, limite=MAX_FILAS)
     if not matriz:
         raise ErrorDeLectura(f"El archivo no tiene cabecera: {path.name}")
 
-    cabeceras = _cabeceras_en(matriz, _ancla(matriz, esperadas))
+    ancla = _ancla(matriz, esperadas)
+    cabeceras = (
+        _cabeceras_en(matriz, ancla) if numerar
+        else _cabeceras_crudas_en(matriz, ancla)
+    )
     if not cabeceras:
         raise ErrorDeLectura(f"El archivo no tiene cabecera: {path.name}")
     return cabeceras
