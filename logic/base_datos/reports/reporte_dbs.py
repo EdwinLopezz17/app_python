@@ -39,11 +39,10 @@ def _rows_vida(fecha_ref: date, dni_user_srv:DNIUserService, ad_srv:ADService,
         username = db_vida.username
 
         dni_user_info = dni_user_srv.get_by_username(username)
-
-        ad_user_pps = ad_srv.get_by_username_and_origen(username, "PPS")
-        ad_user_vida = ad_srv.get_by_username_and_origen(username, "PVIDA")
-
         dni = dni_user_info.dni if dni_user_info else None
+
+        ad_user_pps = ad_srv.get_by_dni_and_origen(dni, "PPS")
+        ad_user_vida = ad_srv.get_by_dni_and_origen(dni, "PVIDA")
 
         gdh_user = gdh_srv.get_by_dni(dni) if dni else None
         ticket_cese = ticket_srv.get_by_dni(dni) if dni else None
@@ -147,11 +146,10 @@ def _rows_generales(fecha_ref: date, dni_user_srv: DNIUserService, ad_srv: ADSer
         username = db_gen.username
 
         dni_user_info = dni_user_srv.get_by_username(username)
-
-        ad_user_pps = ad_srv.get_by_username_and_origen(username, "PPS")
-        ad_user_vida = ad_srv.get_by_username_and_origen(username, "PVIDA")
-
         dni = dni_user_info.dni if dni_user_info else None
+
+        ad_user_pps = ad_srv.get_by_dni_and_origen(dni, "PPS")
+        ad_user_vida = ad_srv.get_by_dni_and_origen(dni, "PVIDA")
 
         gdh_user = gdh_srv.get_by_dni(dni) if dni else None
         ticket_cese = ticket_srv.get_by_dni(dni) if dni else None
