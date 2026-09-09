@@ -388,7 +388,7 @@ class ResumenView(QWidget):
             ("Total hallazgos", resumen.total_hallazgos),
         ])
 
-        cabeceras = ["Hoja", "Escenario", "N°", "GDH", "ACCESOS"]
+        cabeceras = ["Hoja", "Escenario", "N°", "GDH", "ACCESOS", "OWNER"]
         self.tabla.setColumnCount(len(cabeceras))
         self.tabla.setHorizontalHeaderLabels(cabeceras)
         self.tabla.setRowCount(len(resumen.filas) + 1)
@@ -399,6 +399,7 @@ class ResumenView(QWidget):
             self._celda(indice, 2, fila.total, numero=True)
             self._celda(indice, 3, fila.gdh, numero=True)
             self._celda(indice, 4, fila.accesos, numero=True)
+            self._celda(indice, 5, fila.owner, numero=True)
 
         ultima = len(resumen.filas)
         self._celda(ultima, 0, "TOTAL", negrita=True)
@@ -406,6 +407,7 @@ class ResumenView(QWidget):
         self._celda(ultima, 2, resumen.total_hallazgos, numero=True, negrita=True)
         self._celda(ultima, 3, resumen.total_gdh, numero=True, negrita=True)
         self._celda(ultima, 4, resumen.total_accesos, numero=True, negrita=True)
+        self._celda(ultima, 5, resumen.total_owner, numero=True, negrita=True)
 
     def _preview_por_poblacion(self) -> None:
         poblacion = self.config.poblacion
@@ -458,7 +460,7 @@ class ResumenView(QWidget):
             posiciones.append(len(cabeceras))
             cabeceras.append(f"H{indice} N°")
             if escenario.reporta_responsable:
-                cabeceras += [f"H{indice} GDH", f"H{indice} ACC"]
+                cabeceras += [f"H{indice} GDH", f"H{indice} ACC", f"H{indice} OWN"]
         self.tabla.setColumnCount(len(cabeceras))
         self.tabla.setHorizontalHeaderLabels(cabeceras)
         self.tabla.setRowCount(len(resumen.filas) + 1)
@@ -471,6 +473,7 @@ class ResumenView(QWidget):
                 if escenario.reporta_responsable:
                     self._celda(indice, base + 1, fila.gdh(escenario.code), True, negrita)
                     self._celda(indice, base + 2, fila.accesos(escenario.code), True, negrita)
+                    self._celda(indice, base + 3, fila.owner(escenario.code), True, negrita)
 
         for indice, fila in enumerate(resumen.filas):
             escribir(indice, fila, False)

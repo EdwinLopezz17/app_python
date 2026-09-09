@@ -200,11 +200,18 @@ def tiene_accesos(valor: Any) -> bool:
     return "ACCESO" in _norm(valor)
 
 
+def tiene_owner(valor: Any) -> bool:
+    return "OWNER" in _norm(valor)
+
+
+_PRUEBAS = {"GDH": tiene_gdh, "ACCESOS": tiene_accesos, "OWNER": tiene_owner}
+
+
 def contar_por_responsable(
-    filas: Sequence[dict], responsable: Literal["GDH", "ACCESOS"],
+    filas: Sequence[dict], responsable: Literal["GDH", "ACCESOS", "OWNER"],
     campo: str = CAMPO_RESPONSABLE,
 ) -> int:
-    prueba = tiene_gdh if responsable == "GDH" else tiene_accesos
+    prueba = _PRUEBAS[responsable]
     return sum(1 for f in filas if prueba(f.get(campo)))
 
 
@@ -224,6 +231,7 @@ class FilaEscenario:
     total: int
     gdh: int
     accesos: int
+    owner: int
 
 
 @dataclass
@@ -239,6 +247,10 @@ class ResumenEscenarios:
     @property
     def total_accesos(self) -> int:
         return sum(f.accesos for f in self.filas)
+
+    @property
+    def total_owner(self) -> int:
+        return sum(f.owner for f in self.filas)
 
     @property
     def escenarios_con_datos(self) -> int:
@@ -257,6 +269,7 @@ def por_escenario(
             total=len(alcance),
             gdh=contar_por_responsable(alcance, "GDH", escenario.campo_responsable),
             accesos=contar_por_responsable(alcance, "ACCESOS", escenario.campo_responsable),
+            owner=contar_por_responsable(alcance, "OWNER", escenario.campo_responsable),
         ))
 
     return ResumenEscenarios(
@@ -266,20 +279,26 @@ def por_escenario(
     )
 
 
+VACIO = (0, 0, 0, 0)
+
+
 @dataclass
 class FilaGrupo:
     grupo: str
 
-    conteos: dict[str, tuple[int, int, int]] = field(default_factory=dict)
+    conteos: dict[str, tuple[int, int, int, int]] = field(default_factory=dict)
 
     def total(self, code: str) -> int:
-        return self.conteos.get(code, (0, 0, 0))[0]
+        return self.conteos.get(code, VACIO)[0]
 
     def gdh(self, code: str) -> int:
-        return self.conteos.get(code, (0, 0, 0))[1]
+        return self.conteos.get(code, VACIO)[1]
 
     def accesos(self, code: str) -> int:
-        return self.conteos.get(code, (0, 0, 0))[2]
+        return self.conteos.get(code, VACIO)[2]
+
+    def owner(self, code: str) -> int:
+        return self.conteos.get(code, VACIO)[3]
 
 
 @dataclass
@@ -316,12 +335,13 @@ def por_grupo(
         for escenario in escenarios:
             if not escenario.cumple(fila):
                 continue
-            total, gdh, accesos = destino.conteos.get(escenario.code, (0, 0, 0))
+            total, gdh, accesos, owner = destino.conteos.get(escenario.code, VACIO)
             responsable = fila.get(escenario.campo_responsable)
             destino.conteos[escenario.code] = (
                 total + 1,
                 gdh + (1 if tiene_gdh(responsable) else 0),
                 accesos + (1 if tiene_accesos(responsable) else 0),
+                owner + (1 if tiene_owner(responsable) else 0),
             )
 
     ordenadas = sorted(acumulado.values(), key=lambda f: _clave_orden(f.grupo))
@@ -332,6 +352,7 @@ def por_grupo(
             sum(f.total(code) for f in ordenadas),
             sum(f.gdh(code) for f in ordenadas),
             sum(f.accesos(code) for f in ordenadas),
+            sum(f.owner(code) for f in ordenadas),
         )
 
     return ResumenGrupos(
