@@ -53,9 +53,13 @@ class TicketInfoService():
                 if not dni_cesado or dni_cesado == 'NAN': 
                     continue
 
+                numero_ticket = str(row.get('NÚMERO2', '')).strip() or str(row.get('NUMERO2', '')).strip()
+                if not numero_ticket or numero_ticket.upper() == 'NAN':
+                    numero_ticket = str(row.get('NÚMERO', '')).strip() or str(row.get('NUMERO', '')).strip()
+
                 self._cache[dni_cesado] = TicketInfo(
                     elemento=str(row.get('ELEMENTO', '')).strip(),
-                    numero_ticket=str(row.get('NÚMERO2', '')).strip(),
+                    numero_ticket=numero_ticket,
                     fecha_cierre=str(row.get('CERRADO', '')).strip(),
                     dni_cesado=dni_cesado,
                     fecha_creacion=str(row.get('CREADO', '')).strip()
