@@ -171,7 +171,7 @@ def _rows_generales(fecha_ref: date, dni_user_srv: DNIUserService, ad_srv: ADSer
                 escenarios.append("Cesado Activo Ticket")
                 ces_act = True
 
-        if gdh_user and not db_gen.isActive:
+        if gdh_user:
             if db_gen.fecha_bloqueo and gdh_user.fecha_cese:
                 same_month = gdh_user.fecha_cese.month == fecha_ref.month
                 same_year = gdh_user.fecha_cese.year == fecha_ref.year
