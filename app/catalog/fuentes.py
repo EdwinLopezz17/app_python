@@ -57,14 +57,14 @@ def _reg(f: Fuente) -> Fuente:
     FUENTES[f.id] = f
     return f
 
-
-_reg(Fuente("dni-vs-usuarios", "DNI vs Usuarios", OTROS_REPORTES,
-            _one(FileName.DNI_VS_USUARIOS, C.DNI_VS_USUARIOS)))
-
 _reg(Fuente("gdh", "GDH Activos y Cesados", OTROS_REPORTES, [
     Slot(FileName.ACTIVOS_GDH, C.GDH_ACTIVOS, label="Activos GDH"),
     Slot(FileName.CESADOS_GDH, C.GDH_CESADOS, label="Cesados GDH"),
 ]))
+
+_reg(Fuente("dni-vs-usuarios", "DNI vs Usuarios", OTROS_REPORTES,
+            _one(FileName.DNI_VS_USUARIOS, C.DNI_VS_USUARIOS)))
+
 
 #_reg(Fuente("ad", "Active Directory", OTROS_REPORTES, [
 #    Slot(FileName.AD_PPS, C.AD, label="AD PPS"),

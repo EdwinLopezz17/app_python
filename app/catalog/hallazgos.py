@@ -45,7 +45,7 @@ class Hallazgo:
         return [s for f in self.fuentes_opcionales for s in f.slots]
 
 
-_BASE = ["dni-vs-usuarios", "gdh", "ad", "tickets-ceses"]
+_BASE = ["gdh", "dni-vs-usuarios", "ad", "tickets-ceses"]
 
 
 HALLAZGOS: list[Hallazgo] = [
@@ -57,7 +57,7 @@ HALLAZGOS: list[Hallazgo] = [
         modelo="AppRows",
         descripcion="Accesos de usuarios en las aplicaciones del alcance.",
         fuente_ids=[
-            "dni-vs-usuarios", "gdh", "entra-id", "ad", "tickets-ceses",
+            "gdh", "dni-vs-usuarios", "entra-id", "ad", "tickets-ceses",
             "app-login", "cgweb", "acselx", "billing-center", "claim-center",
             "contact-manager", "policycenter", "eas", "exactus", "onbase",
             "pms", "segcen", "sox-vida", "prophet", "botmaker", "salesforce",
@@ -74,7 +74,7 @@ HALLAZGOS: list[Hallazgo] = [
         cert_label="Certificación de Usuarios",
         modelo="ADRows",
         descripcion="Cuentas de Active Directory contrastadas con GDH y ceses.",
-        fuente_ids=["dni-vs-usuarios", "gdh", "entra-id", "ad", "tickets-ceses"],
+        fuente_ids=["gdh", "dni-vs-usuarios", "entra-id", "ad", "tickets-ceses"],
     ),
 
     Hallazgo(
@@ -106,7 +106,7 @@ HALLAZGOS: list[Hallazgo] = [
         modelo="ProfileRows",
         descripcion="Perfiles y roles asignados contrastados con la Matriz de Roles.",
         fuente_ids=[
-            "dni-vs-usuarios", "matriz-roles", "rol-ticket", "gdh", "ad",
+            "gdh", "dni-vs-usuarios", "matriz-roles", "rol-ticket", "ad",
             "entra-id",
             "acselx", "onbase", "sox-vida", "eas", "billing-center",
             "claim-center", "contact-manager", "policycenter", "prophet",
@@ -114,7 +114,7 @@ HALLAZGOS: list[Hallazgo] = [
             "botmaker",
         ],
         requeridas=[
-            "dni-vs-usuarios", "matriz-roles", "rol-ticket", "gdh", "ad",
+            "gdh", "dni-vs-usuarios", "matriz-roles", "rol-ticket", "ad",
             "entra-id",
         ],
     ),
@@ -125,7 +125,7 @@ HALLAZGOS: list[Hallazgo] = [
         cert_label="Certificación de Perfiles",
         modelo="GDHRows",
         descripcion="Colaboradores activos en GDH y su correspondencia de roles.",
-        fuente_ids=["dni-vs-usuarios", "matriz-roles", "gdh", "ad", "entra-id"],
+        fuente_ids=["gdh", "dni-vs-usuarios", "matriz-roles", "ad", "entra-id"],
     ),
 
     Hallazgo(
