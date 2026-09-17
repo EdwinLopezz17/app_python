@@ -47,4 +47,5 @@ class ProfileRows:
     val_final: str
     escenario: str
     responsable: str
+    ticket:str
     comentario: str
