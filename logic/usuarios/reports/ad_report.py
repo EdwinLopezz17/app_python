@@ -108,6 +108,7 @@ def get_ad_report(fecha_ref: date)-> list[ADRows]:
                 ticket_cese=ticket_cese.numero_ticket if ticket_cese else "",
                 fecha_cierre_ticket_cese=ticket_cese.fecha_cierre if ticket_cese else "",
                 escenario=escenarios_str,
+                correo="",
                 is_cesado_activo=ces_act,
                 is_login_post_cese=postcese,
                 is_no_identificado=no_ident,

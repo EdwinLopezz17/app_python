@@ -336,6 +336,7 @@ def _construir_fila_reporte(
         ticket_cese=ticket_cese.numero_ticket if ticket_cese else "",
         fecha_cierre_ticket_cese=ticket_cese.fecha_cierre if ticket_cese else "",
         escenario=escenario_val,
+        correo="",
         is_cesado_activo=ces_act,
         is_no_identificado=no_ident,
     )

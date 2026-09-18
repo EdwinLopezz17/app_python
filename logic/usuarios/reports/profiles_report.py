@@ -154,7 +154,7 @@ def _construir_fila_reporte(app_name: str, tipo_app:str, usuario: str, perfil_ro
         val_final="",
         escenario="",
         responsable="",
-        ticket="",
+        ticket_manual="",
         comentario=""
     )
 

@@ -27,6 +27,7 @@ class DBGeneralsRow:
     ticket_cese: str
     fecha_cierre_ticket_cese: str
     escenario: str
+    correo: str
     is_cesado_activo: bool
     is_login_post_cese: bool
     is_no_identificado: bool

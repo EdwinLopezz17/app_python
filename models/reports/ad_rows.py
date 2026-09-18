@@ -35,6 +35,7 @@ class ADRows:
     ticket_cese: str
     fecha_cierre_ticket_cese: datetime
     escenario: str
+    correo: str
     is_cesado_activo: bool
     is_login_post_cese: bool
     is_no_identificado: bool
