@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from app.catalog import hallazgo_columns as cols
 from app.resumen.engine import (
+    RESPONSABLES_PERFILES,
     BloquePoblacion,
     ConfigPoblacion,
     ConfigResumen,
+    Escenario,
     Filtro,
     Metrica,
 )
@@ -65,7 +68,27 @@ POBLACION_ACTIVOS_GDH = ConfigPoblacion(
     ),
 )
 
+ESCENARIOS_PERFILES: tuple[Escenario, ...] = (
+    Escenario(
+        code="H1_PERFILES",
+        title="Perfiles no conformes con la Matriz de Roles (Validación Inicial)",
+        filtros=(Filtro("val_inicial", "contiene", "INCORRECTO"),),
+        columnas=tuple(cols.etiquetas("ProfileRows")),
+    ),
+)
+
+
 CONFIGS: dict[str, ConfigResumen] = {
+    "perfiles": ConfigResumen(
+        hallazgo_id="perfiles",
+        modelo="ProfileRows",
+        escenarios=ESCENARIOS_PERFILES,
+        archivo="Resumen_Perfiles.xlsx",
+        titulo="PERFILES - CERTIFICACIÓN DE PERFILES",
+        campo_grupo="aplicacion",
+        etiqueta_grupo="Aplicación",
+        responsables=RESPONSABLES_PERFILES,
+    ),
     "activos-gdh": ConfigResumen(
         hallazgo_id="activos-gdh",
         modelo="GDHRows",

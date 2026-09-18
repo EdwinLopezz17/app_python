@@ -381,14 +381,19 @@ class ResumenView(QWidget):
             self._ajustar_anchos()
 
     def _preview_por_escenario(self) -> None:
-        resumen = engine.por_escenario(self._filas, self.config.escenarios)
+        responsables = list(self.config.responsables)
+        resumen = engine.por_escenario(
+            self._filas, self.config.escenarios, responsables
+        )
         self._pintar_kpis([
             ("Registros leídos", resumen.total_registros),
             ("Escenarios con datos", resumen.escenarios_con_datos),
             ("Total hallazgos", resumen.total_hallazgos),
         ])
 
-        cabeceras = ["Hoja", "Escenario", "N°", "GDH", "ACCESOS", "OWNER"]
+        cabeceras = ["Hoja", "Escenario", "N°"] + [
+            r.label.replace("Hallazgos ", "") for r in responsables
+        ]
         self.tabla.setColumnCount(len(cabeceras))
         self.tabla.setHorizontalHeaderLabels(cabeceras)
         self.tabla.setRowCount(len(resumen.filas) + 1)
@@ -397,17 +402,16 @@ class ResumenView(QWidget):
             self._celda(indice, 0, fila.code)
             self._celda(indice, 1, fila.title)
             self._celda(indice, 2, fila.total, numero=True)
-            self._celda(indice, 3, fila.gdh, numero=True)
-            self._celda(indice, 4, fila.accesos, numero=True)
-            self._celda(indice, 5, fila.owner, numero=True)
+            for pos, responsable in enumerate(responsables):
+                self._celda(indice, 3 + pos, fila.conteo(responsable.id), numero=True)
 
         ultima = len(resumen.filas)
         self._celda(ultima, 0, "TOTAL", negrita=True)
         self._celda(ultima, 1, "", negrita=True)
         self._celda(ultima, 2, resumen.total_hallazgos, numero=True, negrita=True)
-        self._celda(ultima, 3, resumen.total_gdh, numero=True, negrita=True)
-        self._celda(ultima, 4, resumen.total_accesos, numero=True, negrita=True)
-        self._celda(ultima, 5, resumen.total_owner, numero=True, negrita=True)
+        for pos, responsable in enumerate(responsables):
+            self._celda(ultima, 3 + pos, resumen.total_de(responsable.id),
+                        numero=True, negrita=True)
 
     def _preview_por_poblacion(self) -> None:
         poblacion = self.config.poblacion
@@ -446,7 +450,10 @@ class ResumenView(QWidget):
 
     def _preview_por_grupo(self) -> None:
         escenarios = list(self.config.escenarios)
-        resumen = engine.por_grupo(self._filas, escenarios, self.config.campo_grupo or "")
+        responsables = list(self.config.responsables)
+        resumen = engine.por_grupo(
+            self._filas, escenarios, self.config.campo_grupo or "", responsables
+        )
 
         self._pintar_kpis(
             [(self.config.etiqueta_grupo or "Grupos", len(resumen.filas))]
@@ -460,7 +467,9 @@ class ResumenView(QWidget):
             posiciones.append(len(cabeceras))
             cabeceras.append(f"H{indice} N°")
             if escenario.reporta_responsable:
-                cabeceras += [f"H{indice} GDH", f"H{indice} ACC", f"H{indice} OWN"]
+                cabeceras += [
+                    f"H{indice} {r.id.upper()[:4]}" for r in responsables
+                ]
         self.tabla.setColumnCount(len(cabeceras))
         self.tabla.setHorizontalHeaderLabels(cabeceras)
         self.tabla.setRowCount(len(resumen.filas) + 1)
@@ -471,9 +480,10 @@ class ResumenView(QWidget):
                 base = posiciones[pos]
                 self._celda(indice, base, fila.total(escenario.code), True, negrita)
                 if escenario.reporta_responsable:
-                    self._celda(indice, base + 1, fila.gdh(escenario.code), True, negrita)
-                    self._celda(indice, base + 2, fila.accesos(escenario.code), True, negrita)
-                    self._celda(indice, base + 3, fila.owner(escenario.code), True, negrita)
+                    for salto, responsable in enumerate(responsables, start=1):
+                        self._celda(indice, base + salto,
+                                    fila.conteo(escenario.code, responsable.id),
+                                    True, negrita)
 
         for indice, fila in enumerate(resumen.filas):
             escribir(indice, fila, False)

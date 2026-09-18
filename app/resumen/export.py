@@ -139,21 +139,23 @@ def _hoja_por_escenario(
     filas: Sequence[dict],
 ) -> list[tuple[Escenario, list[dict]]]:
     hoja = libro.add_worksheet("Escenarios")
+    n_resp = len(config.responsables)
+    col_enlace = 2 + n_resp
+    col_comentario = col_enlace + 1
     hoja.set_column(0, 0, 46)
-    hoja.set_column(1, 4, 18)
-    hoja.set_column(5, 5, 14)
-    hoja.set_column(6, 6, 38)
+    hoja.set_column(1, 1 + n_resp, 18)
+    hoja.set_column(col_enlace, col_enlace, 14)
+    hoja.set_column(col_comentario, col_comentario, 38)
 
     titulo = fmt.cabecera(colors.PRIMARY)
-    hoja.merge_range(1, 1, 1, 5, config.titulo, titulo)
-    hoja.merge_range(2, 1, 2, 5, "VIDA-PPS", fmt.cabecera(colors.INVERSE_SURFACE))
+    hoja.merge_range(1, 1, 1, col_enlace, config.titulo, titulo)
+    hoja.merge_range(2, 1, 2, col_enlace, "VIDA-PPS", fmt.cabecera(colors.INVERSE_SURFACE))
 
+    responsables = list(config.responsables)
     cabeceras = [
         ("Escenarios de monitoreo", colors.PRIMARY),
         ("N° Hallazgos", colors.OUTLINE),
-        ("Hallazgos GDH", colors.OUTLINE),
-        ("Hallazgos ACCESOS", colors.OUTLINE),
-        ("Hallazgos OWNER", colors.OUTLINE),
+        *[(r.label, colors.OUTLINE) for r in responsables],
         ("Hallazgos", colors.INVERSE_SURFACE),
         ("Comentario", colors.OUTLINE),
     ]
@@ -169,32 +171,25 @@ def _hoja_por_escenario(
 
         hoja.write(fila_excel, 0, escenario.title, fmt.resumen_izq)
         hoja.write_number(fila_excel, 1, total, fmt.resumen)
-        hoja.write_number(
-            fila_excel, 2,
-            engine.contar_por_responsable(alcance, "GDH", escenario.campo_responsable),
-            fmt.resumen,
-        )
-        hoja.write_number(
-            fila_excel, 3,
-            engine.contar_por_responsable(alcance, "ACCESOS", escenario.campo_responsable),
-            fmt.resumen,
-        )
-        hoja.write_number(
-            fila_excel, 4,
-            engine.contar_por_responsable(alcance, "OWNER", escenario.campo_responsable),
-            fmt.resumen,
-        )
+        for indice, responsable in enumerate(responsables):
+            hoja.write_number(
+                fila_excel, 2 + indice,
+                engine.contar_por_responsable(
+                    alcance, responsable, escenario.campo_responsable
+                ),
+                fmt.resumen,
+            )
 
         if total:
             hoja.write_url(
-                fila_excel, 5, f"internal:'{escenario.code}'!A1",
+                fila_excel, col_enlace, f"internal:'{escenario.code}'!A1",
                 fmt.enlace, escenario.code,
             )
             detalles.append((escenario, alcance))
         else:
-            hoja.write(fila_excel, 5, escenario.code, fmt.resumen)
+            hoja.write(fila_excel, col_enlace, escenario.code, fmt.resumen)
 
-        hoja.write(fila_excel, 6, "", fmt.resumen)
+        hoja.write(fila_excel, col_comentario, "", fmt.resumen)
         fila_excel += 1
 
     hoja.freeze_panes(4, 0)
@@ -207,9 +202,13 @@ def _hoja_por_grupo(
 ) -> list[tuple[Escenario, list[dict]]]:
     hoja = libro.add_worksheet("Escenarios")
     escenarios = list(config.escenarios)
-    resumen = engine.por_grupo(filas, escenarios, config.campo_grupo or "")
+    responsables = list(config.responsables)
+    resumen = engine.por_grupo(
+        filas, escenarios, config.campo_grupo or "", responsables
+    )
 
-    anchos = [4 if e.reporta_responsable else 1 for e in escenarios]
+    ancho_resp = 1 + len(responsables)
+    anchos = [ancho_resp if e.reporta_responsable else 1 for e in escenarios]
     inicios: list[int] = []
     acumulado = 0
     for ancho in anchos:
@@ -253,7 +252,7 @@ def _hoja_por_grupo(
     for indice, escenario in enumerate(escenarios):
         relleno = rellenos[indice % len(rellenos)]
         subcabeceras = (
-            ["N° Hallazgos", "Hallazgos GDH", "Hallazgos ACCESOS", "Hallazgos OWNER"]
+            ["N° Hallazgos", *[r.label for r in responsables]]
             if escenario.reporta_responsable else ["N° Hallazgos"]
         )
         for desplazamiento, texto in enumerate(subcabeceras):
@@ -270,9 +269,11 @@ def _hoja_por_grupo(
             base = primera + 1 + inicios[indice]
             hoja.write_number(fila_excel, base, fila.total(escenario.code), formato)
             if escenario.reporta_responsable:
-                hoja.write_number(fila_excel, base + 1, fila.gdh(escenario.code), formato)
-                hoja.write_number(fila_excel, base + 2, fila.accesos(escenario.code), formato)
-                hoja.write_number(fila_excel, base + 3, fila.owner(escenario.code), formato)
+                for desplazamiento, responsable in enumerate(responsables, start=1):
+                    hoja.write_number(
+                        fila_excel, base + desplazamiento,
+                        fila.conteo(escenario.code, responsable.id), formato,
+                    )
         hoja.write(fila_excel, primera + total_cols + 1, "", formato)
 
     fila_excel = 6

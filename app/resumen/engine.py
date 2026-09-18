@@ -70,6 +70,35 @@ CAMPO_COMENTARIO = "comentario"
 
 
 @dataclass(frozen=True)
+class Responsable:
+    """Un responsable al que se le imputa un hallazgo.
+
+    ``patron`` se busca como substring dentro del campo responsable de la fila,
+    ya normalizado a mayusculas. Esto permite que un valor combinado como
+    "Matriz de Roles | Accesos" sume 1 a cada responsable.
+    """
+
+    id: str
+    label: str
+    patron: str
+
+    def cumple(self, valor: Any) -> bool:
+        return self.patron in _norm(valor)
+
+
+RESPONSABLES_USUARIOS: tuple[Responsable, ...] = (
+    Responsable("gdh", "Hallazgos GDH", "GDH"),
+    Responsable("accesos", "Hallazgos ACCESOS", "ACCESO"),
+    Responsable("owner", "Hallazgos OWNER", "OWNER"),
+)
+
+RESPONSABLES_PERFILES: tuple[Responsable, ...] = (
+    Responsable("matriz", "Hallazgos MATRIZ DE ROLES", "MATRIZ"),
+    Responsable("accesos", "Hallazgos ACCESOS", "ACCESO"),
+)
+
+
+@dataclass(frozen=True)
 class Escenario:
     code: str
     title: str
@@ -156,6 +185,8 @@ class ConfigResumen:
 
     columnas_accion: tuple[str, ...] = ()
 
+    responsables: tuple[Responsable, ...] = RESPONSABLES_USUARIOS
+
     @property
     def modo(self) -> ModoResumen:
         if self.poblacion is not None:
@@ -192,27 +223,11 @@ def escenarios_sin_campo(
     }
 
 
-def tiene_gdh(valor: Any) -> bool:
-    return "GDH" in _norm(valor)
-
-
-def tiene_accesos(valor: Any) -> bool:
-    return "ACCESO" in _norm(valor)
-
-
-def tiene_owner(valor: Any) -> bool:
-    return "OWNER" in _norm(valor)
-
-
-_PRUEBAS = {"GDH": tiene_gdh, "ACCESOS": tiene_accesos, "OWNER": tiene_owner}
-
-
 def contar_por_responsable(
-    filas: Sequence[dict], responsable: Literal["GDH", "ACCESOS", "OWNER"],
+    filas: Sequence[dict], responsable: Responsable,
     campo: str = CAMPO_RESPONSABLE,
 ) -> int:
-    prueba = _PRUEBAS[responsable]
-    return sum(1 for f in filas if prueba(f.get(campo)))
+    return sum(1 for f in filas if responsable.cumple(f.get(campo)))
 
 
 def juntar_comentarios(filas: Sequence[dict], campo: str = CAMPO_COMENTARIO) -> str:
@@ -229,9 +244,10 @@ class FilaEscenario:
     code: str
     title: str
     total: int
-    gdh: int
-    accesos: int
-    owner: int
+    conteos: dict[str, int] = field(default_factory=dict)
+
+    def conteo(self, responsable_id: str) -> int:
+        return self.conteos.get(responsable_id, 0)
 
 
 @dataclass
@@ -240,17 +256,8 @@ class ResumenEscenarios:
     total_registros: int
     total_hallazgos: int
 
-    @property
-    def total_gdh(self) -> int:
-        return sum(f.gdh for f in self.filas)
-
-    @property
-    def total_accesos(self) -> int:
-        return sum(f.accesos for f in self.filas)
-
-    @property
-    def total_owner(self) -> int:
-        return sum(f.owner for f in self.filas)
+    def total_de(self, responsable_id: str) -> int:
+        return sum(f.conteo(responsable_id) for f in self.filas)
 
     @property
     def escenarios_con_datos(self) -> int:
@@ -258,7 +265,8 @@ class ResumenEscenarios:
 
 
 def por_escenario(
-    filas: Sequence[dict], escenarios: Sequence[Escenario]
+    filas: Sequence[dict], escenarios: Sequence[Escenario],
+    responsables: Sequence[Responsable] = RESPONSABLES_USUARIOS,
 ) -> ResumenEscenarios:
     salida: list[FilaEscenario] = []
     for escenario in escenarios:
@@ -267,9 +275,10 @@ def por_escenario(
             code=escenario.code,
             title=escenario.title,
             total=len(alcance),
-            gdh=contar_por_responsable(alcance, "GDH", escenario.campo_responsable),
-            accesos=contar_por_responsable(alcance, "ACCESOS", escenario.campo_responsable),
-            owner=contar_por_responsable(alcance, "OWNER", escenario.campo_responsable),
+            conteos={
+                r.id: contar_por_responsable(alcance, r, escenario.campo_responsable)
+                for r in responsables
+            },
         ))
 
     return ResumenEscenarios(
@@ -279,26 +288,20 @@ def por_escenario(
     )
 
 
-VACIO = (0, 0, 0, 0)
-
-
 @dataclass
 class FilaGrupo:
     grupo: str
 
-    conteos: dict[str, tuple[int, int, int, int]] = field(default_factory=dict)
+    conteos: dict[str, dict[str, int]] = field(default_factory=dict)
+
+    def _celda(self, code: str) -> dict[str, int]:
+        return self.conteos.get(code, {})
 
     def total(self, code: str) -> int:
-        return self.conteos.get(code, VACIO)[0]
+        return self._celda(code).get("total", 0)
 
-    def gdh(self, code: str) -> int:
-        return self.conteos.get(code, VACIO)[1]
-
-    def accesos(self, code: str) -> int:
-        return self.conteos.get(code, VACIO)[2]
-
-    def owner(self, code: str) -> int:
-        return self.conteos.get(code, VACIO)[3]
+    def conteo(self, code: str, responsable_id: str) -> int:
+        return self._celda(code).get(responsable_id, 0)
 
 
 @dataclass
@@ -321,7 +324,8 @@ def _clave_orden(texto: str) -> str:
 
 
 def por_grupo(
-    filas: Sequence[dict], escenarios: Sequence[Escenario], campo_grupo: str
+    filas: Sequence[dict], escenarios: Sequence[Escenario], campo_grupo: str,
+    responsables: Sequence[Responsable] = RESPONSABLES_USUARIOS,
 ) -> ResumenGrupos:
     codes = [e.code for e in escenarios]
     acumulado: dict[str, FilaGrupo] = {}
@@ -335,25 +339,21 @@ def por_grupo(
         for escenario in escenarios:
             if not escenario.cumple(fila):
                 continue
-            total, gdh, accesos, owner = destino.conteos.get(escenario.code, VACIO)
-            responsable = fila.get(escenario.campo_responsable)
-            destino.conteos[escenario.code] = (
-                total + 1,
-                gdh + (1 if tiene_gdh(responsable) else 0),
-                accesos + (1 if tiene_accesos(responsable) else 0),
-                owner + (1 if tiene_owner(responsable) else 0),
-            )
+            celda = destino.conteos.setdefault(escenario.code, {})
+            celda["total"] = celda.get("total", 0) + 1
+            valor = fila.get(escenario.campo_responsable)
+            for r in responsables:
+                if r.cumple(valor):
+                    celda[r.id] = celda.get(r.id, 0) + 1
 
     ordenadas = sorted(acumulado.values(), key=lambda f: _clave_orden(f.grupo))
 
     total = FilaGrupo("TOTAL")
     for code in codes:
-        total.conteos[code] = (
-            sum(f.total(code) for f in ordenadas),
-            sum(f.gdh(code) for f in ordenadas),
-            sum(f.accesos(code) for f in ordenadas),
-            sum(f.owner(code) for f in ordenadas),
-        )
+        total.conteos[code] = {
+            "total": sum(f.total(code) for f in ordenadas),
+            **{r.id: sum(f.conteo(code, r.id) for f in ordenadas) for r in responsables},
+        }
 
     return ResumenGrupos(
         filas=ordenadas, total=total, codes=codes, total_registros=len(filas)
