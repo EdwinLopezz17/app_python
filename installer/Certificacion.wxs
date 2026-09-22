@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Certificacion.wxs : Instalador MSI (WiX Toolset v5)
+
+  Equivalente funcional de installer/setup.iss, con las mismas decisiones:
+    * Instalacion per-user en %LOCALAPPDATA%\Programs\Certificacion
+    * Carpeta de datos configurable + creacion de su estructura interna
+    * Escritura de .env con DATA_PATH en UTF-8 sin BOM
+    * Cierre de la app en curso antes de sobrescribir archivos
+
+  Los comandos de compilacion e instalacion estan en CHANGELOG.txt
+  (no se incluyen aqui porque los guiones dobles de las opciones de
+  linea de comandos no son validos dentro de un comentario XML).
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <?ifndef VersionApp ?>
+    <?define VersionApp = "1.0.0" ?>
+  <?endif?>
+
+  <?define NombreApp = "Certificacion" ?>
+  <?define NombreVisible = "Certificación" ?>
+  <?define Ejecutable = "Certificacion.exe" ?>
+
+  <Package
+      Name="$(NombreVisible)"
+      Manufacturer="Pacífico Seguros"
+      Version="$(VersionApp)"
+      UpgradeCode="8F3C1A72-5D94-4B60-9E2A-7C4B1F0D6E35"
+      Scope="perUser"
+      Compressed="yes"
+      Codepage="1252">
+
+    <SummaryInformation
+        Description="$(NombreVisible) $(VersionApp)"
+        Manufacturer="Pacífico Seguros" />
+
+    <!-- Reemplaza la version anterior en vez de instalar en paralelo.
+         Equivale al AppId fijo de Inno: misma UpgradeCode = misma app. -->
+    <MajorUpgrade
+        AllowSameVersionUpgrades="yes"
+        DowngradeErrorMessage="Ya hay una versión más reciente de $(NombreVisible) instalada." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="IconoApp" SourceFile="..\app\ui\assets\logo.ico" />
+    <Property Id="ARPPRODUCTICON" Value="IconoApp" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <!-- ==================================================================
+         CARPETA DE DATOS
+         Se puede sobrescribir en la linea de comandos:
+           msiexec /i ... DATA_PATH="D:\ruta"
+         Si no se pasa nada, usa Documentos\Certificacion\Datos.
+         ================================================================== -->
+    <Property Id="DATA_PATH" Secure="yes" />
+
+    <SetProperty Id="DATA_PATH"
+                 Value="[PersonalFolder]Certificacion\Datos"
+                 Before="CostFinalize"
+                 Sequence="both"
+                 Condition="NOT DATA_PATH" />
+
+    <!-- ==================================================================
+         CIERRE DE LA APP EN CURSO
+         Sustituye al bloque Pascal con OpenProcess/WaitForSingleObject.
+         Windows Installer detecta el archivo en uso y pide el cierre.
+         ================================================================== -->
+    <util:CloseApplication
+        Id="CerrarCertificacion"
+        Target="$(Ejecutable)"
+        CloseMessage="yes"
+        RebootPrompt="no"
+        PromptToContinue="yes"
+        Description="Cierra $(NombreVisible) para continuar con la instalación." />
+
+    <!-- ==================================================================
+         ARBOL DE DIRECTORIOS
+         ================================================================== -->
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="CarpetaProgramas" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="$(NombreApp)" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="CarpetaMenu" Name="$(NombreVisible)" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <!-- ==================================================================
+         FEATURES
+         ================================================================== -->
+    <Feature Id="Principal" Title="$(NombreVisible)" Level="1" AllowAbsent="no">
+      <ComponentGroupRef Id="ArchivosApp" />
+      <ComponentGroupRef Id="AccesosDirectos" />
+      <ComponentGroupRef Id="Registro" />
+    </Feature>
+
+    <Feature Id="AccesoEscritorio" Title="Acceso directo en el escritorio" Level="1">
+      <ComponentGroupRef Id="AccesoEscritorioCG" />
+    </Feature>
+
+    <!-- ==================================================================
+         INTERFAZ
+         WixUI_InstallDir deja cambiar la carpeta de instalacion.
+         La carpeta de DATOS no tiene pagina propia: va por property.
+         ================================================================== -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="installer\licencia.rtf" />
+
+    <!-- ==================================================================
+         ACCIONES PERSONALIZADAS
+         Crean la estructura de la carpeta de datos y escriben el .env
+         en UTF-8 sin BOM (equivalente a CrearEstructura + EscribirEnv).
+         ================================================================== -->
+    <SetProperty Id="PrepararDatos"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[INSTALLFOLDER]preparar_datos.ps1&quot; -DataPath &quot;[DATA_PATH]&quot; -InstallDir &quot;[INSTALLFOLDER]&quot;"
+                 Before="PrepararDatos"
+                 Sequence="execute" />
+
+    <CustomAction Id="PrepararDatos"
+                  DllEntry="WixQuietExec64"
+                  BinaryRef="Wix4UtilCA_X64"
+                  Execute="deferred"
+                  Impersonate="yes"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="PrepararDatos"
+              After="InstallFiles"
+              Condition="NOT REMOVE" />
+    </InstallExecuteSequence>
+
+  </Package>
+
+  <!-- ====================================================================
+       ARCHIVOS DE LA APLICACION
+       <Files Include="**"> cosecha todo el onedir de PyInstaller en
+       tiempo de compilacion. No hace falta listar los cientos de DLLs
+       de PySide6 / pandas a mano ni usar heat.exe.
+       ==================================================================== -->
+  <Fragment>
+    <ComponentGroup Id="ArchivosApp" Directory="INSTALLFOLDER">
+      <Files Include="..\dist\Certificacion\**" />
+
+      <!-- Script auxiliar de la custom action. Se instala junto a la app
+           porque las CA deferred no pueden leer de rutas temporales
+           bloqueadas por AppLocker. -->
+      <Component Id="ScriptPrepararDatos" Guid="*">
+        <File Id="preparar_datos.ps1"
+              Source="installer\preparar_datos.ps1"
+              KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- ====================================================================
+       ACCESOS DIRECTOS
+       En instalaciones per-user cada componente necesita un KeyPath en
+       HKCU; por eso cada shortcut lleva su RegistryValue asociado.
+       ==================================================================== -->
+  <Fragment>
+    <ComponentGroup Id="AccesosDirectos">
+      <Component Id="AccesoMenuInicio" Directory="CarpetaMenu" Guid="*">
+        <Shortcut Id="ShortcutMenu"
+                  Name="Certificación"
+                  Target="[INSTALLFOLDER]Certificacion.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="IconoApp" />
+        <RemoveFolder Id="LimpiarCarpetaMenu" Directory="CarpetaMenu" On="uninstall" />
+        <RegistryValue Root="HKCU"
+                       Key="Software\Pacifico\Certificacion"
+                       Name="AccesoMenu"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="AccesoEscritorioCG">
+      <Component Id="AccesoEscritorio" Directory="DesktopFolder" Guid="*">
+        <Shortcut Id="ShortcutEscritorio"
+                  Name="Certificación"
+                  Target="[INSTALLFOLDER]Certificacion.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="IconoApp" />
+        <RegistryValue Root="HKCU"
+                       Key="Software\Pacifico\Certificacion"
+                       Name="AccesoEscritorio"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- ====================================================================
+       REGISTRO
+       Guarda DATA_PATH tambien en HKCU. No lo lee la app (sigue usando
+       .env), pero sirve para diagnostico y para que un upgrade recuerde
+       la ruta elegida sin tener que volver a pasarla por linea de comandos.
+       ==================================================================== -->
+  <Fragment>
+    <ComponentGroup Id="Registro">
+      <Component Id="RegistroConfig" Directory="INSTALLFOLDER" Guid="*">
+        <RegistryKey Root="HKCU" Key="Software\Pacifico\Certificacion">
+          <RegistryValue Name="DataPath" Type="string" Value="[DATA_PATH]" KeyPath="yes" />
+          <RegistryValue Name="Version"  Type="string" Value="!(bind.packageVersion.Certificacion)" />
+        </RegistryKey>
+      </Component>
+
+      <!-- El .env lo crea la custom action, no MSI, asi que hay que
+           declararlo explicitamente para borrarlo al desinstalar
+           (equivale al [UninstallDelete] de Inno). -->
+      <Component Id="LimpiarEnv" Directory="INSTALLFOLDER" Guid="*">
+        <RemoveFile Id="BorrarEnv" Name=".env" On="uninstall" />
+        <RegistryValue Root="HKCU"
+                       Key="Software\Pacifico\Certificacion"
+                       Name="LimpiezaEnv"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+</Wix>

@@ -64,6 +64,46 @@ jobs:
           }
           & $iscc "/DVersionApp=${{ steps.ver.outputs.version }}" "installer\setup.iss"
 
+      # ==================================================================
+      # NUEVO: instalador MSI con WiX Toolset v5
+      # Se compila desde el MISMO dist/ que ya produjo PyInstaller, asi
+      # que EXE y MSI contienen exactamente los mismos binarios.
+      # ==================================================================
+      - name: Instalar WiX Toolset
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 5.*
+          wix extension add -g WixToolset.UI.wixext
+          wix extension add -g WixToolset.Util.wixext
+
+      - name: Compilar MSI
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "installer\Output" -Force | Out-Null
+          wix build "installer\Certificacion.wxs" `
+            -d VersionApp="${{ steps.ver.outputs.version }}" `
+            -arch x64 `
+            -ext WixToolset.UI.wixext `
+            -ext WixToolset.Util.wixext `
+            -o "installer\Output\Certificacion-${{ steps.ver.outputs.version }}.msi"
+
+      - name: Verificar salida de WiX
+        shell: pwsh
+        run: |
+          $msi = "installer\Output\Certificacion-${{ steps.ver.outputs.version }}.msi"
+          if (-not (Test-Path $msi)) { throw "No se genero $msi" }
+          $mb = [math]::Round((Get-Item $msi).Length / 1MB, 1)
+          Write-Host "MSI generado: $msi ($mb MB)"
+          if ($mb -lt 20) {
+            throw "El MSI pesa $mb MB; se esperaba ~65 MB. Revisa que <Files Include> este cosechando dist/."
+          }
+
+      # ==================================================================
+      # version.json: sigue apuntando al EXE.
+      # El auto-updater de la app descarga el EXE, no el MSI. El MSI es
+      # solo para despliegue centralizado. NO cambiar esto sin ajustar
+      # antes app/update/installer.py.
+      # ==================================================================
       - name: Generar version.json
         shell: pwsh
         run: |
@@ -89,6 +129,7 @@ jobs:
           generate_release_notes: true
           files: |
             installer/Output/Certificacion-Setup-${{ steps.ver.outputs.version }}.exe
+            installer/Output/Certificacion-${{ steps.ver.outputs.version }}.msi
             version.json
 
       - name: Publicar version.json en main
