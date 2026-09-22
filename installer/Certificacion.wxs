@@ -43,7 +43,6 @@
 
     <Icon Id="IconoApp" SourceFile="..\app\ui\assets\logo.ico" />
     <Property Id="ARPPRODUCTICON" Value="IconoApp" />
-    <Property Id="ARPNOMODIFY" Value="1" />
 
     <!-- ==================================================================
          CARPETA DE DATOS
