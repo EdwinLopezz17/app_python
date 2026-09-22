@@ -72,20 +72,26 @@ jobs:
       - name: Instalar WiX Toolset
         shell: pwsh
         run: |
-          dotnet tool install --global wix --version 5.*
-          wix extension add -g WixToolset.UI.wixext
-          wix extension add -g WixToolset.Util.wixext
+          dotnet tool install --global wix --version 5.0.2
+          wix extension add -g WixToolset.UI.wixext/5.0.2
+          wix extension add -g WixToolset.Util.wixext/5.0.2
+          wix --version
 
+      # Se compila DESDE installer/ para que todas las rutas de origen del
+      # .wxs (..\dist, preparar_datos.ps1, licencia.rtf) resuelvan contra
+      # un unico directorio base.
       - name: Compilar MSI
         shell: pwsh
+        working-directory: installer
         run: |
-          New-Item -ItemType Directory -Path "installer\Output" -Force | Out-Null
-          wix build "installer\Certificacion.wxs" `
+          New-Item -ItemType Directory -Path "Output" -Force | Out-Null
+          wix build "Certificacion.wxs" `
             -d VersionApp="${{ steps.ver.outputs.version }}" `
             -arch x64 `
             -ext WixToolset.UI.wixext `
             -ext WixToolset.Util.wixext `
-            -o "installer\Output\Certificacion-${{ steps.ver.outputs.version }}.msi"
+            -v `
+            -o "Output\Certificacion-${{ steps.ver.outputs.version }}.msi"
 
       - name: Verificar salida de WiX
         shell: pwsh
@@ -98,12 +104,6 @@ jobs:
             throw "El MSI pesa $mb MB; se esperaba ~65 MB. Revisa que <Files Include> este cosechando dist/."
           }
 
-      # ==================================================================
-      # version.json: sigue apuntando al EXE.
-      # El auto-updater de la app descarga el EXE, no el MSI. El MSI es
-      # solo para despliegue centralizado. NO cambiar esto sin ajustar
-      # antes app/update/installer.py.
-      # ==================================================================
       - name: Generar version.json
         shell: pwsh
         run: |
